@@ -71,8 +71,8 @@ def _get_timed_percentages(session: Session, player_ids: list[int]) -> dict[int,
     return pct_map
 
 
-def generate_lua(session: Session) -> str:
-    """Generate the full UmbraData.lua file content from the database."""
+def generate_lua(session: Session, region: str | None = None) -> str:
+    """Generate UmbraData.lua content, optionally filtered by region."""
     stmt = (
         select(PlayerScore)
         .where(PlayerScore.primary_role.is_(True))
@@ -80,6 +80,10 @@ def generate_lua(session: Session) -> str:
     )
     result = session.execute(stmt)
     scores = result.scalars().all()
+
+    # Filter by region if specified
+    if region:
+        scores = [s for s in scores if s.player.region.upper() == region.upper()]
 
     # Get timed percentages for all players
     player_ids = [s.player_id for s in scores]
@@ -95,12 +99,30 @@ def generate_lua(session: Session) -> str:
     return f"Umbra_Database = {{\n{body}\n}}\n"
 
 
-def export_lua_file(session: Session, output_path: str) -> int:
+def export_lua_file(session: Session, output_path: str, region: str | None = None) -> int:
     """Write UmbraData.lua to disk. Returns the number of players exported."""
-    content = generate_lua(session)
+    content = generate_lua(session, region)
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(content)
 
     count = content.count('grade = "')
     return count
+
+
+def export_all_regions(session: Session, output_dir: str) -> dict[str, int]:
+    """Export separate Lua files per region. Returns {region: player_count}."""
+    import os
+
+    # Get all unique regions
+    stmt = select(Player.region).distinct()
+    regions = [r[0] for r in session.execute(stmt)]
+
+    results = {}
+    for region in regions:
+        filename = f"UmbraData_{region.upper()}.lua"
+        filepath = os.path.join(output_dir, filename)
+        count = export_lua_file(session, filepath, region)
+        results[region.upper()] = count
+
+    return results

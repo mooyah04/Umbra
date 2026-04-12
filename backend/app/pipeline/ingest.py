@@ -2,6 +2,7 @@
 
 import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import select
@@ -14,6 +15,12 @@ from app.scoring.roles import get_role
 from app.wcl.client import wcl_client, WCLQueryError
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class IngestResult:
+    player: Player | None
+    groupmates: list[dict] = field(default_factory=list)  # [{name, realm, region}, ...]
 
 
 def _slug_to_realm(slug: str) -> str:
@@ -69,13 +76,39 @@ def _is_player_in_fight(player_details: dict, character_name: str) -> bool:
     return _find_player_in_details(player_details, character_name) is not None
 
 
+def _extract_groupmates(player_details: dict, exclude_name: str, region: str) -> list[dict]:
+    """Extract all players from a fight's playerDetails, excluding the target player.
+
+    Returns list of {name, realm, region} dicts for each groupmate.
+    """
+    groupmates = []
+    details = player_details.get("data", {}).get("playerDetails", {})
+    for role_group in ("dps", "tanks", "healers"):
+        for player in details.get(role_group, []):
+            pname = player.get("name", "")
+            if not pname or pname.lower() == exclude_name.lower():
+                continue
+            server = player.get("server", "")
+            player_region = player.get("region", region)
+            if server and pname:
+                groupmates.append({
+                    "name": pname,
+                    "realm": server,
+                    "region": player_region.upper() if player_region else region.upper(),
+                })
+    return groupmates
+
+
 def ingest_player(
     session: Session,
     name: str,
     realm: str,
     region: str,
-) -> Player | None:
-    """Fetch a player's M+ data from WCL, score it, and store results."""
+) -> IngestResult:
+    """Fetch a player's M+ data from WCL, score it, and store results.
+
+    Returns an IngestResult containing the Player and any discovered groupmates.
+    """
     server_slug = realm.lower().replace("'", "").replace(" ", "-")
 
     # 1. Fetch character + recent reports
@@ -87,7 +120,7 @@ def ingest_player(
     )
     if not char_data:
         logger.warning("Character not found on WCL: %s-%s (%s)", name, realm, region)
-        return None
+        return IngestResult(player=None)
 
     class_id = char_data["classID"]
     wcl_id = char_data["id"]
@@ -123,6 +156,8 @@ def ingest_player(
     }
 
     runs: list[DungeonRun] = []
+    discovered_groupmates: list[dict] = []
+    seen_groupmates: set[str] = set()
 
     for report in reports:
         report_code = report["code"]
@@ -159,6 +194,13 @@ def ingest_player(
             player_info = _find_player_in_details(player_details, name)
             if not player_info:
                 continue
+
+            # Discover groupmates from this fight
+            for gm in _extract_groupmates(player_details, name, region):
+                gm_key = f"{gm['name']}-{gm['realm']}".lower()
+                if gm_key not in seen_groupmates:
+                    seen_groupmates.add(gm_key)
+                    discovered_groupmates.append(gm)
 
             # Determine role from WCL's grouping
             role_group = player_info.get("_role_group", "dps")
@@ -344,20 +386,20 @@ def ingest_player(
 
     session.commit()
     logger.info(
-        "Ingested %s-%s: %d new runs, %d total stored, scored on %d most recent, %d role(s)",
-        name, realm, len(runs), len(all_runs), len(recent_runs), len(runs_by_role),
+        "Ingested %s-%s: %d new runs, %d total stored, scored on %d most recent, %d role(s), %d groupmates discovered",
+        name, realm, len(runs), len(all_runs), len(recent_runs), len(runs_by_role), len(discovered_groupmates),
     )
-    return player
+    return IngestResult(player=player, groupmates=discovered_groupmates)
 
 
 def ingest_batch(
     session: Session,
     players: list[dict],
-) -> list[Player]:
+) -> list[IngestResult]:
     """Ingest a batch of players sequentially."""
-    results: list[Player] = []
+    results: list[IngestResult] = []
     for p in players:
-        player = ingest_player(session, p["name"], p["realm"], p["region"])
-        if player:
-            results.append(player)
+        result = ingest_player(session, p["name"], p["realm"], p["region"])
+        if result.player:
+            results.append(result)
     return results

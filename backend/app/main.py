@@ -92,11 +92,12 @@ def get_player_score(
             )
 
     # Not cached or refresh requested — ingest from WCL
-    player = ingest_player(session, name, realm, region)
-    if not player:
+    ingest_result = ingest_player(session, name, realm, region)
+    if not ingest_result.player:
         raise HTTPException(status_code=404, detail="Character not found on Warcraft Logs")
 
     # Reload with scores
+    player = ingest_result.player
     stmt = (
         select(Player)
         .where(Player.id == player.id)
@@ -137,11 +138,15 @@ def bulk_ingest(
 
 
 @app.get("/api/export/lua", response_class=PlainTextResponse)
-def export_lua(session: Session = Depends(get_session)):
-    """Download the generated UmbraData.lua file."""
-    content = generate_lua(session)
+def export_lua(
+    region: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Download the generated UmbraData.lua file, optionally filtered by region."""
+    content = generate_lua(session, region)
+    filename = f"UmbraData_{region.upper()}.lua" if region else "UmbraData.lua"
     return PlainTextResponse(
         content=content,
         media_type="text/plain",
-        headers={"Content-Disposition": "attachment; filename=UmbraData.lua"},
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

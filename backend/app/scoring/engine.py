@@ -9,6 +9,7 @@ Key timing is a universal modifier applied to all roles equally.
 
 from dataclasses import dataclass
 from app.models import DungeonRun, Role
+from app.scoring.roles import healer_can_interrupt
 
 
 # ── Grade thresholds ────────────────────────────────────────────────────────
@@ -75,19 +76,49 @@ def _score_healing_throughput(runs: list[DungeonRun]) -> float:
     return _weighted_average(runs, lambda r: min(100, max(0, r.hps)))
 
 
-def _score_utility(runs: list[DungeonRun]) -> float:
-    """Interrupts + dispels per run, weighted by key level.
+def _score_utility_dps_tank(runs: list[DungeonRun]) -> float:
+    """Utility score for DPS and tanks: primarily interrupts.
 
     Scoring scale (per dungeon run):
     - Interrupts: 15+ = excellent, 8-14 = good, 3-7 = okay, 0-2 = poor
-    - Dispels: 5+ = excellent, 2-4 = good, 1 = okay, 0 = neutral
+    - Dispels: bonus if the class can dispel
     """
     def score_fn(run):
         interrupt_score = min(100, (run.interrupts / 15) * 100)
         if run.dispels > 0:
             dispel_score = min(100, (run.dispels / 5) * 100)
-            return interrupt_score * 0.7 + dispel_score * 0.3
+            return interrupt_score * 0.8 + dispel_score * 0.2
         return interrupt_score
+
+    return _weighted_average(runs, score_fn)
+
+
+def _score_utility_healer(runs: list[DungeonRun]) -> float:
+    """Utility score for healers: primarily dispels.
+
+    Most healer specs cannot interrupt (only Resto Shaman and Holy Paladin can).
+    Healers are scored primarily on dispels — their core utility contribution.
+    If the spec can interrupt, interrupts count as a bonus.
+    """
+    if not runs:
+        return 0
+
+    # Check if this healer spec can interrupt (use first run's spec)
+    # We need class_id which isn't on DungeonRun, so we check if they
+    # actually interrupted — if they did, they can
+    has_any_interrupts = any(r.interrupts > 0 for r in runs)
+
+    def score_fn(run):
+        # Dispels: primary metric for healers (8+ = excellent, 4 = good, 0 = poor)
+        dispel_score = min(100, (run.dispels / 8) * 100)
+
+        if has_any_interrupts:
+            # This healer can interrupt — give bonus for interrupts
+            interrupt_score = min(100, (run.interrupts / 10) * 100)
+            return dispel_score * 0.6 + interrupt_score * 0.4
+        else:
+            # This healer cannot interrupt — score purely on dispels
+            return dispel_score
 
     return _weighted_average(runs, score_fn)
 
@@ -208,12 +239,17 @@ ROLE_WEIGHTS: dict[Role, RoleWeights] = {
     ),
 }
 
-# Category name -> scorer function
+# Category name -> scorer function (role-specific overrides below)
 CATEGORY_SCORERS = {
     "damage_output": _score_damage_output,
     "healing_throughput": _score_healing_throughput,
-    "utility": _score_utility,
+    "utility": _score_utility_dps_tank,  # default for DPS/tanks
     "survivability": _score_survivability,
+}
+
+# Healer uses a different utility scorer
+HEALER_CATEGORY_OVERRIDES = {
+    "utility": _score_utility_healer,
 }
 
 
@@ -247,12 +283,17 @@ def score_player_runs(
     category_scores: dict[str, float] = {}
     composite = 0.0
 
+    # Use healer-specific scorers when applicable
+    scorers = dict(CATEGORY_SCORERS)
+    if role == Role.healer:
+        scorers.update(HEALER_CATEGORY_OVERRIDES)
+
     for category_name, weight in weights.categories.items():
         # Use zone rankings percentile for damage output if available
         if category_name == "damage_output" and zone_dps_percentile is not None:
             score = zone_dps_percentile
         else:
-            scorer = CATEGORY_SCORERS[category_name]
+            scorer = scorers[category_name]
             score = scorer(runs)
         category_scores[category_name] = round(score, 1)
         composite += score * weight

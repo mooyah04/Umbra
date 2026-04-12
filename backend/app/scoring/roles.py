@@ -66,6 +66,18 @@ SPEC_ROLE_MAP: dict[tuple[int, str], Role] = {
 }
 
 
+# Healer specs that have a baseline interrupt ability
+HEALER_SPECS_WITH_INTERRUPT: set[tuple[int, str]] = {
+    (2, "Holy"),          # Paladin - Rebuke
+    (7, "Restoration"),   # Shaman - Wind Shear
+}
+
+
 def get_role(class_id: int, spec_name: str) -> Role:
     """Look up the role for a class/spec combo. Defaults to DPS if unknown."""
     return SPEC_ROLE_MAP.get((class_id, spec_name), Role.dps)
+
+
+def healer_can_interrupt(class_id: int, spec_name: str) -> bool:
+    """Check if a healer spec has a baseline interrupt ability."""
+    return (class_id, spec_name) in HEALER_SPECS_WITH_INTERRUPT
