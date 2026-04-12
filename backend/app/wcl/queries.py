@@ -55,6 +55,8 @@ query($code: String!, $fightIDs: [Int!]!) {
       interruptTable: table(fightIDs: $fightIDs, dataType: Interrupts)
       dispelTable: table(fightIDs: $fightIDs, dataType: Dispels)
       deathTable: table(fightIDs: $fightIDs, dataType: Deaths)
+      castsTable: table(fightIDs: $fightIDs, dataType: Casts)
+      buffsTable: table(fightIDs: $fightIDs, dataType: Buffs)
     }
   }
 }

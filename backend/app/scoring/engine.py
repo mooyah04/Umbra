@@ -150,40 +150,92 @@ def _score_survivability(runs: list[DungeonRun]) -> float:
         else:
             return 0  # 5+ deaths = zero, you're griefing the key
 
-    def damage_taken_score_fn(run):
-        # For non-tanks: penalize taking excessive damage
-        # Tanks are expected to take damage, so they get a flat 75
+    def avoidable_damage_score_fn(run):
+        # Score based on avoidable damage taken (from known avoidable abilities)
+        # If we have avoidable damage data, use it; otherwise fall back to raw DTPS
+        if run.avoidable_damage_taken > 0:
+            # Ratio of avoidable to total damage taken
+            if run.damage_taken_total > 0:
+                avoidable_ratio = run.avoidable_damage_taken / run.damage_taken_total
+            else:
+                avoidable_ratio = 0
+            # 0% avoidable = 100, 10% = 70, 20% = 40, 30%+ = 10
+            return max(0, 100 - avoidable_ratio * 300)
+
+        # Fallback: use raw DTPS for non-tanks
         if run.role == Role.tank:
             return 75
 
-        # Compare DPS/healer damage taken to a reasonable threshold
-        # A DPS taking more than 30% of a tank's typical damage is concerning
-        # We use the raw damage_taken_total as a proxy
         if run.damage_taken_total <= 0:
-            return 75  # No data, neutral score
+            return 75
 
         duration_s = max(1, run.duration / 1000)
-        dtps = run.damage_taken_total / duration_s  # damage taken per second
-
-        # Benchmarks for DPS/healer DTPS in M+:
-        # Under 5k DTPS = excellent (dodging everything)
-        # 5-10k = normal (some unavoidable damage)
-        # 10-20k = concerning (eating mechanics)
-        # 20k+ = standing in fire
+        dtps = run.damage_taken_total / duration_s
         if dtps < 5000:
             return 100
         elif dtps < 10000:
-            return 80 - ((dtps - 5000) / 5000) * 20  # 80 -> 60
+            return 80 - ((dtps - 5000) / 5000) * 20
         elif dtps < 20000:
-            return 60 - ((dtps - 10000) / 10000) * 40  # 60 -> 20
+            return 60 - ((dtps - 10000) / 10000) * 40
         else:
             return max(0, 20 - ((dtps - 20000) / 10000) * 20)
 
     death_avg = _weighted_average(runs, death_score_fn)
-    dmg_taken_avg = _weighted_average(runs, damage_taken_score_fn)
+    avoidable_avg = _weighted_average(runs, avoidable_damage_score_fn)
 
-    # Combine: deaths matter most, but damage taken catches the "barely alive" players
-    return death_avg * 0.7 + dmg_taken_avg * 0.3
+    # Deaths are the primary signal, avoidable damage catches the "barely alive" players
+    return death_avg * 0.6 + avoidable_avg * 0.4
+
+
+def _score_cooldown_usage(runs: list[DungeonRun]) -> float:
+    """Score based on whether the player uses their major cooldowns.
+
+    A player who never presses their CDs is leaving massive performance
+    on the table. This directly catches the "used no cooldowns" problem.
+
+    cooldown_usage_pct is stored as 0-100 (% of expected CDs that were cast).
+    """
+    def score_fn(run):
+        # cooldown_usage_pct is already 0-100 from the pipeline
+        return min(100, max(0, run.cooldown_usage_pct))
+
+    return _weighted_average(runs, score_fn)
+
+
+def _score_casts_per_minute(runs: list[DungeonRun]) -> float:
+    """Score based on casts per minute (activity level).
+
+    Low CPM means the player is standing around not pressing buttons.
+    High CPM means they're actively playing their rotation.
+
+    Benchmarks (rough, varies by spec):
+    - 30+ CPM = excellent (always pressing something)
+    - 20-30 = good (solid activity)
+    - 15-20 = below average (gaps in rotation)
+    - Under 15 = poor (AFK or not trying)
+    """
+    def score_fn(run):
+        if run.casts_total <= 0 or run.duration <= 0:
+            return 50  # No data, neutral
+
+        duration_min = run.duration / 60000
+        if duration_min <= 0:
+            return 50
+
+        cpm = run.casts_total / duration_min
+
+        if cpm >= 35:
+            return 100
+        elif cpm >= 25:
+            return 80 + ((cpm - 25) / 10) * 20
+        elif cpm >= 18:
+            return 50 + ((cpm - 18) / 7) * 30
+        elif cpm >= 12:
+            return 20 + ((cpm - 12) / 6) * 30
+        else:
+            return max(0, cpm / 12 * 20)
+
+    return _weighted_average(runs, score_fn)
 
 
 def _timing_modifier(runs: list[DungeonRun]) -> float:
@@ -217,24 +269,30 @@ class RoleWeights:
 ROLE_WEIGHTS: dict[Role, RoleWeights] = {
     Role.dps: RoleWeights(
         categories={
-            "damage_output": 0.50,
-            "utility": 0.25,
-            "survivability": 0.25,
+            "damage_output": 0.35,
+            "utility": 0.15,
+            "survivability": 0.20,
+            "cooldown_usage": 0.15,
+            "casts_per_minute": 0.15,
         }
     ),
     Role.healer: RoleWeights(
         categories={
-            "healing_throughput": 0.35,
-            "damage_output": 0.20,
-            "utility": 0.25,
-            "survivability": 0.20,
+            "healing_throughput": 0.30,
+            "damage_output": 0.10,
+            "utility": 0.20,
+            "survivability": 0.15,
+            "cooldown_usage": 0.15,
+            "casts_per_minute": 0.10,
         }
     ),
     Role.tank: RoleWeights(
         categories={
-            "damage_output": 0.25,
-            "utility": 0.30,
-            "survivability": 0.45,
+            "damage_output": 0.15,
+            "utility": 0.20,
+            "survivability": 0.30,
+            "cooldown_usage": 0.20,
+            "casts_per_minute": 0.15,
         }
     ),
 }
@@ -245,6 +303,8 @@ CATEGORY_SCORERS = {
     "healing_throughput": _score_healing_throughput,
     "utility": _score_utility_dps_tank,  # default for DPS/tanks
     "survivability": _score_survivability,
+    "cooldown_usage": _score_cooldown_usage,
+    "casts_per_minute": _score_casts_per_minute,
 }
 
 # Healer uses a different utility scorer

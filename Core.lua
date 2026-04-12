@@ -38,27 +38,39 @@ local ROLE_ICONS = {
     dps = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
 }
 
-local STAT_LABELS = {
-    tank = {
-        { key = "dps_perf", label = "DPS (vs Spec)" },
-        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
-        { key = "utility", label = "Utility/Kicks" },
-        { key = "survivability", label = "Survivability" },
-    },
-    healer = {
-        { key = "throughput", label = "HPS (vs Spec)" },
-        { key = "dps_perf", label = "Healer DPS" },
-        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
-        { key = "utility", label = "Utility/Dispels" },
-        { key = "survivability", label = "Survivability" },
-    },
-    dps = {
-        { key = "dps_perf", label = "DPS (vs Spec)" },
-        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
-        { key = "utility", label = "Utility/Kicks" },
-        { key = "survivability", label = "Survivability" },
-    },
-}
+-- Stat labels are built dynamically using the player's spec name
+local function GetStatLabels(role, spec)
+    spec = spec or "Spec"
+    if role == "tank" then
+        return {
+            { key = "dps_perf", label = "Overall vs " .. spec },
+            { key = "dps_ilvl", label = "iLvl vs " .. spec },
+            { key = "utility", label = "Utility/Kicks" },
+            { key = "survivability", label = "Survivability" },
+            { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Activity (CPM)" },
+        }
+    elseif role == "healer" then
+        return {
+            { key = "throughput", label = "HPS vs " .. spec },
+            { key = "dps_perf", label = "Healer DPS" },
+            { key = "dps_ilvl", label = "iLvl vs " .. spec },
+            { key = "utility", label = "Utility/Dispels" },
+            { key = "survivability", label = "Survivability" },
+            { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Activity (CPM)" },
+        }
+    else
+        return {
+            { key = "dps_perf", label = "Overall vs " .. spec },
+            { key = "dps_ilvl", label = "iLvl vs " .. spec },
+            { key = "utility", label = "Utility/Kicks" },
+            { key = "survivability", label = "Survivability" },
+            { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Activity (CPM)" },
+        }
+    end
+end
 
 -- ── Database Lookup ─────────────────────────────────────────────────────────
 
@@ -102,7 +114,8 @@ local function AddUmbraTooltip(tooltip, data)
         gradeColor .. data.grade .. "|r"
     )
 
-    local stats = STAT_LABELS[role] or STAT_LABELS["dps"]
+    local spec = data.spec or "Spec"
+    local stats = GetStatLabels(role, spec)
     for _, stat in ipairs(stats) do
         local value = data[stat.key]
         if value and value > 0 then

@@ -59,6 +59,8 @@ class DungeonRun(Base):
     dispels: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     avoidable_damage_taken: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     damage_taken_total: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    casts_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cooldown_usage_pct: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     wcl_report_id: Mapped[str] = mapped_column(String(50), nullable=False)
     fight_id: Mapped[int] = mapped_column(Integer, nullable=False)
     timed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

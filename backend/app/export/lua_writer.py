@@ -8,9 +8,9 @@ from app.models import DungeonRun, Player, PlayerScore, Role
 
 # Role-specific fields to export in the Lua table
 ROLE_EXPORT_FIELDS: dict[Role, list[str]] = {
-    Role.dps: ["damage_output", "damage_output_ilvl", "utility", "survivability"],
-    Role.healer: ["healing_throughput", "damage_output", "damage_output_ilvl", "utility", "survivability"],
-    Role.tank: ["damage_output", "damage_output_ilvl", "utility", "survivability"],
+    Role.dps: ["damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
+    Role.healer: ["healing_throughput", "damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
+    Role.tank: ["damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
 }
 
 # Friendly Lua key names for each category
@@ -20,6 +20,8 @@ LUA_KEY_NAMES: dict[str, str] = {
     "healing_throughput": "throughput",
     "utility": "utility",
     "survivability": "survivability",
+    "cooldown_usage": "cd_usage",
+    "casts_per_minute": "cpm",
 }
 
 
@@ -27,11 +29,12 @@ def _escape_lua_string(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def _build_player_entry(player: Player, score: PlayerScore, timed_pct: int) -> str:
+def _build_player_entry(player: Player, score: PlayerScore, timed_pct: int, spec_name: str) -> str:
     """Build a single Lua table entry for a player."""
     key = f"{player.name}-{player.realm}"
     lines = [f'    ["{_escape_lua_string(key)}"] = {{']
     lines.append(f'        role = "{score.role.value}",')
+    lines.append(f'        spec = "{_escape_lua_string(spec_name)}",')
     lines.append(f'        grade = "{score.overall_grade}",')
 
     # Export role-specific category scores
@@ -72,6 +75,26 @@ def _get_timed_percentages(session: Session, player_ids: list[int]) -> dict[int,
     return pct_map
 
 
+def _get_primary_specs(session: Session, player_ids: list[int]) -> dict[int, str]:
+    """Get the most-used spec name per player from their most recent runs."""
+    if not player_ids:
+        return {}
+
+    # Get the most recent run's spec for each player
+    spec_map = {}
+    for pid in player_ids:
+        stmt = (
+            select(DungeonRun.spec_name)
+            .where(DungeonRun.player_id == pid)
+            .order_by(DungeonRun.logged_at.desc())
+            .limit(1)
+        )
+        result = session.execute(stmt).scalar_one_or_none()
+        spec_map[pid] = result or "Unknown"
+
+    return spec_map
+
+
 def generate_lua(session: Session, region: str | None = None) -> str:
     """Generate UmbraData.lua content, optionally filtered by region."""
     stmt = (
@@ -86,14 +109,16 @@ def generate_lua(session: Session, region: str | None = None) -> str:
     if region:
         scores = [s for s in scores if s.player.region.upper() == region.upper()]
 
-    # Get timed percentages for all players
+    # Get timed percentages and spec names for all players
     player_ids = [s.player_id for s in scores]
     timed_pcts = _get_timed_percentages(session, player_ids)
+    spec_names = _get_primary_specs(session, player_ids)
 
     entries = []
     for score in scores:
         timed_pct = timed_pcts.get(score.player_id, 0)
-        entries.append(_build_player_entry(score.player, score, timed_pct))
+        spec_name = spec_names.get(score.player_id, "Unknown")
+        entries.append(_build_player_entry(score.player, score, timed_pct, spec_name))
 
     body = "\n".join(entries) if entries else "    -- No data yet"
 
