@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql:*)",
+      "Bash(PGPASSWORD=umbra /c/Program Files/PostgreSQL/18/bin/psql:*)",
+      "Bash(/c/Users/logan/AppData/Local/Programs/Python/Python314/python.exe:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(\"/c/Users/logan/AppData/Local/Programs/Python/Python314/python.exe\" -m uvicorn app.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(taskkill //F //PID 5848)",
+      "Bash(rm \"/c/Program Files \\(x86\\)/World of Warcraft/_retail_/WTF/Account/54414232#1/SavedVariables/Umbra.lua\")",
+      "Bash(rm -f \"/c/Program Files \\(x86\\)/World of Warcraft/_retail_/WTF/Account/54414232#1/SavedVariables/Umbra.lua.bak\")"
+    ]
+  }
+}
