@@ -56,7 +56,17 @@ query($code: String!, $fightIDs: [Int!]!) {
       dispelTable: table(fightIDs: $fightIDs, dataType: Dispels)
       deathTable: table(fightIDs: $fightIDs, dataType: Deaths)
       castsTable: table(fightIDs: $fightIDs, dataType: Casts)
-      buffsTable: table(fightIDs: $fightIDs, dataType: Buffs)
+    }
+  }
+}
+"""
+
+# Fetch buffs for a specific player (by sourceID) in a fight
+REPORT_PLAYER_BUFFS = """
+query($code: String!, $fightIDs: [Int!]!, $sourceID: Int!) {
+  reportData {
+    report(code: $code) {
+      buffsTable: table(fightIDs: $fightIDs, dataType: Buffs, sourceID: $sourceID)
     }
   }
 }

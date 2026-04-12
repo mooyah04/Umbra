@@ -77,6 +77,18 @@ class WCLClient:
         )
         return data.get("reportData", {}).get("report")
 
+    def get_player_buffs(
+        self, report_code: str, fight_ids: list[int], source_id: int
+    ) -> dict:
+        from app.wcl.queries import REPORT_PLAYER_BUFFS
+
+        data = self.query(
+            REPORT_PLAYER_BUFFS,
+            {"code": report_code, "fightIDs": fight_ids, "sourceID": source_id},
+        )
+        report = data.get("reportData", {}).get("report", {})
+        return report.get("buffsTable", {})
+
     def get_encounter_percentiles(
         self,
         name: str,

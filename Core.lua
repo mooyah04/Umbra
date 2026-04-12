@@ -48,7 +48,6 @@ local function GetStatLabels(role, spec)
             { key = "utility", label = "Utility/Kicks" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
-            { key = "cpm", label = "Activity (CPM)" },
         }
     elseif role == "healer" then
         return {
@@ -58,7 +57,6 @@ local function GetStatLabels(role, spec)
             { key = "utility", label = "Utility/Dispels" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
-            { key = "cpm", label = "Activity (CPM)" },
         }
     else
         return {
@@ -67,7 +65,6 @@ local function GetStatLabels(role, spec)
             { key = "utility", label = "Utility/Kicks" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
-            { key = "cpm", label = "Activity (CPM)" },
         }
     end
 end
@@ -118,7 +115,7 @@ local function AddUmbraTooltip(tooltip, data)
     local stats = GetStatLabels(role, spec)
     for _, stat in ipairs(stats) do
         local value = data[stat.key]
-        if value and value > 0 then
+        if value then
             local color = GetStatColor(value)
             tooltip:AddDoubleLine(
                 GREY .. stat.label .. ":|r",

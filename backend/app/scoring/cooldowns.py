@@ -1,14 +1,16 @@
-"""Major cooldown ability IDs per spec for tracking buff uptime.
+"""Major cooldown buff IDs per spec for tracking usage via WCL Buffs table.
 
 These are the "big" cooldowns that good players use on cooldown during M+.
 A player who never uses their major CDs is leaving significant performance on the table.
 
-Ability IDs sourced from WCL/Wowhead. Organized by (class_id, spec_name).
-Each entry is a list of (ability_id, ability_name, expected_uptime_pct) tuples.
-expected_uptime_pct is the rough uptime a good player would maintain over a dungeon.
+IMPORTANT: These are WCL *buff* IDs (the aura that appears on the player),
+not cast/spell IDs. WCL's Buffs table reports auras by their buff ID.
+
+Organized by (class_id, spec_name).
+Each entry is a list of (buff_id, ability_name, expected_uptime_pct) tuples.
 """
 
-# (class_id, spec_name) -> [(ability_id, name, expected_uptime_pct), ...]
+# (class_id, spec_name) -> [(buff_id, name, expected_uptime_pct), ...]
 SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     # ── DPS Specs ────────────────────────────────────────────────────────
 
@@ -154,8 +156,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (49028, "Dancing Rune Weapon", 10),
     ],
     (10, "Brewmaster"): [
-        (115203, "Fortifying Brew", 5),
-        (322507, "Celestial Brew", 15),
+        (120954, "Fortifying Brew", 8),
+        (132578, "Invoke Niuzao, the Black Ox", 12),
+        (325153, "Exploding Keg", 5),
     ],
     (11, "Guardian"): [
         (22812, "Barkskin", 10),

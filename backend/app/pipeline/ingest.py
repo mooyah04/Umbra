@@ -82,30 +82,24 @@ def _get_total_casts(table_data: dict, player_name: str) -> int:
     return 0
 
 
-def _get_cooldown_usage(buffs_table: dict, player_name: str, cooldown_ids: set[int]) -> float:
+def _get_cooldown_usage(buffs_table: dict, cooldown_ids: set[int]) -> float:
     """Calculate what percentage of major cooldowns were used at least once.
 
     Returns 0-100 representing the fraction of expected cooldowns that were cast.
+
+    WCL buffs table structure (when filtered by sourceID):
+      data.auras[] -> [{guid, name, totalUses, totalUptime, bands}, ...]
     """
     if not cooldown_ids:
-        return 0
+        return 100  # No cooldowns expected = full marks
 
-    # Buffs table structure: entries[player].bands[buff] or similar
-    # WCL buffs table has entries per player, each with sub-entries per buff
-    entries = buffs_table.get("data", {}).get("entries", [])
+    auras = buffs_table.get("data", {}).get("auras", [])
 
     used_cds = set()
-    for entry in entries:
-        if entry.get("name", "").lower() != player_name.lower():
-            continue
-        # Each player entry has ability sub-entries
-        for ability in entry.get("abilities", []):
-            ability_id = ability.get("guid", 0)
-            if ability_id in cooldown_ids:
-                used_cds.add(ability_id)
-
-    if not cooldown_ids:
-        return 100  # No cooldowns expected = full marks
+    for aura in auras:
+        aura_id = aura.get("guid", 0)
+        if aura_id in cooldown_ids and aura.get("totalUses", 0) > 0:
+            used_cds.add(aura_id)
 
     return (len(used_cds) / len(cooldown_ids)) * 100
 
@@ -276,6 +270,7 @@ def ingest_player(
             specs = player_info.get("specs", [])
             spec_name = specs[0]["spec"] if specs else "Unknown"
             ilvl = player_info.get("maxItemLevel", 0)
+            actor_id = player_info.get("id", 0)  # WCL actor ID for this fight
 
             # Extract per-fight stats
             damage_table = report_data.get("damageTable", {})
@@ -285,7 +280,14 @@ def ingest_player(
             dispel_table = report_data.get("dispelTable", {})
             death_table = report_data.get("deathTable", {})
             casts_table = report_data.get("castsTable", {})
-            buffs_table = report_data.get("buffsTable", {})
+
+            # Fetch buffs filtered by this player's actor ID
+            buffs_table = {}
+            if actor_id:
+                try:
+                    buffs_table = wcl_client.get_player_buffs(report_code, [fight_id], actor_id)
+                except WCLQueryError as e:
+                    logger.debug("Failed to get buffs for %s: %s", name, e)
 
             dps_total = _get_player_stat(damage_table, name)
             hps_total = _get_player_stat(healing_table, name)
@@ -299,7 +301,7 @@ def ingest_player(
             encounter_id = fight.get("encounterID", 0)
             spec_cds = get_cooldowns_for_spec(class_id, spec_name)
             cd_ids = {cd[0] for cd in spec_cds}
-            cd_usage = _get_cooldown_usage(buffs_table, name, cd_ids)
+            cd_usage = _get_cooldown_usage(buffs_table, cd_ids)
 
             # Avoidable damage
             avoidable_ids = get_avoidable_abilities(encounter_id)
