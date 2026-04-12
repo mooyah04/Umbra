@@ -1,26 +1,45 @@
+import time
+import logging
+
 import httpx
 from app.config import settings
 from app.wcl.auth import wcl_auth
 
+logger = logging.getLogger(__name__)
+
 
 class WCLClient:
-    """Sync GraphQL client for Warcraft Logs API v2."""
+    """Sync GraphQL client for Warcraft Logs API v2 with retry on rate limit."""
 
     def query(self, graphql: str, variables: dict | None = None) -> dict:
         token = wcl_auth.get_token()
-        with httpx.Client() as client:
-            resp = client.post(
-                settings.wcl_api_url,
-                json={"query": graphql, "variables": variables or {}},
-                headers={"Authorization": f"Bearer {token}"},
-                timeout=30.0,
-            )
+        max_retries = 5
+
+        for attempt in range(max_retries):
+            with httpx.Client() as client:
+                resp = client.post(
+                    settings.wcl_api_url,
+                    json={"query": graphql, "variables": variables or {}},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=30.0,
+                )
+
+            if resp.status_code == 429:
+                wait = 15 * (attempt + 1)  # 15, 30, 45, 60, 75s
+                logger.warning("WCL rate limited, waiting %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
+                time.sleep(wait)
+                continue
+
             resp.raise_for_status()
             data = resp.json()
 
-        if "errors" in data:
-            raise WCLQueryError(data["errors"])
-        return data["data"]
+            if "errors" in data:
+                raise WCLQueryError(data["errors"])
+            return data["data"]
+
+        # Final attempt failed
+        resp.raise_for_status()
+        return {}
 
     def get_character_with_reports(
         self, name: str, server_slug: str, server_region: str, limit: int = 10
@@ -116,20 +135,21 @@ class WCLClient:
         server_region: str,
         zone_id: int = 47,
     ) -> dict:
-        """Fetch zoneRankings for a character in a specific M+ zone.
+        """Fetch zoneRankings for a character — both overall and by ilvl bracket.
 
-        Returns per-dungeon best percentile and kill counts.
-        This data is available even for archived reports.
+        Returns dict with 'overall' and 'by_ilvl' keys, each containing
+        per-dungeon best percentile and kill counts.
         """
         query = """
         query($name: String!, $serverSlug: String!, $serverRegion: String!) {
           characterData {
             character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
-              zoneRankings(zoneID: %d)
+              overall: zoneRankings(zoneID: %d)
+              byIlvl: zoneRankings(zoneID: %d, byBracket: true)
             }
           }
         }
-        """ % zone_id
+        """ % (zone_id, zone_id)
 
         data = self.query(
             query,
@@ -140,7 +160,10 @@ class WCLClient:
             },
         )
         char = data.get("characterData", {}).get("character", {})
-        return char.get("zoneRankings", {})
+        return {
+            "overall": char.get("overall", {}),
+            "by_ilvl": char.get("byIlvl", {}),
+        }
 
 
 class WCLQueryError(Exception):

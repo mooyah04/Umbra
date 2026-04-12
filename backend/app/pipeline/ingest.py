@@ -266,32 +266,46 @@ def ingest_player(
             break
 
     # 4. Fetch zone rankings for DPS percentile (available even for archived reports)
-    #    This gives best-parse percentile per dungeon across the full season
+    #    Two comparisons: overall (vs all of spec) and by ilvl bracket
     zone_dps_percentile = None
+    zone_dps_ilvl_percentile = None
     zone_total_kills = 0
     try:
-        zone_rankings = wcl_client.get_zone_rankings(
+        zone_data = wcl_client.get_zone_rankings(
             name=name,
             server_slug=server_slug,
             server_region=region.lower(),
             zone_id=47,  # Current M+ season
         )
 
-        # Collect best percentile per dungeon and total kills
-        dungeon_percentiles = []
-        for dungeon in zone_rankings.get("rankings", []):
+        # Overall percentiles (vs all players of same spec)
+        overall_pcts = []
+        for dungeon in zone_data.get("overall", {}).get("rankings", []):
             best_pct = dungeon.get("rankPercent")
             kills = dungeon.get("totalKills", 0)
             zone_total_kills += kills
             if best_pct is not None and kills > 0:
-                dungeon_percentiles.append(best_pct)
+                overall_pcts.append(best_pct)
 
-        if dungeon_percentiles:
-            zone_dps_percentile = sum(dungeon_percentiles) / len(dungeon_percentiles)
-            logger.info(
-                "Zone rankings: %.1f%% avg across %d dungeons (%d total kills)",
-                zone_dps_percentile, len(dungeon_percentiles), zone_total_kills,
-            )
+        if overall_pcts:
+            zone_dps_percentile = sum(overall_pcts) / len(overall_pcts)
+
+        # By ilvl bracket percentiles (vs same spec at similar gear level)
+        ilvl_pcts = []
+        for dungeon in zone_data.get("by_ilvl", {}).get("rankings", []):
+            best_pct = dungeon.get("rankPercent")
+            kills = dungeon.get("totalKills", 0)
+            if best_pct is not None and kills > 0:
+                ilvl_pcts.append(best_pct)
+
+        if ilvl_pcts:
+            zone_dps_ilvl_percentile = sum(ilvl_pcts) / len(ilvl_pcts)
+
+        logger.info(
+            "Zone rankings: overall=%.1f%%, by_ilvl=%.1f%%, %d dungeons, %d total kills",
+            zone_dps_percentile or 0, zone_dps_ilvl_percentile or 0,
+            len(overall_pcts), zone_total_kills,
+        )
     except WCLQueryError as e:
         logger.warning("Failed to fetch zone rankings: %s", e)
 
@@ -369,7 +383,7 @@ def ingest_player(
         if len(role_runs) < settings.min_runs_for_grade:
             continue
 
-        result = score_player_runs(role_runs, role, zone_dps_percentile)
+        result = score_player_runs(role_runs, role, zone_dps_percentile, zone_dps_ilvl_percentile)
 
         # Total runs = all stored history (for the website), not just the scoring window
         total_runs = max(len(all_runs), zone_total_kills)

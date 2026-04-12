@@ -269,15 +269,18 @@ def score_player_runs(
     runs: list[DungeonRun],
     role: Role,
     zone_dps_percentile: float | None = None,
+    zone_dps_ilvl_percentile: float | None = None,
 ) -> ScoreResult:
     """Score a set of dungeon runs for a player in a specific role.
 
     All category scores use weighted averages where higher keystone
     levels have more impact on the final score.
 
-    If zone_dps_percentile is provided (from zoneRankings), it's used as
-    the damage_output score since it covers ALL runs including archived ones,
-    giving a more complete picture than per-fight data alone.
+    Two DPS percentiles from zoneRankings:
+    - zone_dps_percentile: vs all players of same spec (overall)
+    - zone_dps_ilvl_percentile: vs same spec at similar ilvl (gear-relative)
+    The overall percentile is used for the grade composite.
+    Both are stored in category_scores for display.
     """
     weights = ROLE_WEIGHTS[role]
     category_scores: dict[str, float] = {}
@@ -297,6 +300,10 @@ def score_player_runs(
             score = scorer(runs)
         category_scores[category_name] = round(score, 1)
         composite += score * weight
+
+    # Store ilvl-relative percentile separately (for display, not in composite)
+    if zone_dps_ilvl_percentile is not None:
+        category_scores["damage_output_ilvl"] = round(zone_dps_ilvl_percentile, 1)
 
     # Apply universal timing modifier
     timing_mod = _timing_modifier(runs)

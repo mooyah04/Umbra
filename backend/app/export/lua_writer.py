@@ -8,14 +8,15 @@ from app.models import DungeonRun, Player, PlayerScore, Role
 
 # Role-specific fields to export in the Lua table
 ROLE_EXPORT_FIELDS: dict[Role, list[str]] = {
-    Role.dps: ["damage_output", "utility", "survivability"],
-    Role.healer: ["healing_throughput", "damage_output", "utility", "survivability"],
-    Role.tank: ["damage_output", "utility", "survivability"],
+    Role.dps: ["damage_output", "damage_output_ilvl", "utility", "survivability"],
+    Role.healer: ["healing_throughput", "damage_output", "damage_output_ilvl", "utility", "survivability"],
+    Role.tank: ["damage_output", "damage_output_ilvl", "utility", "survivability"],
 }
 
 # Friendly Lua key names for each category
 LUA_KEY_NAMES: dict[str, str] = {
     "damage_output": "dps_perf",
+    "damage_output_ilvl": "dps_ilvl",
     "healing_throughput": "throughput",
     "utility": "utility",
     "survivability": "survivability",

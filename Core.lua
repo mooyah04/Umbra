@@ -41,17 +41,20 @@ local ROLE_ICONS = {
 local STAT_LABELS = {
     tank = {
         { key = "dps_perf", label = "DPS (vs Spec)" },
+        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
         { key = "utility", label = "Utility/Kicks" },
         { key = "survivability", label = "Survivability" },
     },
     healer = {
         { key = "throughput", label = "HPS (vs Spec)" },
         { key = "dps_perf", label = "Healer DPS" },
+        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
         { key = "utility", label = "Utility/Dispels" },
         { key = "survivability", label = "Survivability" },
     },
     dps = {
         { key = "dps_perf", label = "DPS (vs Spec)" },
+        { key = "dps_ilvl", label = "DPS (vs iLvl)" },
         { key = "utility", label = "Utility/Kicks" },
         { key = "survivability", label = "Survivability" },
     },
@@ -87,7 +90,7 @@ end
 
 local function AddUmbraTooltip(tooltip, data)
     tooltip:AddLine(" ")
-    tooltip:AddLine(UMBRA_PURPLE .. "Umbra.io|r")
+    tooltip:AddLine(UMBRA_PURPLE .. "Umbra.gg|r")
 
     local gradeColor = GetGradeColor(data.grade)
     local role = data.role or "dps"

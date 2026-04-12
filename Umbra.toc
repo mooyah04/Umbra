@@ -1,5 +1,5 @@
 ## Interface: 120001
-## Title: |cff8a2be2Umbra.io|r
+## Title: |cff8a2be2Umbra.gg|r
 ## Notes: Deep-Audit performance grading (S-F) for Mythic+.
 ## Author: MooYah
 ## Version: 0.2.0
