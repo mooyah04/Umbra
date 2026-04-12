@@ -106,10 +106,17 @@ local function AddUmbraTooltip(tooltip, data)
     local roleIcon = ROLE_ICONS[role] or ""
     local roleName = ROLE_NAMES[role] or "DPS"
 
+    -- Spec/role on left, grade on right (same line)
     tooltip:AddDoubleLine(
-        roleIcon .. " " .. GREY .. roleName .. "|r",
+        roleIcon .. " " .. GREY .. (data.spec or roleName) .. "|r",
         gradeColor .. data.grade .. "|r"
     )
+    -- Make the grade side larger
+    local numLines = tooltip:NumLines()
+    local gradeRight = _G["GameTooltipTextRight" .. numLines]
+    if gradeRight then
+        gradeRight:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE, THICKOUTLINE")
+    end
 
     local spec = data.spec or "Spec"
     local stats = GetStatLabels(role, spec)
@@ -159,6 +166,7 @@ end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
     if tooltip == GameTooltip then
+        if UmbraSettings and not UmbraSettings.showTooltips then return end
         OnTooltipSetUnit(tooltip)
     end
 end)

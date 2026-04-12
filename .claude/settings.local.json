@@ -17,7 +17,8 @@
       "WebFetch(domain:github.com)",
       "Bash(\"/c/Users/logan/AppData/Local/Programs/Python/Python314/python.exe\" -m app.crawler.cli --seed \"Elonmunk/tarren-mill/eu\" --max-players 10 --depth 1 --rate 1.5)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(\"/c/Users/logan/AppData/Local/Programs/Python/Python314/python.exe\" generate_textures.py)"
     ]
   }
 }
