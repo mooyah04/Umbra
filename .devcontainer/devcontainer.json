@@ -24,7 +24,17 @@
       }
     }
   },
+  "secrets": {
+    "WCL_CLIENT_ID": {
+      "description": "Warcraft Logs API client ID (from https://www.warcraftlogs.com/api/clients)"
+    },
+    "WCL_CLIENT_SECRET": {
+      "description": "Warcraft Logs API client secret"
+    }
+  },
   "containerEnv": {
-    "DATABASE_URL": "postgresql+psycopg://postgres:umbra@localhost:5432/umbra"
+    "DATABASE_URL": "postgresql+psycopg://postgres:umbra@localhost:5432/umbra",
+    "WCL_CLIENT_ID": "${localEnv:WCL_CLIENT_ID}",
+    "WCL_CLIENT_SECRET": "${localEnv:WCL_CLIENT_SECRET}"
   }
 }

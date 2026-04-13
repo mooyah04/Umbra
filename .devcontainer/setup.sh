@@ -14,15 +14,19 @@ sudo -u postgres createdb umbra 2>/dev/null || true
 cd backend
 pip install -q -r requirements.txt
 
-# Copy env file if not present (secrets should be added via Codespaces settings)
-if [ ! -f .env ]; then
-  cp .env.example .env
+# Build .env from Codespaces secrets (fall back to example if secrets missing)
+cat > .env <<EOL
+WCL_CLIENT_ID=${WCL_CLIENT_ID:-your_client_id_here}
+WCL_CLIENT_SECRET=${WCL_CLIENT_SECRET:-your_client_secret_here}
+DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://postgres:umbra@localhost:5432/umbra}
+EOL
+
+if [ "$WCL_CLIENT_ID" = "" ] || [ "$WCL_CLIENT_ID" = "your_client_id_here" ]; then
   echo ""
   echo "========================================="
-  echo "  .env created from .env.example"
-  echo "  Add your WCL API credentials via:"
-  echo "  Codespaces > Settings > Secrets"
-  echo "  or edit backend/.env directly"
+  echo "  WCL secrets not found!"
+  echo "  Add them at: GitHub > Repo Settings >"
+  echo "  Secrets > Codespaces"
   echo "========================================="
 fi
 
