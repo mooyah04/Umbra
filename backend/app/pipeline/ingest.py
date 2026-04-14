@@ -144,14 +144,40 @@ def _count_critical_interrupts(
 def _count_cc_casts(debuffs_table: dict, cc_ids: set[int]) -> int:
     """Count CC applications to enemies from the Debuffs table.
 
-    The Debuffs table (hostilityType: Enemies, sourceID filtered) returns
-    auras[] with totalUses per debuff applied to enemies.
+    NOTE: Kept for backwards compat. Pet/totem-sourced CCs (Capacitor Totem,
+    Water Elemental Freeze, Hunter traps) are sourced from pet actors, not
+    the player, so the sourceID-filtered debuffs table misses them. Prefer
+    _count_cc_casts_from_casts_table for accurate cross-class counting.
     """
     total = 0
     for aura in debuffs_table.get("data", {}).get("auras", []):
         if aura.get("guid", 0) in cc_ids:
             total += aura.get("totalUses", 0)
     return total
+
+
+def _count_cc_casts_from_casts_table(
+    casts_table: dict, player_name: str, cc_cast_ids: set[int]
+) -> int:
+    """Count CC spells the player actually cast, regardless of whether the
+    resulting debuff is sourced from the player or a pet/totem.
+
+    WCL's Casts table returns entries[player] with an abilities[] breakdown
+    keyed by cast guid. Counting casts of known CC triggers (Capacitor Totem
+    summon, Freezing Trap placement, Paralysis, etc.) captures player intent
+    without needing to cross-reference pet actor IDs.
+    """
+    if not cc_cast_ids:
+        return 0
+    total = 0
+    for entry in casts_table.get("data", {}).get("entries", []):
+        if entry.get("name", "").lower() != player_name.lower():
+            continue
+        for ability in entry.get("abilities", []):
+            if ability.get("guid", 0) in cc_cast_ids:
+                total += ability.get("total", 0)
+        return total
+    return 0
 
 
 def _get_total_casts(table_data: dict, player_name: str) -> int:
@@ -447,9 +473,14 @@ def ingest_player(
             critical_interrupt_ids = get_critical_interrupt_ids(encounter_id)
             crit_interrupts = _count_critical_interrupts(interrupt_table, name, critical_interrupt_ids)
 
-            # CC applications to enemies
-            cc_ability_ids = get_cc_ability_ids(class_id)
-            cc_count = _count_cc_casts(debuffs_on_enemies, cc_ability_ids)
+            # CC casts — look up by the per-fight class (authoritative), not
+            # the WCL character endpoint's classID which may be wrong for
+            # name-colliding characters. Count via the Casts table (player-
+            # sourced) so totem/pet-triggered CCs like Capacitor Totem are
+            # captured via the summon cast.
+            fight_class_id = class_id_from_name(fight_class_name) or class_id
+            cc_ability_ids = get_cc_ability_ids(fight_class_id)
+            cc_count = _count_cc_casts_from_casts_table(casts_table, name, cc_ability_ids)
 
             duration_ms = fight.get("endTime", 0) - fight.get("startTime", 0)
 

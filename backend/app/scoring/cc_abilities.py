@@ -4,8 +4,12 @@ These are hard CC abilities that players can use on enemy mobs to prevent
 casts, reduce damage intake, or control dangerous packs. Good CC usage
 is a key differentiator in high M+ keys.
 
-Organized by class_id. Each entry is a list of (debuff_id, ability_name) tuples.
-debuff_id is the WCL debuff/aura ID that appears on the enemy target.
+Organized by class_id. Each entry is a list of (cast_id, ability_name) tuples.
+cast_id is the WCL ability ID as it appears in the Casts table — the spell
+the player actually cast. For pet/totem-triggered CCs (Capacitor Totem,
+Water Elemental Freeze), use the SUMMON/TRIGGER cast id, not the debuff id
+applied to enemies; the latter is sourced from the pet actor and is missed
+by player-sourced queries.
 
 WoW class IDs:
   1=Warrior, 2=Paladin, 3=Hunter, 4=Rogue, 5=Priest, 6=DeathKnight,
@@ -63,7 +67,7 @@ CC_ABILITIES: dict[int, list[tuple[int, str]]] = {
 
     # Shaman (7)
     7: [
-        (118905, "Static Charge"),       # Capacitor Totem stun
+        (192058, "Capacitor Totem"),     # summon; totem pulses Static Charge stun
         (51514, "Hex"),                  # Hex (CC)
         (197214, "Sundering"),           # Incapacitate (Enhancement talent)
     ],
@@ -120,8 +124,8 @@ CC_ABILITIES: dict[int, list[tuple[int, str]]] = {
 
 
 def get_cc_ability_ids(class_id: int) -> set[int]:
-    """Get the set of CC ability debuff IDs for a class.
+    """Get the set of CC cast IDs for a class.
 
-    Returns debuff IDs for fast lookup against the WCL Debuffs table.
+    Returns cast-time ability IDs for lookup against the WCL Casts table.
     """
     return {ability_id for ability_id, _ in CC_ABILITIES.get(class_id, [])}

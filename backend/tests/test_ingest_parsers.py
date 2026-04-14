@@ -10,6 +10,7 @@ will catch it before we ingest garbage into the DB.
 from app.pipeline.ingest import (
     _count_avoidable_deaths,
     _count_cc_casts,
+    _count_cc_casts_from_casts_table,
     _count_critical_interrupts,
     _count_deaths,
     _get_avoidable_damage,
@@ -174,6 +175,78 @@ def test_count_cc_casts_empty_cc_set_is_zero():
 def test_count_cc_casts_missing_auras_key():
     assert _count_cc_casts({}, {1, 2}) == 0
     assert _count_cc_casts({"data": {}}, {1, 2}) == 0
+
+
+# ── CC casts from Casts table (the Shaman/pet/totem-friendly approach) ──────
+
+def _casts_table_fixture() -> dict:
+    """WCL-shaped Casts table: entries per player, with abilities[] breakdown."""
+    return {
+        "data": {
+            "entries": [
+                {
+                    "name": "Dobbermon",
+                    "total": 1357,
+                    "abilities": [
+                        {"guid": 973, "name": "Healing Wave", "total": 45},
+                        {"guid": 192058, "name": "Capacitor Totem", "total": 4},
+                        {"guid": 51514, "name": "Hex", "total": 2},
+                        {"guid": 197214, "name": "Sundering", "total": 0},
+                    ],
+                },
+                {
+                    "name": "OtherPlayer",
+                    "abilities": [
+                        {"guid": 192058, "total": 99},  # not our player
+                    ],
+                },
+            ],
+        },
+    }
+
+
+def test_cc_from_casts_table_counts_by_player_ability():
+    """The real Dobbermon fix: Capacitor Totem casts (192058) now populate
+    cc_count via the Casts table, not the debuff table (which misses
+    totem-sourced debuffs)."""
+    cc_ids = {192058, 51514, 197214}
+    assert _count_cc_casts_from_casts_table(
+        _casts_table_fixture(), "Dobbermon", cc_ids
+    ) == 6  # 4 Capacitor + 2 Hex
+
+
+def test_cc_from_casts_table_ignores_other_players():
+    cc_ids = {192058}
+    # Only Dobbermon's 4 Capacitor casts should count, not OtherPlayer's 99.
+    assert _count_cc_casts_from_casts_table(
+        _casts_table_fixture(), "Dobbermon", cc_ids
+    ) == 4
+
+
+def test_cc_from_casts_table_case_insensitive_name():
+    cc_ids = {192058}
+    assert _count_cc_casts_from_casts_table(
+        _casts_table_fixture(), "DOBBERMON", cc_ids
+    ) == 4
+
+
+def test_cc_from_casts_table_missing_player():
+    cc_ids = {192058}
+    assert _count_cc_casts_from_casts_table(
+        _casts_table_fixture(), "NotInLog", cc_ids
+    ) == 0
+
+
+def test_cc_from_casts_table_empty_ids():
+    assert _count_cc_casts_from_casts_table(
+        _casts_table_fixture(), "Dobbermon", set()
+    ) == 0
+
+
+def test_cc_from_casts_table_missing_abilities():
+    """Player with no abilities[] list (edge: fight had no recorded casts)."""
+    table = {"data": {"entries": [{"name": "Dobbermon"}]}}
+    assert _count_cc_casts_from_casts_table(table, "Dobbermon", {1}) == 0
 
 
 # ── Casts total (flat table) ────────────────────────────────────────────────
