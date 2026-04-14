@@ -69,10 +69,10 @@ app.add_middleware(
         "https://wowumbra.gg",
         "https://www.wowumbra.gg",
     ],
-    # Vercel generates a fresh URL per branch/PR preview. The regex covers
-    # Production (umbra-mooyah04.vercel.app) plus every preview deploy
-    # (umbra-git-<branch>-mooyah04.vercel.app, umbra-<hash>-mooyah04.vercel.app).
-    allow_origin_regex=r"https://umbra(-[a-z0-9-]+)?-mooyah04\.vercel\.app",
+    # Vercel assigns the bare mooyah04.vercel.app for this project plus
+    # per-branch/PR preview hostnames like <something>-mooyah04.vercel.app
+    # and umbra-git-<branch>-mooyah04.vercel.app. Match all three shapes.
+    allow_origin_regex=r"https://([a-z0-9-]+-)?mooyah04\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
