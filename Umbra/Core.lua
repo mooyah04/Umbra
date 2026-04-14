@@ -97,29 +97,15 @@ end
 
 -- ── Tooltip Rendering ───────────────────────────────────────────────────────
 --
--- WoW reuses GameTooltipTextRight<N> regions across tooltips. If we call
--- SetFont on one for our giant grade, that change persists on the recycled
--- region — and the NEXT tooltip (e.g., a player not in our DB) inherits
--- our font, making other addons' text (Raider.IO score, etc.) render
--- huge and outlined.
+-- We previously called SetFont on GameTooltipTextRight<N> to render the
+-- grade in a big outlined font. WoW recycles those text regions across
+-- every tooltip and font changes persist on the region object — so even
+-- with OnHide cleanup, hover-to-hover transitions (where OnHide doesn't
+-- fire) leaked our font onto Raider.IO and other addons' text.
 --
--- Track every region we modify and reset it when the tooltip hides so the
--- next render starts from defaults.
-
-local _modifiedRegions = {}
-
-local function _resetModifiedRegions()
-    for region in pairs(_modifiedRegions) do
-        if region then
-            region:SetFontObject("GameTooltipText")
-        end
-    end
-    wipe(_modifiedRegions)
-end
-
-if GameTooltip then
-    GameTooltip:HookScript("OnHide", _resetModifiedRegions)
-end
+-- Render the grade in normal size with bold color formatting instead.
+-- No shared state mutation, no leaks. We can revisit a fancy display
+-- later using a custom FontString we own — but that's a bigger refactor.
 
 local function AddUmbraTooltip(tooltip, data)
     tooltip:AddLine(" ")
@@ -130,19 +116,12 @@ local function AddUmbraTooltip(tooltip, data)
     local roleIcon = ROLE_ICONS[role] or ""
     local roleName = ROLE_NAMES[role] or "DPS"
 
-    -- Spec/role on left, grade on right (same line)
+    -- Spec/role on left, grade on right. Bold-bracketed grade gives it
+    -- visual emphasis without SetFont — safe for tooltip line recycling.
     tooltip:AddDoubleLine(
         roleIcon .. " " .. GREY .. (data.spec or roleName) .. "|r",
-        gradeColor .. data.grade .. "|r"
+        gradeColor .. "[ " .. data.grade .. " ]|r"
     )
-    -- Make the grade side larger — but track the region so we can reset
-    -- it on tooltip hide. Otherwise the font leaks to other addons.
-    local numLines = tooltip:NumLines()
-    local gradeRight = _G["GameTooltipTextRight" .. numLines]
-    if gradeRight then
-        gradeRight:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE, THICKOUTLINE")
-        _modifiedRegions[gradeRight] = true
-    end
 
     local spec = data.spec or "Spec"
     local stats = GetStatLabels(role, spec)
