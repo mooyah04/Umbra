@@ -11,6 +11,7 @@ module aggregates all dungeon modules into lookup helpers used by scoring.
 from app.scoring.dungeons.registry import (
     get_avoidable_abilities,
     get_all_avoidable_ability_ids,
+    get_critical_interrupt_ids,
     get_dungeon,
     active_encounter_ids,
 )
@@ -18,6 +19,7 @@ from app.scoring.dungeons.registry import (
 __all__ = [
     "get_avoidable_abilities",
     "get_all_avoidable_ability_ids",
+    "get_critical_interrupt_ids",
     "get_dungeon",
     "active_encounter_ids",
 ]

@@ -62,3 +62,16 @@ def get_all_avoidable_ability_ids() -> set[int]:
         for ability_id, _ in dungeon.avoidable_abilities:
             ids.add(ability_id)
     return ids
+
+
+def get_critical_interrupt_ids(encounter_id: int) -> set[int]:
+    """Return spell IDs for kicks that matter most in this dungeon.
+
+    Empty set if dungeon unknown or critical_interrupts hasn't been sourced.
+    Unlike avoidable abilities, there is no universal critical-kick list —
+    priority kicks are always encounter-specific.
+    """
+    dungeon = _DUNGEONS.get(encounter_id)
+    if dungeon is None:
+        return set()
+    return {spell_id for spell_id, _ in dungeon.critical_interrupts}

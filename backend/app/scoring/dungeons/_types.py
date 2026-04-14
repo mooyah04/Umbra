@@ -6,6 +6,9 @@ class DungeonData:
     encounter_id: int
     name: str
     avoidable_abilities: tuple[tuple[int, str], ...] = field(default_factory=tuple)
+    # High-priority casts that should be kicked (heals, dangerous AoE, etc).
+    # Kicking these counts 1.5× in the utility scoring category.
+    critical_interrupts: tuple[tuple[int, str], ...] = field(default_factory=tuple)
     # Appearances in M+ seasons, newest first. Informational.
     appearances: tuple[str, ...] = field(default_factory=tuple)
     # Date this writeup was last reviewed against live game data (YYYY-MM-DD).
