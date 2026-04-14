@@ -253,8 +253,27 @@ local function HookSearchPanel()
 end
 
 -- ── Applicant Grade Column (inline grade next to applicant names) ───────────
+--
+-- Raider.IO occupies the RIGHT edge of each applicant row with its M+
+-- score. If RIO is installed we yield that real estate to it and rely
+-- on our tooltip-on-hover instead — no info lost, no visual conflict.
+
+local function HasRaiderIO()
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        return C_AddOns.IsAddOnLoaded("RaiderIO")
+    end
+    if IsAddOnLoaded then
+        return IsAddOnLoaded("RaiderIO")
+    end
+    return false
+end
 
 local function UpdateApplicantGrades()
+    if HasRaiderIO() then
+        -- Don't fight Raider.IO for the same pixels.
+        return
+    end
+
     local appViewer = LFGListFrame and LFGListFrame.ApplicationViewer
     if not appViewer then return end
 
@@ -274,7 +293,6 @@ local function UpdateApplicantGrades()
                 if name then
                     local data = LookupPlayer(name)
                     if data then
-                        -- Add grade text next to the member's name
                         if not member.UmbraGrade then
                             member.UmbraGrade = member:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                             member.UmbraGrade:SetPoint("RIGHT", member, "RIGHT", -5, 0)
