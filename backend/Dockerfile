@@ -19,6 +19,7 @@ RUN pip install -r requirements.txt
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini .
+COPY bootstrap_db.py .
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
