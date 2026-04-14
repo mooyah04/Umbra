@@ -20,7 +20,7 @@ No build system — plain Lua loaded by the WoW client. Load order matters becau
 
 ### Backend (`backend/`)
 
-Python 3.11+ / FastAPI. PostgreSQL via SQLAlchemy 2.0 (mapped_column style). Alembic for migrations.
+Python 3.11+ / FastAPI. Fully async: PostgreSQL via SQLAlchemy 2.0 async (mapped_column style) with psycopg, httpx for HTTP. Alembic for migrations.
 
 **Data flow:** WCL API → ingest pipeline → scoring engine → DB → Lua export
 
@@ -30,7 +30,8 @@ Key modules:
 - **`app/pipeline/ingest.py`** — Core orchestrator. Per player: fetches WCL reports → extracts per-fight stats (DPS, HPS, interrupts, dispels, deaths, casts, cooldown usage, avoidable damage) → scores via engine → stores results. Also discovers groupmates from fight data for the crawler.
 - **`app/scoring/engine.py`** — Role-aware grading. Each role (tank/healer/dps) has different category weights. Runs are weighted by keystone level (higher keys = more weight). Key timing is a universal ±5 modifier. Composite 0-100 maps to letter grade.
 - **`app/scoring/roles.py`** — Maps all 39 WoW specs to tank/healer/dps.
-- **`app/scoring/avoidable.py`** — Known avoidable ability IDs per dungeon encounter.
+- **`app/scoring/dungeons/`** — Per-dungeon data (one module per dungeon, archived across seasons). `seasons.py` lists which dungeons are active in the current pool and the WCL zone ID. `registry.py` aggregates active dungeons for lookups. Current season: Midnight S1 (zone 47). When a legacy dungeon rotates back in, its module is already here — review and update rather than rewrite.
+- **`app/scoring/avoidable.py`** — Thin wrapper re-exporting the registry lookups for backwards compatibility.
 - **`app/scoring/cooldowns.py`** — Major cooldown spell/buff IDs per spec for CD usage tracking.
 - **`app/export/lua_writer.py`** — Generates `UmbraData.lua` from DB. Exports role-specific category breakdowns with friendly Lua key names.
 - **`app/crawler/`** — BFS crawler that discovers players by following groupmate connections from WCL fight data. Rate-limited.
@@ -47,7 +48,13 @@ Key modules:
 | Cooldown usage | 0.15 | 0.15 | 0.20 |
 | Casts per minute | 0.15 | 0.10 | 0.15 |
 
-## Backend Commands
+## Development Environment
+
+### GitHub Codespaces (recommended)
+
+Open in Codespaces — `.devcontainer/setup.sh` auto-installs PostgreSQL, pip dependencies, and runs migrations. Add `WCL_CLIENT_ID` and `WCL_CLIENT_SECRET` as Codespaces secrets in repo settings.
+
+### Local Setup
 
 ```bash
 cd backend
@@ -85,3 +92,4 @@ Key settings from env/`.env`: `WCL_CLIENT_ID`, `WCL_CLIENT_SECRET`, `DATABASE_UR
 - The `.toc` file's `## Interface:` value must match the current WoW client version to load without "out of date" being checked.
 - WoW color codes use `|cffRRGGBB` format. Grade colors follow WoW item quality: orange (legendary) for S, purple (epic) for A, blue (rare) for B, green (uncommon) for C, white (common) for D, grey (poor) for F.
 - `UmbraData.lua` is a generated file — don't hand-edit it. Regenerate via the backend export endpoint or `lua_writer.py`.
+- `generate_textures.py` creates gradient textures (TGA files) in `textures/` for the UI panel. Run with `python generate_textures.py` if textures need regeneration.

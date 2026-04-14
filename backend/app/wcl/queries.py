@@ -37,6 +37,9 @@ query($code: String!) {
         startTime
         endTime
         kill
+        rating
+        averageItemLevel
+        keystoneAffixes
       }
     }
   }
@@ -56,17 +59,19 @@ query($code: String!, $fightIDs: [Int!]!) {
       dispelTable: table(fightIDs: $fightIDs, dataType: Dispels)
       deathTable: table(fightIDs: $fightIDs, dataType: Deaths)
       castsTable: table(fightIDs: $fightIDs, dataType: Casts)
+      healingReceivedTable: table(fightIDs: $fightIDs, dataType: Healing, hostilityType: Friendlies)
     }
   }
 }
 """
 
-# Fetch buffs for a specific player (by sourceID) in a fight
-REPORT_PLAYER_BUFFS = """
+# Fetch buffs and debuffs for a specific player (by sourceID) in a fight
+REPORT_PLAYER_AURAS = """
 query($code: String!, $fightIDs: [Int!]!, $sourceID: Int!) {
   reportData {
     report(code: $code) {
       buffsTable: table(fightIDs: $fightIDs, dataType: Buffs, sourceID: $sourceID)
+      debuffsOnEnemies: table(fightIDs: $fightIDs, dataType: Debuffs, hostilityType: Enemies, sourceID: $sourceID)
     }
   }
 }

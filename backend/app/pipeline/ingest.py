@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import DungeonRun, Player, PlayerScore, Role
 from app.scoring.avoidable import get_avoidable_abilities
+from app.scoring.cc_abilities import get_cc_ability_ids
 from app.scoring.cooldowns import get_cooldowns_for_spec
 from app.scoring.engine import score_player_runs
+from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
 from app.wcl.client import wcl_client, WCLQueryError
 
@@ -23,6 +25,9 @@ logger = logging.getLogger(__name__)
 class IngestResult:
     player: Player | None
     groupmates: list[dict] = field(default_factory=list)  # [{name, realm, region}, ...]
+    # Reason populated when player is None, for caller-side diagnostics.
+    # Known values: "wcl_not_found", "no_reports", "no_fights".
+    reason: str | None = None
 
 
 def _slug_to_realm(slug: str) -> str:
@@ -73,6 +78,81 @@ def _count_deaths(table_data: dict, player_name: str) -> int:
     return sum(1 for e in entries if e.get("name", "").lower() == player_name.lower())
 
 
+def _get_healing_received(healing_table: dict, player_name: str) -> float:
+    """Sum healing received by a player across all healers.
+
+    The Healing table entries are grouped by source (healer). Each entry
+    may have a targets[] sub-array. If targets exist, sum those matching
+    our player. Otherwise fall back to the healingReceivedTable (viewBy: Target).
+    """
+    total = 0.0
+    entries = healing_table.get("data", {}).get("entries", [])
+    for healer_entry in entries:
+        targets = healer_entry.get("targets", [])
+        if targets:
+            for target in targets:
+                if target.get("name", "").lower() == player_name.lower():
+                    total += target.get("total", 0)
+        elif healer_entry.get("name", "").lower() == player_name.lower():
+            # Fallback: if this is a target-grouped table, entries ARE players
+            total += healer_entry.get("total", 0)
+    return total
+
+
+def _count_avoidable_deaths(
+    death_table: dict, player_name: str, avoidable_ids: set[int]
+) -> int:
+    """Count deaths caused by avoidable abilities.
+
+    The Deaths table returns killingAbility.guid per death event.
+    Cross-reference against known avoidable ability IDs.
+    """
+    entries = death_table.get("data", {}).get("entries", [])
+    count = 0
+    for e in entries:
+        if e.get("name", "").lower() != player_name.lower():
+            continue
+        killing = e.get("damage", {}).get("entries", [{}])
+        # Check if the killing blow was from an avoidable ability
+        killing_ability = e.get("killingAbility", {})
+        if killing_ability and killing_ability.get("guid", 0) in avoidable_ids:
+            count += 1
+    return count
+
+
+def _count_critical_interrupts(
+    interrupt_table: dict, player_name: str, critical_ids: set[int]
+) -> int:
+    """Count interrupts of high-priority spells.
+
+    The Interrupts table has structure: entries[interrupted_ability].entries[spell].details[player].
+    The top-level entry guid is the ability that was interrupted.
+    """
+    total = 0
+    for top_entry in interrupt_table.get("data", {}).get("entries", []):
+        interrupted_id = top_entry.get("guid", 0)
+        if interrupted_id not in critical_ids:
+            continue
+        for spell_entry in top_entry.get("entries", []):
+            for player in spell_entry.get("details", []):
+                if player.get("name", "").lower() == player_name.lower():
+                    total += player.get("total", 0)
+    return total
+
+
+def _count_cc_casts(debuffs_table: dict, cc_ids: set[int]) -> int:
+    """Count CC applications to enemies from the Debuffs table.
+
+    The Debuffs table (hostilityType: Enemies, sourceID filtered) returns
+    auras[] with totalUses per debuff applied to enemies.
+    """
+    total = 0
+    for aura in debuffs_table.get("data", {}).get("auras", []):
+        if aura.get("guid", 0) in cc_ids:
+            total += aura.get("totalUses", 0)
+    return total
+
+
 def _get_total_casts(table_data: dict, player_name: str) -> int:
     """Get total number of casts for a player from the Casts table."""
     entries = table_data.get("data", {}).get("entries", [])
@@ -82,26 +162,51 @@ def _get_total_casts(table_data: dict, player_name: str) -> int:
     return 0
 
 
-def _get_cooldown_usage(buffs_table: dict, cooldown_ids: set[int]) -> float:
-    """Calculate what percentage of major cooldowns were used at least once.
+def _get_cooldown_usage(
+    buffs_table: dict,
+    cooldowns: list[tuple[int, str, float]],
+    duration_ms: int,
+) -> float:
+    """Score cooldown usage based on frequency, not just presence.
 
-    Returns 0-100 representing the fraction of expected cooldowns that were cast.
+    Each cooldown has an expected_uptime_pct (from cooldowns.py). We estimate
+    how many uses to expect from the fight duration, then score actual vs expected.
+
+    For example, Combustion (12% expected uptime, ~2min CD) in a 30-min key:
+    expected_uses = (30 * 0.12) / (12/100 * 2) ≈ 15 uses. Using it once = 7%.
+
+    Simplified: expected_uses = max(1, duration_min * expected_uptime_pct / 100)
+    This works because uptime_pct roughly equals (buff_duration / cd_total_cycle).
+
+    Returns 0-100.
 
     WCL buffs table structure (when filtered by sourceID):
       data.auras[] -> [{guid, name, totalUses, totalUptime, bands}, ...]
     """
-    if not cooldown_ids:
+    if not cooldowns:
         return 100  # No cooldowns expected = full marks
 
+    duration_min = max(1, duration_ms / 60000)
     auras = buffs_table.get("data", {}).get("auras", [])
 
-    used_cds = set()
+    # Build lookup: buff_id -> totalUses
+    aura_uses: dict[int, int] = {}
     for aura in auras:
         aura_id = aura.get("guid", 0)
-        if aura_id in cooldown_ids and aura.get("totalUses", 0) > 0:
-            used_cds.add(aura_id)
+        aura_uses[aura_id] = aura.get("totalUses", 0)
 
-    return (len(used_cds) / len(cooldown_ids)) * 100
+    cd_scores: list[float] = []
+    for buff_id, _name, expected_uptime_pct in cooldowns:
+        actual_uses = aura_uses.get(buff_id, 0)
+
+        # Expected uses: scale by fight duration and expected uptime
+        # A 2-min CD with 15% uptime in a 30-min fight ≈ 4-5 expected uses
+        expected_uses = max(1, duration_min * expected_uptime_pct / 100)
+
+        # Score this CD: cap at 100% (using it more than expected is fine)
+        cd_scores.append(min(100, (actual_uses / expected_uses) * 100))
+
+    return sum(cd_scores) / len(cd_scores) if cd_scores else 100
 
 
 def _get_avoidable_damage(damage_taken_table: dict, player_name: str, avoidable_ids: set[int]) -> float:
@@ -176,7 +281,7 @@ def ingest_player(
     )
     if not char_data:
         logger.warning("Character not found on WCL: %s-%s (%s)", name, realm, region)
-        return IngestResult(player=None)
+        return IngestResult(player=None, reason="wcl_not_found")
 
     class_id = char_data["classID"]
     wcl_id = char_data["id"]
@@ -280,14 +385,18 @@ def ingest_player(
             dispel_table = report_data.get("dispelTable", {})
             death_table = report_data.get("deathTable", {})
             casts_table = report_data.get("castsTable", {})
+            healing_received_table = report_data.get("healingReceivedTable", {})
 
-            # Fetch buffs filtered by this player's actor ID
+            # Fetch buffs + debuffs filtered by this player's actor ID
             buffs_table = {}
+            debuffs_on_enemies = {}
             if actor_id:
                 try:
-                    buffs_table = wcl_client.get_player_buffs(report_code, [fight_id], actor_id)
+                    aura_data = wcl_client.get_player_auras(report_code, [fight_id], actor_id)
+                    buffs_table = aura_data.get("buffsTable", {})
+                    debuffs_on_enemies = aura_data.get("debuffsOnEnemies", {})
                 except WCLQueryError as e:
-                    logger.debug("Failed to get buffs for %s: %s", name, e)
+                    logger.debug("Failed to get auras for %s: %s", name, e)
 
             dps_total = _get_player_stat(damage_table, name)
             hps_total = _get_player_stat(healing_table, name)
@@ -297,17 +406,37 @@ def ingest_player(
             deaths = _count_deaths(death_table, name)
             total_casts = _get_total_casts(casts_table, name)
 
-            # Cooldown usage: check which major CDs were used
+            # Healing received by this player (from healingReceivedTable or healing_table targets)
+            healing_received = _get_healing_received(
+                healing_received_table or healing_table, name
+            )
+
+            # Cooldown usage: score frequency relative to expected uses
             encounter_id = fight.get("encounterID", 0)
             spec_cds = get_cooldowns_for_spec(class_id, spec_name)
-            cd_ids = {cd[0] for cd in spec_cds}
-            cd_usage = _get_cooldown_usage(buffs_table, cd_ids)
+            fight_duration_ms = fight.get("endTime", 0) - fight.get("startTime", 0)
+            cd_usage = _get_cooldown_usage(buffs_table, spec_cds, fight_duration_ms)
 
-            # Avoidable damage
+            # Avoidable damage and avoidable deaths
             avoidable_ids = get_avoidable_abilities(encounter_id)
             avoidable_dmg = _get_avoidable_damage(damage_taken_table, name, avoidable_ids)
+            avoidable_death_count = _count_avoidable_deaths(death_table, name, avoidable_ids)
+
+            # Critical interrupts (high-priority spells)
+            critical_interrupt_ids = get_critical_interrupt_ids(encounter_id)
+            crit_interrupts = _count_critical_interrupts(interrupt_table, name, critical_interrupt_ids)
+
+            # CC applications to enemies
+            cc_ability_ids = get_cc_ability_ids(class_id)
+            cc_count = _count_cc_casts(debuffs_on_enemies, cc_ability_ids)
 
             duration_ms = fight.get("endTime", 0) - fight.get("startTime", 0)
+
+            # Timed = completed AND within the dungeon's par time
+            # keystoneTime is the par timer in ms; kill means the key was completed
+            key_completed = fight.get("kill", False)
+            keystone_time = fight.get("keystoneTime", 0)
+            key_timed = key_completed and keystone_time > 0 and duration_ms <= keystone_time
 
             # Skip if we already have this run (preserve historical data)
             if (report_code, fight_id) in existing_runs:
@@ -332,10 +461,18 @@ def ingest_player(
                 cooldown_usage_pct=cd_usage,
                 wcl_report_id=report_code,
                 fight_id=fight_id,
-                timed=fight.get("kill", False),
+                timed=key_timed,
                 logged_at=datetime.fromtimestamp(
                     report.get("startTime", 0) / 1000
                 ),
+                # Enrichment fields
+                rating=fight.get("rating"),
+                average_item_level=fight.get("averageItemLevel"),
+                keystone_affixes=fight.get("keystoneAffixes"),
+                healing_received=healing_received,
+                cc_casts=cc_count,
+                critical_interrupts=crit_interrupts,
+                avoidable_deaths=avoidable_death_count,
             )
             session.add(run)
             runs.append(run)
@@ -354,7 +491,7 @@ def ingest_player(
             name=name,
             server_slug=server_slug,
             server_region=region.lower(),
-            zone_id=47,  # Current M+ season
+            zone_id=settings.wcl_mplus_zone_id,
         )
 
         # Overall percentiles (vs all players of same spec)
@@ -462,7 +599,7 @@ def ingest_player(
         if len(role_runs) < settings.min_runs_for_grade:
             continue
 
-        result = score_player_runs(role_runs, role, zone_dps_percentile, zone_dps_ilvl_percentile)
+        result = score_player_runs(role_runs, role, zone_dps_percentile, zone_dps_ilvl_percentile, class_id=class_id)
 
         # Total runs = all stored history (for the website), not just the scoring window
         total_runs = max(len(all_runs), zone_total_kills)

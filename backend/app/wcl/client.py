@@ -77,17 +77,30 @@ class WCLClient:
         )
         return data.get("reportData", {}).get("report")
 
-    def get_player_buffs(
+    def get_player_auras(
         self, report_code: str, fight_ids: list[int], source_id: int
     ) -> dict:
-        from app.wcl.queries import REPORT_PLAYER_BUFFS
+        """Fetch buffs (on self) and debuffs (applied to enemies) for a player.
+
+        Returns dict with 'buffsTable' and 'debuffsOnEnemies' keys.
+        """
+        from app.wcl.queries import REPORT_PLAYER_AURAS
 
         data = self.query(
-            REPORT_PLAYER_BUFFS,
+            REPORT_PLAYER_AURAS,
             {"code": report_code, "fightIDs": fight_ids, "sourceID": source_id},
         )
         report = data.get("reportData", {}).get("report", {})
-        return report.get("buffsTable", {})
+        return {
+            "buffsTable": report.get("buffsTable", {}),
+            "debuffsOnEnemies": report.get("debuffsOnEnemies", {}),
+        }
+
+    # Backwards-compatible alias
+    def get_player_buffs(
+        self, report_code: str, fight_ids: list[int], source_id: int
+    ) -> dict:
+        return self.get_player_auras(report_code, fight_ids, source_id).get("buffsTable", {})
 
     def get_encounter_percentiles(
         self,
@@ -145,7 +158,7 @@ class WCLClient:
         name: str,
         server_slug: str,
         server_region: str,
-        zone_id: int = 47,
+        zone_id: int = 47,  # Midnight Season 1
     ) -> dict:
         """Fetch zoneRankings for a character — both overall and by ilvl bracket.
 

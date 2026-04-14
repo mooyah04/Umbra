@@ -4,11 +4,12 @@ Computes a 0-100 composite score per role, then maps to a letter grade (S+ to F-
 Each role uses different category weights reflecting what matters for that role in M+.
 
 Runs are weighted by keystone level — higher keys have more impact on the final score.
-Key timing is a universal modifier applied to all roles equally.
+Key timing is a universal ±8 modifier applied to all roles equally.
 """
 
 from dataclasses import dataclass
 from app.models import DungeonRun, Role
+from app.scoring.cpm_benchmarks import get_benchmark, score_cpm
 from app.scoring.roles import healer_can_interrupt
 
 
@@ -77,23 +78,50 @@ def _score_healing_throughput(runs: list[DungeonRun]) -> float:
 
 
 def _score_utility_dps_tank(runs: list[DungeonRun]) -> float:
-    """Utility score for DPS and tanks: primarily interrupts.
+    """Utility score for DPS and tanks: interrupts, dispels, and CC.
 
-    Scoring scale (per dungeon run):
-    - Interrupts: 15+ = excellent, 8-14 = good, 3-7 = okay, 0-2 = poor
+    Scoring components:
+    - Interrupts: 15+ = excellent, scaled linearly. Critical interrupts
+      (high-priority spells) count 1.5x when data is available.
     - Dispels: bonus if the class can dispel
+    - CC: crowd control usage when data is available
+
+    Component weights adapt based on data availability:
+    - With CC data: 55% interrupts, 20% dispels, 25% CC
+    - Without CC: 80% interrupts, 20% dispels (original behavior)
     """
+    has_cc_data = any(
+        getattr(r, "cc_casts", None) is not None for r in runs
+    )
+
     def score_fn(run):
-        interrupt_score = min(100, (run.interrupts / 15) * 100)
-        if run.dispels > 0:
-            dispel_score = min(100, (run.dispels / 5) * 100)
-            return interrupt_score * 0.8 + dispel_score * 0.2
-        return interrupt_score
+        # Interrupt score with critical kick bonus
+        base_kicks = run.interrupts
+        crit_kicks = getattr(run, "critical_interrupts", None)
+        if crit_kicks is not None and crit_kicks > 0:
+            # Critical interrupts count 1.5x — reward kicking the right spells
+            effective_kicks = (base_kicks - crit_kicks) + (crit_kicks * 1.5)
+        else:
+            effective_kicks = base_kicks
+        interrupt_score = min(100, (effective_kicks / 15) * 100)
+
+        dispel_score = min(100, (run.dispels / 5) * 100) if run.dispels > 0 else 0
+
+        if has_cc_data:
+            cc_count = getattr(run, "cc_casts", None) or 0
+            # 10+ CC applications = excellent for DPS/tanks
+            cc_score = min(100, (cc_count / 10) * 100)
+
+            return interrupt_score * 0.55 + dispel_score * 0.20 + cc_score * 0.25
+        else:
+            if run.dispels > 0:
+                return interrupt_score * 0.80 + dispel_score * 0.20
+            return interrupt_score
 
     return _weighted_average(runs, score_fn)
 
 
-def _score_utility_healer(runs: list[DungeonRun]) -> float:
+def _score_utility_healer(runs: list[DungeonRun], class_id: int | None = None) -> float:
     """Utility score for healers: primarily dispels.
 
     Most healer specs cannot interrupt (only Resto Shaman and Holy Paladin can).
@@ -103,16 +131,17 @@ def _score_utility_healer(runs: list[DungeonRun]) -> float:
     if not runs:
         return 0
 
-    # Check if this healer spec can interrupt (use first run's spec)
-    # We need class_id which isn't on DungeonRun, so we check if they
-    # actually interrupted — if they did, they can
-    has_any_interrupts = any(r.interrupts > 0 for r in runs)
+    # Determine if this healer spec can interrupt using the spec/class lookup
+    spec_name = runs[0].spec_name if runs else "Unknown"
+    can_kick = False
+    if class_id is not None:
+        can_kick = healer_can_interrupt(class_id, spec_name)
 
     def score_fn(run):
         # Dispels: primary metric for healers (8+ = excellent, 4 = good, 0 = poor)
         dispel_score = min(100, (run.dispels / 8) * 100)
 
-        if has_any_interrupts:
+        if can_kick:
             # This healer can interrupt — give bonus for interrupts
             interrupt_score = min(100, (run.interrupts / 10) * 100)
             return dispel_score * 0.6 + interrupt_score * 0.4
@@ -124,37 +153,46 @@ def _score_utility_healer(runs: list[DungeonRun]) -> float:
 
 
 def _score_survivability(runs: list[DungeonRun]) -> float:
-    """Survivability score combining death frequency and damage taken awareness.
+    """Survivability score combining death frequency, avoidable damage, and healing burden.
 
-    Two components:
-    1. Death penalty (70% weight) — harsh curve, especially for DPS/healers
-       who should rarely die. 7 deaths in a key = 0.
-    2. Damage taken ratio (30% weight) — for DPS/healers, compares their
-       damage taken against what's expected for a non-tank. High damage
-       taken relative to the group signals standing in mechanics.
+    Three components:
+    1. Death penalty (50% weight) — harsh curve. Avoidable deaths penalized
+       more severely than unavoidable deaths when that data is available.
+    2. Avoidable damage ratio (25% weight) — ratio of avoidable-to-total damage
+       taken. Falls back to raw DTPS when avoidable data is incomplete.
+    3. Healing burden (25% weight) — how much healing you consumed. DPS/healers
+       who take tons of healing are a burden even if they don't die. Tanks are
+       expected to receive healing so this is neutral for them.
 
-    Both are weighted by key level — dying in a +15 hurts more.
+    All components are weighted by key level — dying in a +15 hurts more.
     """
     def death_score_fn(run):
-        # Harsher curve: DPS/healers should not be dying
+        # Base death penalty curve
         if run.deaths == 0:
             return 100
         elif run.deaths == 1:
-            return 65
+            base = 65
         elif run.deaths == 2:
-            return 35
+            base = 35
         elif run.deaths == 3:
-            return 15
+            base = 15
         elif run.deaths == 4:
-            return 5
+            base = 5
         else:
-            return 0  # 5+ deaths = zero, you're griefing the key
+            base = 0  # 5+ deaths = zero
+
+        # If we know how many deaths were avoidable, penalize those harder
+        avoidable = getattr(run, "avoidable_deaths", None)
+        if avoidable is not None and avoidable > 0 and run.deaths > 0:
+            # Each avoidable death costs an extra 10 points on top of base
+            avoidable_penalty = min(base, avoidable * 10)
+            return max(0, base - avoidable_penalty)
+
+        return base
 
     def avoidable_damage_score_fn(run):
         # Score based on avoidable damage taken (from known avoidable abilities)
-        # If we have avoidable damage data, use it; otherwise fall back to raw DTPS
         if run.avoidable_damage_taken > 0:
-            # Ratio of avoidable to total damage taken
             if run.damage_taken_total > 0:
                 avoidable_ratio = run.avoidable_damage_taken / run.damage_taken_total
             else:
@@ -180,11 +218,46 @@ def _score_survivability(runs: list[DungeonRun]) -> float:
         else:
             return max(0, 20 - ((dtps - 20000) / 10000) * 20)
 
+    def healing_burden_score_fn(run):
+        # How much healing did this player consume?
+        healing_received = getattr(run, "healing_received", None)
+        if healing_received is None:
+            return 75  # No data, neutral
+
+        # Tanks are expected to receive healing — neutral score
+        if run.role == Role.tank:
+            return 75
+
+        # For DPS/healers: normalize by fight duration
+        duration_s = max(1, run.duration / 1000)
+        hrps = healing_received / duration_s  # healing received per second
+
+        # Lower is better. Scale: <2k HRPS = 100 (barely any healing needed),
+        # 2-5k = good, 5-10k = concerning, >10k = you're being carried
+        if hrps < 2000:
+            return 100
+        elif hrps < 5000:
+            return 90 - ((hrps - 2000) / 3000) * 30
+        elif hrps < 10000:
+            return 60 - ((hrps - 5000) / 5000) * 40
+        else:
+            return max(0, 20 - ((hrps - 10000) / 10000) * 20)
+
     death_avg = _weighted_average(runs, death_score_fn)
     avoidable_avg = _weighted_average(runs, avoidable_damage_score_fn)
+    healing_burden_avg = _weighted_average(runs, healing_burden_score_fn)
 
-    # Deaths are the primary signal, avoidable damage catches the "barely alive" players
-    return death_avg * 0.6 + avoidable_avg * 0.4
+    # Check if healing burden data is available on any run
+    has_healing_data = any(
+        getattr(r, "healing_received", None) is not None for r in runs
+    )
+
+    if has_healing_data:
+        # Full scoring with all three components
+        return death_avg * 0.50 + avoidable_avg * 0.25 + healing_burden_avg * 0.25
+    else:
+        # Fallback for old data without healing_received
+        return death_avg * 0.60 + avoidable_avg * 0.40
 
 
 def _score_cooldown_usage(runs: list[DungeonRun]) -> float:
@@ -203,37 +276,28 @@ def _score_cooldown_usage(runs: list[DungeonRun]) -> float:
 
 
 def _score_casts_per_minute(runs: list[DungeonRun]) -> float:
-    """Score based on casts per minute (activity level).
+    """Score based on casts per minute, using role/spec-aware benchmarks.
 
-    Low CPM means the player is standing around not pressing buttons.
-    High CPM means they're actively playing their rotation.
+    The old scorer used a single universal curve (35+ CPM = 100) which unfairly
+    penalized low-CPM specs (MM Hunter, Balance Druid, healers, tanks). We now
+    look up a benchmark per run based on the run's spec, falling back to the
+    role default when a spec isn't in the override table.
 
-    Benchmarks (rough, varies by spec):
-    - 30+ CPM = excellent (always pressing something)
-    - 20-30 = good (solid activity)
-    - 15-20 = below average (gaps in rotation)
-    - Under 15 = poor (AFK or not trying)
+    See app/scoring/cpm_benchmarks.py for the benchmark data and curve.
+    Runs with no cast data (casts_total<=0 or duration<=0) return 0 — a real
+    dungeon run always has casts, so missing data is a real signal, not neutral.
     """
     def score_fn(run):
         if run.casts_total <= 0 or run.duration <= 0:
-            return 50  # No data, neutral
+            return 0.0
 
         duration_min = run.duration / 60000
         if duration_min <= 0:
-            return 50
+            return 0.0
 
         cpm = run.casts_total / duration_min
-
-        if cpm >= 35:
-            return 100
-        elif cpm >= 25:
-            return 80 + ((cpm - 25) / 10) * 20
-        elif cpm >= 18:
-            return 50 + ((cpm - 18) / 7) * 30
-        elif cpm >= 12:
-            return 20 + ((cpm - 12) / 6) * 30
-        else:
-            return max(0, cpm / 12 * 20)
+        benchmark = get_benchmark(run.role, run.spec_name)
+        return score_cpm(cpm, benchmark)
 
     return _weighted_average(runs, score_fn)
 
@@ -242,7 +306,9 @@ def _timing_modifier(runs: list[DungeonRun]) -> float:
     """Universal modifier based on key timing rate, weighted by key level.
 
     Timing a +15 counts more than timing a +2.
-    Returns a value between -5 and +5.
+    Returns a value between -8 and +8 (P1 rebalance: widened from ±5
+    to give more weight to actually timing keys — especially important
+    for tanks as a route quality proxy).
     """
     if not runs:
         return 0
@@ -256,7 +322,7 @@ def _timing_modifier(runs: list[DungeonRun]) -> float:
             timed_weight += weight
 
     timed_rate = timed_weight / total_weight if total_weight > 0 else 0.5
-    return (timed_rate - 0.5) * 10
+    return (timed_rate - 0.5) * 16
 
 
 # ── Role weight profiles ────────────────────────────────────────────────────
@@ -267,32 +333,38 @@ class RoleWeights:
 
 
 ROLE_WEIGHTS: dict[Role, RoleWeights] = {
+    # P1 rebalance (fairness audit): reduced CPM weight (spec bias),
+    # boosted survivability. Timing modifier provides +/-8 on top.
     Role.dps: RoleWeights(
         categories={
-            "damage_output": 0.35,
-            "utility": 0.15,
-            "survivability": 0.20,
-            "cooldown_usage": 0.15,
-            "casts_per_minute": 0.15,
+            "damage_output": 0.30,     # primary, slightly reduced from 0.35
+            "utility": 0.20,           # up from 0.15 — kicks/CC are critical in M+
+            "survivability": 0.25,     # up from 0.20 — not dying matters more than CPM
+            "cooldown_usage": 0.15,    # unchanged
+            "casts_per_minute": 0.10,  # down from 0.15 — CPM has spec bias (e.g. MM Hunter vs Fury)
         }
     ),
+    # P1 rebalance: healing_throughput reduced (punishes efficient healers in
+    # clean groups), healer DPS doubled (key differentiator in modern M+).
     Role.healer: RoleWeights(
         categories={
-            "healing_throughput": 0.30,
-            "damage_output": 0.10,
-            "utility": 0.20,
-            "survivability": 0.15,
-            "cooldown_usage": 0.15,
-            "casts_per_minute": 0.10,
+            "healing_throughput": 0.20, # down from 0.30 — penalized efficient healers
+            "damage_output": 0.20,      # up from 0.10 — healer DPS is a key M+ differentiator
+            "utility": 0.20,            # unchanged
+            "survivability": 0.15,      # unchanged
+            "cooldown_usage": 0.15,     # unchanged
+            "casts_per_minute": 0.10,   # unchanged
         }
     ),
+    # P1 rebalance: tank damage boosted (primary differentiator), survivability
+    # reduced (over-rewarded passive play), utility slightly reduced.
     Role.tank: RoleWeights(
         categories={
-            "damage_output": 0.15,
-            "utility": 0.20,
-            "survivability": 0.30,
-            "cooldown_usage": 0.20,
-            "casts_per_minute": 0.15,
+            "damage_output": 0.25,     # up from 0.15 — tank DPS is a primary differentiator
+            "utility": 0.15,           # down from 0.20
+            "survivability": 0.25,     # down from 0.30 — was over-rewarding passive play
+            "cooldown_usage": 0.20,    # unchanged
+            "casts_per_minute": 0.15,  # unchanged
         }
     ),
 }
@@ -330,6 +402,7 @@ def score_player_runs(
     role: Role,
     zone_dps_percentile: float | None = None,
     zone_dps_ilvl_percentile: float | None = None,
+    class_id: int | None = None,
 ) -> ScoreResult:
     """Score a set of dungeon runs for a player in a specific role.
 
@@ -341,6 +414,9 @@ def score_player_runs(
     - zone_dps_ilvl_percentile: vs same spec at similar ilvl (gear-relative)
     The overall percentile is used for the grade composite.
     Both are stored in category_scores for display.
+
+    class_id is needed for healer utility scoring (determines if the spec
+    can interrupt — only Resto Shaman and Holy Paladin can).
     """
     weights = ROLE_WEIGHTS[role]
     category_scores: dict[str, float] = {}
@@ -357,7 +433,11 @@ def score_player_runs(
             score = zone_dps_percentile
         else:
             scorer = scorers[category_name]
-            score = scorer(runs)
+            # Pass class_id to healer utility scorer
+            if category_name == "utility" and role == Role.healer:
+                score = scorer(runs, class_id=class_id)
+            else:
+                score = scorer(runs)
         category_scores[category_name] = round(score, 1)
         composite += score * weight
 

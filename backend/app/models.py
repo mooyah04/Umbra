@@ -66,6 +66,15 @@ class DungeonRun(Base):
     timed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     logged_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
+    # Enrichment fields (nullable for backwards compat with existing rows)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    average_item_level: Mapped[float | None] = mapped_column(Float, nullable=True)
+    keystone_affixes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    healing_received: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cc_casts: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    critical_interrupts: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    avoidable_deaths: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     player: Mapped["Player"] = relationship(back_populates="runs")
 
 
