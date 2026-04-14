@@ -4,7 +4,9 @@ import math
 from PIL import Image, ImageDraw, ImageFilter
 
 PURPLE = (138, 43, 226)
-TEX_DIR = "textures"
+# Textures live inside the addon folder so the entire Umbra/ directory
+# can be drag-and-dropped into Interface/AddOns/.
+TEX_DIR = "Umbra/textures"
 
 
 def generate_glow(size=512):
