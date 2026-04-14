@@ -24,11 +24,24 @@ local function Print(msg)
     end
 end
 
+-- Advanced Combat Logging is a separate WoW CVar from /combatlog.
+-- Without it the log file is generated but missing player GUIDs and
+-- detailed ability data — WCL can't parse such logs and our backend
+-- can't score from them. Force it on whenever we start a log.
+local function EnsureAdvancedLogging()
+    if not GetCVar then return end
+    if GetCVar("advancedCombatLogging") ~= "1" then
+        SetCVar("advancedCombatLogging", 1)
+        Print(YELLOW .. "Enabled Advanced Combat Logging (was off).|r")
+    end
+end
+
 -- True when we turned logging on ourselves. Used to avoid toggling off
 -- a log the user started manually (e.g., for a raid right after a key).
 local startedByUs = false
 
 local function EnableLogging()
+    EnsureAdvancedLogging()
     if LoggingCombat() then
         -- User already has logging on; don't clobber or take credit.
         startedByUs = false
@@ -54,13 +67,22 @@ end
 -- CHALLENGE_MODE_COMPLETED fires on timed or depleted finish.
 -- CHALLENGE_MODE_RESET fires when the group resets the instance mid-run.
 -- PLAYER_LEAVING_WORLD covers "player left the instance" (e.g., hearthed out).
+-- PLAYER_LOGIN: one-time setup chance to flip Advanced Combat Logging on.
 local logger = CreateFrame("Frame")
+logger:RegisterEvent("PLAYER_LOGIN")
 logger:RegisterEvent("CHALLENGE_MODE_START")
 logger:RegisterEvent("CHALLENGE_MODE_COMPLETED")
 logger:RegisterEvent("CHALLENGE_MODE_RESET")
 logger:RegisterEvent("PLAYER_LEAVING_WORLD")
 
 logger:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_LOGIN" then
+        -- Set the CVar at login regardless of opt-out so the setting
+        -- persists between sessions even if the user disabled auto-log.
+        EnsureAdvancedLogging()
+        return
+    end
+
     if UmbraSettings and UmbraSettings.autoCombatLog == false then
         -- User opted out.
         return
