@@ -57,6 +57,35 @@ AMBIGUOUS_SPECS: dict[str, tuple[int, ...]] = {
 }
 
 
+# Map WCL's per-fight 'type' field (class name) to the canonical class_id.
+# WCL sometimes spells compound names joined ('DeathKnight') and sometimes
+# spaced ('Death Knight'); accept both.
+CLASS_NAME_TO_ID: dict[str, int] = {
+    "Warrior": 1,
+    "Paladin": 2,
+    "Hunter": 3,
+    "Rogue": 4,
+    "Priest": 5,
+    "DeathKnight": 6, "Death Knight": 6,
+    "Shaman": 7,
+    "Mage": 8,
+    "Warlock": 9,
+    "Monk": 10,
+    "Druid": 11,
+    "DemonHunter": 12, "Demon Hunter": 12,
+    "Evoker": 13,
+}
+
+
+def class_id_from_name(class_name: str | None) -> int | None:
+    """Return class_id from WCL's per-fight class-name string, or None if unknown."""
+    if not class_name:
+        return None
+    # Normalize: strip whitespace, try both raw and space-less forms
+    cleaned = class_name.strip()
+    return CLASS_NAME_TO_ID.get(cleaned) or CLASS_NAME_TO_ID.get(cleaned.replace(" ", ""))
+
+
 def resolve_class_id(spec_name: str | None, wcl_class_id: int | None) -> int | None:
     """Return the best-guess class_id for a (spec, WCL-reported class) pair.
 

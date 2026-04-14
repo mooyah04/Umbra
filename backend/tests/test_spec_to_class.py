@@ -3,9 +3,43 @@ import pytest
 
 from app.scoring.spec_to_class import (
     AMBIGUOUS_SPECS,
+    CLASS_NAME_TO_ID,
     UNAMBIGUOUS_SPEC_TO_CLASS,
+    class_id_from_name,
     resolve_class_id,
 )
+
+
+# ── class_id_from_name (authoritative from WCL playerDetails 'type') ────────
+
+def test_class_name_druid_returns_11():
+    """The Dobbermon case: Resto Druid mis-tagged as Resto Shaman. WCL's
+    playerDetails.type = 'Druid' should pin class_id=11 regardless of
+    what the character endpoint said."""
+    assert class_id_from_name("Druid") == 11
+
+
+def test_class_name_shaman_returns_7():
+    assert class_id_from_name("Shaman") == 7
+
+
+def test_class_name_handles_compound_names_both_spellings():
+    assert class_id_from_name("DeathKnight") == 6
+    assert class_id_from_name("Death Knight") == 6
+    assert class_id_from_name("DemonHunter") == 12
+    assert class_id_from_name("Demon Hunter") == 12
+
+
+def test_class_name_unknown_returns_none():
+    assert class_id_from_name(None) is None
+    assert class_id_from_name("") is None
+    assert class_id_from_name("NotAClass") is None
+
+
+def test_every_class_id_is_reachable_by_name():
+    """Every class_id 1-13 must be producible from some name."""
+    reachable = set(CLASS_NAME_TO_ID.values())
+    assert reachable == set(range(1, 14))
 
 
 def test_brewmaster_overrides_wrong_wcl_class():

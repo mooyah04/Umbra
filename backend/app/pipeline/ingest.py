@@ -16,7 +16,7 @@ from app.scoring.cooldowns import get_cooldowns_for_spec
 from app.scoring.engine import score_player_runs
 from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
-from app.scoring.spec_to_class import resolve_class_id
+from app.scoring.spec_to_class import class_id_from_name, resolve_class_id
 from app.wcl.client import wcl_client, WCLQueryError
 
 logger = logging.getLogger(__name__)
@@ -320,6 +320,9 @@ def ingest_player(
     runs: list[DungeonRun] = []
     discovered_groupmates: list[dict] = []
     seen_groupmates: set[str] = set()
+    # Class names observed across fights — WCL's character endpoint sometimes
+    # matches the wrong entity; the per-fight 'type' is authoritative.
+    observed_class_names: list[str] = []
 
     for report in reports:
         report_code = report["code"]
@@ -377,6 +380,13 @@ def ingest_player(
             spec_name = specs[0]["spec"] if specs else "Unknown"
             ilvl = player_info.get("maxItemLevel", 0)
             actor_id = player_info.get("id", 0)  # WCL actor ID for this fight
+
+            # Record the per-fight class name (WCL playerDetails 'type' field).
+            # This disambiguates same-spec-name-different-class cases that
+            # spec-based inference can't handle (Resto Shaman vs Resto Druid).
+            fight_class_name = player_info.get("type")
+            if fight_class_name:
+                observed_class_names.append(fight_class_name)
 
             # Extract per-fight stats
             damage_table = report_data.get("damageTable", {})
@@ -592,20 +602,31 @@ def ingest_player(
     primary_role = max(runs_by_role, key=lambda r: len(runs_by_role[r])) if runs_by_role else Role.dps
 
     # Correct class_id if the WCL character endpoint returned the wrong
-    # character entity (name collisions on a realm). Per-fight spec data is
-    # reliable; use the most common spec to resolve the true class.
-    if recent_runs:
-        from collections import Counter
+    # character entity (name collisions on a realm). Preference order:
+    #   1. Most common per-fight class name from playerDetails.type
+    #      (handles Resto Shaman vs Resto Druid — spec alone can't tell).
+    #   2. Spec-based inference for unambiguous specs (Brewmaster → Monk).
+    #   3. Whatever WCL's character endpoint returned.
+    from collections import Counter
+
+    resolved_class_id: int | None = None
+    if observed_class_names:
+        name_counts = Counter(observed_class_names)
+        most_common_name, _ = name_counts.most_common(1)[0]
+        resolved_class_id = class_id_from_name(most_common_name)
+
+    if resolved_class_id is None and recent_runs:
         spec_counts = Counter(r.spec_name for r in recent_runs)
         most_common_spec, _ = spec_counts.most_common(1)[0]
         resolved_class_id = resolve_class_id(most_common_spec, class_id)
-        if resolved_class_id is not None and resolved_class_id != class_id:
-            logger.info(
-                "Overriding class_id for %s-%s: WCL said %d, spec '%s' implies %d",
-                name, realm, class_id, most_common_spec, resolved_class_id,
-            )
-            class_id = resolved_class_id
-            player.class_id = resolved_class_id
+
+    if resolved_class_id is not None and resolved_class_id != class_id:
+        logger.info(
+            "Overriding class_id for %s-%s: WCL character said %d, fight data implies %d",
+            name, realm, class_id, resolved_class_id,
+        )
+        class_id = resolved_class_id
+        player.class_id = resolved_class_id
 
     # Clear old scores
     old_scores_stmt = select(PlayerScore).where(PlayerScore.player_id == player.id)
