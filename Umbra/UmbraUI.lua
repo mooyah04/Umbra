@@ -379,9 +379,19 @@ SlashCmdList["UMBRA"] = function()
     end
 end
 
--- ── Settings (used by Core.lua) ─────────────────────────────────────────────
+-- ── Settings (used by Core.lua and UmbraLogger.lua) ────────────────────────
+-- Merge defaults into the saved-variables table so we never clobber values
+-- set by other modules (e.g., UmbraLogger's autoCombatLog) or by the user
+-- across sessions. Direct assignment was destroying both.
 
-UmbraSettings = {
+UmbraSettings = UmbraSettings or {}
+local _defaults = {
     showTooltips = true,
     showLFG = true,
+    autoCombatLog = true,
 }
+for k, v in pairs(_defaults) do
+    if UmbraSettings[k] == nil then
+        UmbraSettings[k] = v
+    end
+end
