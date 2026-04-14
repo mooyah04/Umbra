@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from sqlalchemy import Float, Integer, func, select
+from sqlalchemy import Float, Integer, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import settings
@@ -90,11 +90,18 @@ def _canonical_identity(name: str, realm: str, region: str) -> tuple[str, str, s
 
 
 def _find_player(session: Session, region: str, realm: str, name: str) -> Player | None:
+    """Match realm in both slug and display form.
+
+    WCL uses slugs ('tarren-mill'), WoW displays use spaces ('Tarren Mill').
+    Ingest stores the display form; URLs typically carry the slug form.
+    Accept either so frontend routing and API calls match the stored row.
+    """
+    realm_variants = {realm, realm.replace("-", " "), realm.replace(" ", "-")}
     stmt = (
         select(Player)
         .where(
             Player.name.ilike(name),
-            Player.realm.ilike(realm),
+            or_(*(Player.realm.ilike(v) for v in realm_variants)),
             Player.region.ilike(region),
         )
         .options(selectinload(Player.scores), selectinload(Player.runs))
