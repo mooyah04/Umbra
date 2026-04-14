@@ -384,9 +384,19 @@ def ingest_player(
             # Record the per-fight class name (WCL playerDetails 'type' field).
             # This disambiguates same-spec-name-different-class cases that
             # spec-based inference can't handle (Resto Shaman vs Resto Druid).
-            fight_class_name = player_info.get("type")
+            fight_class_name = player_info.get("type") or player_info.get("class")
             if fight_class_name:
                 observed_class_names.append(fight_class_name)
+            elif not observed_class_names:
+                # One-shot diagnostic: log the available keys so we can see
+                # what WCL actually returned. Prevents spamming per-fight.
+                logger.info(
+                    "No class name in playerDetails for %s: keys=%s sample=%s",
+                    name,
+                    sorted(player_info.keys()),
+                    {k: v for k, v in player_info.items() if k in
+                     ("type", "class", "subtype", "icon", "specs")},
+                )
 
             # Extract per-fight stats
             damage_table = report_data.get("damageTable", {})
