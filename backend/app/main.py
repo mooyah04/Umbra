@@ -89,24 +89,39 @@ def _canonical_identity(name: str, realm: str, region: str) -> tuple[str, str, s
         raise HTTPException(status_code=400, detail=str(e))
 
 
-def _find_player(session: Session, region: str, realm: str, name: str) -> Player | None:
-    """Match realm in both slug and display form.
+def _realm_key(realm: str) -> str:
+    """Normalize a realm name for equality comparison.
 
-    WCL uses slugs ('tarren-mill'), WoW displays use spaces ('Tarren Mill').
-    Ingest stores the display form; URLs typically carry the slug form.
-    Accept either so frontend routing and API calls match the stored row.
+    The codebase mixes three realm storage/display conventions:
+      - WoW display:  'Tarren Mill'
+      - WCL slug:     'tarren-mill'
+      - Raider.IO:    'TarrenMill'
+    Stripping to alphanumeric + lowercase collapses all three to 'tarrenmill'
+    so any inbound format finds the row regardless of how it was stored.
     """
-    realm_variants = {realm, realm.replace("-", " "), realm.replace(" ", "-")}
+    return "".join(c.lower() for c in realm if c.isalnum())
+
+
+def _find_player(session: Session, region: str, realm: str, name: str) -> Player | None:
+    """Find a player by name + region, filter realm in Python on the normalized key.
+
+    Filtering realm client-side keeps the lookup independent of which storage
+    convention ingest used. Scale fine for preview-level data; if the player
+    count grows large, add an indexed realm_key column to avoid the full scan.
+    """
+    target = _realm_key(realm)
     stmt = (
         select(Player)
         .where(
             Player.name.ilike(name),
-            or_(*(Player.realm.ilike(v) for v in realm_variants)),
             Player.region.ilike(region),
         )
         .options(selectinload(Player.scores), selectinload(Player.runs))
     )
-    return session.execute(stmt).scalar_one_or_none()
+    for p in session.execute(stmt).scalars():
+        if _realm_key(p.realm) == target:
+            return p
+    return None
 
 
 def _run_to_response(run: DungeonRun) -> RunResponse:
