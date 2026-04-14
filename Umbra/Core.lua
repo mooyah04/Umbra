@@ -96,6 +96,30 @@ local function GetFullName(name, realm)
 end
 
 -- ── Tooltip Rendering ───────────────────────────────────────────────────────
+--
+-- WoW reuses GameTooltipTextRight<N> regions across tooltips. If we call
+-- SetFont on one for our giant grade, that change persists on the recycled
+-- region — and the NEXT tooltip (e.g., a player not in our DB) inherits
+-- our font, making other addons' text (Raider.IO score, etc.) render
+-- huge and outlined.
+--
+-- Track every region we modify and reset it when the tooltip hides so the
+-- next render starts from defaults.
+
+local _modifiedRegions = {}
+
+local function _resetModifiedRegions()
+    for region in pairs(_modifiedRegions) do
+        if region then
+            region:SetFontObject("GameTooltipText")
+        end
+    end
+    wipe(_modifiedRegions)
+end
+
+if GameTooltip then
+    GameTooltip:HookScript("OnHide", _resetModifiedRegions)
+end
 
 local function AddUmbraTooltip(tooltip, data)
     tooltip:AddLine(" ")
@@ -111,11 +135,13 @@ local function AddUmbraTooltip(tooltip, data)
         roleIcon .. " " .. GREY .. (data.spec or roleName) .. "|r",
         gradeColor .. data.grade .. "|r"
     )
-    -- Make the grade side larger
+    -- Make the grade side larger — but track the region so we can reset
+    -- it on tooltip hide. Otherwise the font leaks to other addons.
     local numLines = tooltip:NumLines()
     local gradeRight = _G["GameTooltipTextRight" .. numLines]
     if gradeRight then
         gradeRight:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE, THICKOUTLINE")
+        _modifiedRegions[gradeRight] = true
     end
 
     local spec = data.spec or "Spec"
