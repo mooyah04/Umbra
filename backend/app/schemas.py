@@ -23,6 +23,12 @@ class IngestPlayer(BaseModel):
     name: str
     realm: str
     region: str
+    # Optional class hint — overrides WCL's unreliable character endpoint
+    # classID when provided. Accept either the class name ('Mage') or the
+    # numeric class_id (1-13). Hint wins over per-fight playerDetails and
+    # spec-based inference, since the caller knows best.
+    class_name: str | None = None
+    class_id: int | None = None
 
     @field_validator("name", "realm", "region", mode="after")
     @classmethod
@@ -31,6 +37,15 @@ class IngestPlayer(BaseModel):
         # just ensures pydantic doesn't strip-and-accept "  ".
         if not v or not v.strip():
             raise ValueError("must not be blank")
+        return v
+
+    @field_validator("class_id", mode="after")
+    @classmethod
+    def _valid_class_id(cls, v: int | None) -> int | None:
+        if v is None:
+            return None
+        if not (1 <= v <= 13):
+            raise ValueError("class_id must be between 1 and 13")
         return v
 
 
@@ -49,7 +64,10 @@ class IngestRequest(BaseModel):
                 name, realm, region = validate_player_identity(p.name, p.realm, p.region)
             except ValidationError as e:
                 raise ValueError(f"players[{i}]: {e}")
-            out.append(IngestPlayer(name=name, realm=realm, region=region))
+            out.append(IngestPlayer(
+                name=name, realm=realm, region=region,
+                class_name=p.class_name, class_id=p.class_id,
+            ))
         return out
 
 

@@ -292,8 +292,14 @@ def ingest_player(
     name: str,
     realm: str,
     region: str,
+    class_hint: int | None = None,
 ) -> IngestResult:
     """Fetch a player's M+ data from WCL, score it, and store results.
+
+    class_hint, when provided, overrides WCL's character.classID. Useful
+    when WCL matches the wrong character entity for common names (we
+    repeatedly saw Mage 'Mooyuh' returned as Rogue, Monk 'Elonmunk' as
+    Priest, etc.). Caller supplies the authoritative class, we honor it.
 
     Returns an IngestResult containing the Player and any discovered groupmates.
     """
@@ -310,7 +316,15 @@ def ingest_player(
         logger.warning("Character not found on WCL: %s-%s (%s)", name, realm, region)
         return IngestResult(player=None, reason="wcl_not_found")
 
-    class_id = char_data["classID"]
+    # Caller hint wins over WCL's classID for the initial value.
+    # Per-fight override later in the function can still correct both.
+    wcl_class_id = char_data["classID"]
+    class_id = class_hint if class_hint is not None else wcl_class_id
+    if class_hint is not None and class_hint != wcl_class_id:
+        logger.info(
+            "Using class hint for %s-%s: caller said %d, WCL said %d",
+            name, realm, class_hint, wcl_class_id,
+        )
     wcl_id = char_data["id"]
     wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
 
@@ -330,6 +344,9 @@ def ingest_player(
         player.name = name
         player.realm = wow_realm
         player.region = region.upper()
+        # If caller provided a hint, apply it to the existing row too.
+        if class_hint is not None:
+            player.class_id = class_hint
 
     # 3. Process each report — extract per-fight data (rolling window of last N runs)
     reports = char_data.get("recentReports", {}).get("data", [])
@@ -678,30 +695,32 @@ def ingest_player(
 
     # Correct class_id if the WCL character endpoint returned the wrong
     # character entity (name collisions on a realm). Preference order:
+    #   0. Caller-supplied class_hint (handled up top — trusted absolutely).
     #   1. Most common per-fight class name from playerDetails.type
     #      (handles Resto Shaman vs Resto Druid — spec alone can't tell).
     #   2. Spec-based inference for unambiguous specs (Brewmaster → Monk).
     #   3. Whatever WCL's character endpoint returned.
-    from collections import Counter
+    if class_hint is None:
+        from collections import Counter
 
-    resolved_class_id: int | None = None
-    if observed_class_names:
-        name_counts = Counter(observed_class_names)
-        most_common_name, _ = name_counts.most_common(1)[0]
-        resolved_class_id = class_id_from_name(most_common_name)
+        resolved_class_id: int | None = None
+        if observed_class_names:
+            name_counts = Counter(observed_class_names)
+            most_common_name, _ = name_counts.most_common(1)[0]
+            resolved_class_id = class_id_from_name(most_common_name)
 
-    if resolved_class_id is None and recent_runs:
-        spec_counts = Counter(r.spec_name for r in recent_runs)
-        most_common_spec, _ = spec_counts.most_common(1)[0]
-        resolved_class_id = resolve_class_id(most_common_spec, class_id)
+        if resolved_class_id is None and recent_runs:
+            spec_counts = Counter(r.spec_name for r in recent_runs)
+            most_common_spec, _ = spec_counts.most_common(1)[0]
+            resolved_class_id = resolve_class_id(most_common_spec, class_id)
 
-    if resolved_class_id is not None and resolved_class_id != class_id:
-        logger.info(
-            "Overriding class_id for %s-%s: WCL character said %d, fight data implies %d",
-            name, realm, class_id, resolved_class_id,
-        )
-        class_id = resolved_class_id
-        player.class_id = resolved_class_id
+        if resolved_class_id is not None and resolved_class_id != class_id:
+            logger.info(
+                "Overriding class_id for %s-%s: WCL character said %d, fight data implies %d",
+                name, realm, class_id, resolved_class_id,
+            )
+            class_id = resolved_class_id
+            player.class_id = resolved_class_id
 
     # Clear old scores
     old_scores_stmt = select(PlayerScore).where(PlayerScore.player_id == player.id)
@@ -739,10 +758,35 @@ def ingest_batch(
     session: Session,
     players: list[dict],
 ) -> list[IngestResult]:
-    """Ingest a batch of players sequentially."""
+    """Ingest a batch of players sequentially.
+
+    Each player dict supports the optional hint keys 'class_id' (int 1-13)
+    or 'class_name' (e.g. 'Mage') to override WCL's unreliable character
+    endpoint. 'class_id' wins if both are supplied.
+    """
     results: list[IngestResult] = []
     for p in players:
-        result = ingest_player(session, p["name"], p["realm"], p["region"])
+        hint = _resolve_class_hint(p.get("class_id"), p.get("class_name"))
+        result = ingest_player(
+            session, p["name"], p["realm"], p["region"],
+            class_hint=hint,
+        )
         if result.player:
             results.append(result)
     return results
+
+
+def _resolve_class_hint(class_id_hint, class_name_hint) -> int | None:
+    """Turn caller-supplied class_id/class_name into a valid class_id 1-13."""
+    if class_id_hint is not None:
+        try:
+            cid = int(class_id_hint)
+            if 1 <= cid <= 13:
+                return cid
+        except (TypeError, ValueError):
+            pass
+    if class_name_hint:
+        cid = class_id_from_name(str(class_name_hint))
+        if cid is not None:
+            return cid
+    return None
