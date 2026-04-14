@@ -16,6 +16,7 @@ from app.scoring.cooldowns import get_cooldowns_for_spec
 from app.scoring.engine import score_player_runs
 from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
+from app.scoring.spec_to_class import resolve_class_id
 from app.wcl.client import wcl_client, WCLQueryError
 
 logger = logging.getLogger(__name__)
@@ -589,6 +590,22 @@ def ingest_player(
         runs_by_role[run.role].append(run)
 
     primary_role = max(runs_by_role, key=lambda r: len(runs_by_role[r])) if runs_by_role else Role.dps
+
+    # Correct class_id if the WCL character endpoint returned the wrong
+    # character entity (name collisions on a realm). Per-fight spec data is
+    # reliable; use the most common spec to resolve the true class.
+    if recent_runs:
+        from collections import Counter
+        spec_counts = Counter(r.spec_name for r in recent_runs)
+        most_common_spec, _ = spec_counts.most_common(1)[0]
+        resolved_class_id = resolve_class_id(most_common_spec, class_id)
+        if resolved_class_id is not None and resolved_class_id != class_id:
+            logger.info(
+                "Overriding class_id for %s-%s: WCL said %d, spec '%s' implies %d",
+                name, realm, class_id, most_common_spec, resolved_class_id,
+            )
+            class_id = resolved_class_id
+            player.class_id = resolved_class_id
 
     # Clear old scores
     old_scores_stmt = select(PlayerScore).where(PlayerScore.player_id == player.id)
