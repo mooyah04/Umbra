@@ -336,12 +336,18 @@ def ingest_player(
     # Sort newest first to ensure rolling window uses most recent runs
     reports.sort(key=lambda r: r.get("startTime", 0), reverse=True)
 
-    # Build set of existing runs to avoid duplicates (keep historical data)
+    # Build two dedup sets:
+    #   - exact_runs: (report_code, fight_id) for re-ingest idempotence.
+    #   - fuzzy_runs: (encounter_id, keystone_level, logged_at_datetime) for
+    #     cross-log dedup. When multiple party members upload their own
+    #     combat logs of the same key, WCL stores them as separate reports
+    #     with different codes. The exact check doesn't catch those, so we
+    #     also match on "same encounter + same key level + start within 2
+    #     minutes of an already-stored run".
     existing_stmt = select(DungeonRun).where(DungeonRun.player_id == player.id)
-    existing_runs = {
-        (r.wcl_report_id, r.fight_id)
-        for r in session.execute(existing_stmt).scalars()
-    }
+    _existing = list(session.execute(existing_stmt).scalars())
+    exact_runs = {(r.wcl_report_id, r.fight_id) for r in _existing}
+    fuzzy_runs = [(r.encounter_id, r.keystone_level, r.logged_at) for r in _existing]
 
     runs: list[DungeonRun] = []
     discovered_groupmates: list[dict] = []
@@ -490,14 +496,44 @@ def ingest_player(
             keystone_time = fight.get("keystoneTime", 0)
             key_timed = key_completed and keystone_time > 0 and duration_ms <= keystone_time
 
-            # Skip if we already have this run (preserve historical data)
-            if (report_code, fight_id) in existing_runs:
+            # Fight's absolute wall-clock start time. report.startTime is
+            # when the log began; fight.startTime is the ms offset within
+            # the log. Adding them gives a timestamp comparable across
+            # different logs of the same key.
+            fight_abs_start_ms = report.get("startTime", 0) + fight.get("startTime", 0)
+            fight_logged_at = datetime.fromtimestamp(fight_abs_start_ms / 1000)
+            fight_keystone = fight.get("keystoneLevel", 0)
+
+            # Exact dedup — same (report_code, fight_id). Hit when we
+            # re-ingest the same player's own upload.
+            if (report_code, fight_id) in exact_runs:
                 continue
+
+            # Fuzzy dedup — same encounter + keystone level + start time
+            # within 2 minutes. Catches the case where 2+ party members
+            # uploaded their own logs of the same key; WCL exposes all of
+            # them to each participant via recentReports.
+            is_fuzzy_dup = False
+            for e_encounter, e_keystone, e_logged_at in fuzzy_runs:
+                if (e_encounter == encounter_id
+                        and e_keystone == fight_keystone
+                        and abs((e_logged_at - fight_logged_at).total_seconds()) < 120):
+                    is_fuzzy_dup = True
+                    break
+            if is_fuzzy_dup:
+                logger.debug(
+                    "Skipping cross-log duplicate for %s: encounter=%d +%d at %s",
+                    name, encounter_id, fight_keystone, fight_logged_at,
+                )
+                continue
+
+            # Track this new run so later fights in the same batch see it.
+            fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
 
             run = DungeonRun(
                 player_id=player.id,
                 encounter_id=encounter_id,
-                keystone_level=fight.get("keystoneLevel", 0),
+                keystone_level=fight_keystone,
                 role=role,
                 spec_name=spec_name,
                 dps=dps_total,
@@ -514,9 +550,7 @@ def ingest_player(
                 wcl_report_id=report_code,
                 fight_id=fight_id,
                 timed=key_timed,
-                logged_at=datetime.fromtimestamp(
-                    report.get("startTime", 0) / 1000
-                ),
+                logged_at=fight_logged_at,
                 # Enrichment fields
                 rating=fight.get("rating"),
                 average_item_level=fight.get("averageItemLevel"),

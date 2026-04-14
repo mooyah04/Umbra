@@ -8,3 +8,4 @@
 UmbraData.lua
 Core.lua
 UmbraUI.lua
+UmbraLogger.lua
