@@ -1,11 +1,16 @@
-"""Regenerate frontend/public/Umbra.zip from the Umbra/ addon folder.
+"""Regenerate public addon zips from the repo addon folders.
 
-Run whenever the addon files change, then commit the updated zip.
-The public download on wowumbra.gg serves this file.
+Umbra/      -> frontend/public/Umbra.zip      (advertised download)
+Umbra-dev/  -> frontend/public/Umbra-dev.zip  (direct URL only,
+                                               not linked from the site)
+
+Run whenever either addon folder changes, then commit the updated
+zips alongside the Lua changes. The zip on the website only updates
+when we push the corresponding folder.
 
 Cross-platform: uses Python's zipfile + forward-slash arcnames so
-macOS / Linux / Windows / in-game 7-Zip all unzip cleanly into an
-'Umbra/' folder ready to drop into Interface/AddOns/.
+macOS / Linux / Windows / 7-Zip all unzip cleanly into an addon
+folder ready to drop into Interface/AddOns/.
 """
 from __future__ import annotations
 
@@ -15,12 +20,13 @@ import zipfile
 from pathlib import Path
 
 
-def build(repo_root: Path) -> Path:
-    src = repo_root / "Umbra"
+def build_zip(repo_root: Path, folder_name: str, zip_name: str) -> Path | None:
+    src = repo_root / folder_name
     if not src.is_dir():
-        sys.exit(f"Source addon folder missing: {src}")
+        print(f"  (skip) source missing: {src}")
+        return None
 
-    out = repo_root / "frontend" / "public" / "Umbra.zip"
+    out = repo_root / "frontend" / "public" / zip_name
     out.parent.mkdir(parents=True, exist_ok=True)
 
     added = 0
@@ -28,18 +34,27 @@ def build(repo_root: Path) -> Path:
         for root, _dirs, files in os.walk(src):
             for f in files:
                 full = Path(root) / f
-                # Arcname relative to repo root, posix form so every OS
-                # can extract cleanly.
-                rel = full.relative_to(repo_root).as_posix()
+                # Arcname relative to repo root, posix form. Also normalize
+                # the top-level folder to 'Umbra' so Umbra-dev.zip extracts
+                # to an 'Umbra' folder — WoW loads addons by folder name,
+                # and the folder name must match the .toc basename.
+                rel_full = full.relative_to(repo_root).as_posix()
+                rel = rel_full.replace(f"{folder_name}/", "Umbra/", 1)
                 zf.write(full, rel)
-                print(f"  + {rel}")
                 added += 1
 
     size_kb = out.stat().st_size / 1024
-    print(f"\n{out.name}: {added} files, {size_kb:.1f} KB")
+    print(f"  {zip_name}: {added} files, {size_kb:.1f} KB -> {out}")
     return out
 
 
-if __name__ == "__main__":
+def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
-    build(repo_root)
+    print("Building addon zips...")
+    build_zip(repo_root, "Umbra", "Umbra.zip")
+    build_zip(repo_root, "Umbra-dev", "Umbra-dev.zip")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

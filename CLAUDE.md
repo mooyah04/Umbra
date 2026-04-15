@@ -70,6 +70,20 @@ alembic revision --autogenerate -m "message"  # Create migration
 alembic upgrade head                          # Run migrations
 ```
 
+### Tests
+
+```bash
+cd backend
+pytest                                            # Run all
+pytest tests/test_scoring_engine.py               # Single file
+pytest tests/test_scoring_engine.py::test_name    # Single test
+python bootstrap_db.py                            # Initialize DB schema outside Alembic
+```
+
+### Docker
+
+Backend ships a container image (`backend/Dockerfile` + `docker-entrypoint.sh`) that runs migrations on start and launches uvicorn.
+
 ### Crawler
 
 ```bash
@@ -93,7 +107,39 @@ Key settings from env/`.env`: `WCL_CLIENT_ID`, `WCL_CLIENT_SECRET`, `DATABASE_UR
 
 ## Addon Development Notes
 
-- To test, copy/symlink the `Umbra` folder into `World of Warcraft/_retail_/Interface/AddOns/` and `/reload` in-game.
+### Two-track layout: live vs dev
+
+Addon files live in **two parallel folders**:
+
+- **`Umbra/`** — the live, validated addon. What everyone downloads from
+  `wowumbra.gg/Umbra.zip`. Only touch this when promoting validated
+  changes from dev.
+- **`Umbra-dev/`** — the staging/testing surface. Make all addon changes
+  here first. Testers get this via `wowumbra.gg/Umbra-dev.zip` (direct
+  URL only, not linked from the site).
+
+Both zips extract to an `Umbra/` folder — dev testers replace their
+installed live copy with the dev copy when testing, then restore by
+grabbing the live zip again. Same folder name is intentional: WoW
+loads an addon by the folder name matching the .toc basename.
+
+### Workflow
+
+1. Edit files in `Umbra-dev/`.
+2. Run `python scripts/build-addon-zip.py` to regenerate
+   `frontend/public/Umbra-dev.zip`.
+3. Commit + push. Testers download the dev zip from the direct URL.
+4. Once validated, run `python scripts/promote-addon.py`. It mirrors
+   `Umbra-dev/` -> `Umbra/` and rebuilds both zips.
+5. Commit the promotion. The public download now reflects the changes.
+
+Never edit `Umbra/` directly — it diverges from `Umbra-dev/` and the
+promote script won't reconcile. The promote script replaces `Umbra/`
+wholesale from `Umbra-dev/`.
+
+### Other notes
+
+- To test, copy/symlink the addon folder into `World of Warcraft/_retail_/Interface/AddOns/` and `/reload` in-game.
 - The `.toc` file's `## Interface:` value must match the current WoW client version to load without "out of date" being checked.
 - WoW color codes use `|cffRRGGBB` format. Grade colors follow WoW item quality: orange (legendary) for S, purple (epic) for A, blue (rare) for B, green (uncommon) for C, white (common) for D, grey (poor) for F.
 - `UmbraData.lua` is a generated file — don't hand-edit it. Regenerate via the backend export endpoint or `lua_writer.py`.
