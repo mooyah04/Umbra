@@ -567,6 +567,12 @@ def merge_all_duplicate_players(session: Session = Depends(get_session)):
                 .where(PlayerScore.player_id.in_(loser_ids))
                 .values(player_id=winner.id)
             )
+            # Force SA to forget its cached `loser.runs` / `loser.scores`
+            # collections. Without this, session.delete(loser) tries to
+            # cascade-nullify the rows we just re-pointed to the winner
+            # (which fails the NOT NULL constraint on player_id).
+            for loser in losers:
+                session.expire(loser)
             for loser in losers:
                 session.delete(loser)
             session.commit()
