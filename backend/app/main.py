@@ -518,7 +518,16 @@ def merge_all_duplicate_players(session: Session = Depends(get_session)):
     Intended as a one-shot cleanup after fixing the upsert bug that was
     creating duplicates; can also run on a schedule if new bugs creep in.
     """
-    players = list(session.execute(select(Player)).scalars())
+    from sqlalchemy import update
+
+    # Load every Player eager-loading runs + scores so the sort keys
+    # (len(p.runs), len(p.scores)) don't trigger lazy-load queries mid-loop.
+    players = list(session.execute(
+        select(Player).options(
+            selectinload(Player.runs),
+            selectinload(Player.scores),
+        )
+    ).scalars())
 
     # Group by identity. Key: (name.lower(), realm_key, region.upper()).
     groups: dict[tuple[str, str, str], list[Player]] = {}
@@ -532,6 +541,7 @@ def merge_all_duplicate_players(session: Session = Depends(get_session)):
 
     reports: list[dict] = []
     total_merged = 0
+    errors: list[dict] = []
 
     def _score(p: Player):
         return (len(p.runs), len(p.scores), -p.id)
@@ -541,30 +551,48 @@ def merge_all_duplicate_players(session: Session = Depends(get_session)):
             continue
         matching.sort(key=_score, reverse=True)
         winner, losers = matching[0], matching[1:]
+        loser_ids = [l.id for l in losers]
 
-        for loser in losers:
-            for run in list(loser.runs):
-                run.player_id = winner.id
-            for score in list(loser.scores):
-                score.player_id = winner.id
-        session.flush()
-        for loser in losers:
-            session.delete(loser)
-        total_merged += len(losers)
-        reports.append({
-            "name": winner.name,
-            "realm": winner.realm,
-            "region": winner.region,
-            "kept_id": winner.id,
-            "deleted_ids": [l.id for l in losers],
-        })
+        # Re-point child rows via bulk UPDATE statements so we don't depend
+        # on the relationship collection being complete. Commit per group
+        # so one bad group doesn't kill the whole operation.
+        try:
+            session.execute(
+                update(DungeonRun)
+                .where(DungeonRun.player_id.in_(loser_ids))
+                .values(player_id=winner.id)
+            )
+            session.execute(
+                update(PlayerScore)
+                .where(PlayerScore.player_id.in_(loser_ids))
+                .values(player_id=winner.id)
+            )
+            for loser in losers:
+                session.delete(loser)
+            session.commit()
+            total_merged += len(losers)
+            reports.append({
+                "name": winner.name,
+                "realm": winner.realm,
+                "region": winner.region,
+                "kept_id": winner.id,
+                "deleted_ids": loser_ids,
+            })
+        except Exception as e:
+            session.rollback()
+            errors.append({
+                "name": winner.name,
+                "realm": winner.realm,
+                "region": winner.region,
+                "error": str(e),
+            })
 
-    session.commit()
     return {
         "groups_scanned": len(groups),
         "groups_merged": len(reports),
         "total_losers_deleted": total_merged,
         "merges": reports,
+        "errors": errors,
     }
 
 

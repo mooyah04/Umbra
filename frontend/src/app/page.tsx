@@ -1,6 +1,6 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
-import { getStatsSummary, getTopPlayers } from "@/lib/api";
+import { getStatsSummary, getTopPlayers, getLeaderboard } from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
 import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
 import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
@@ -10,9 +10,10 @@ export const revalidate = 60;
 
 export default async function Home() {
   // Parallel fetch so homepage renders in a single RTT to the API.
-  const [stats, recent] = await Promise.all([
+  const [stats, recent, topRanked] = await Promise.all([
     getStatsSummary().catch(() => null),
     getTopPlayers(8).catch(() => [] as PlayerSearchResult[]),
+    getLeaderboard({ limit: 5 }).catch(() => [] as PlayerSearchResult[]),
   ]);
 
   return (
@@ -132,6 +133,34 @@ export default async function Home() {
               <PlayerCard key={`${p.name}-${p.realm}`} player={p} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* ── Top-ranked strip ── */}
+      {topRanked.length > 0 && (
+        <section className="mb-16">
+          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+            <div>
+              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+                Top Performers
+              </p>
+              <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
+                LEADERBOARD
+              </h3>
+            </div>
+            <Link
+              href="/leaderboard"
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline inline-flex items-center gap-1"
+            >
+              View full board
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          </div>
+          <ul className="bg-surface-container-high rounded-xl divide-y divide-outline-variant/10 overflow-hidden">
+            {topRanked.map((p) => (
+              <LeaderboardRow key={`${p.region}-${p.realm}-${p.name}`} player={p} />
+            ))}
+          </ul>
         </section>
       )}
 
@@ -283,6 +312,63 @@ function StepCard({
       </h4>
       <p className="text-on-surface-variant leading-relaxed relative">{body}</p>
     </div>
+  );
+}
+
+function LeaderboardRow({ player }: { player: PlayerSearchResult }) {
+  const classColor = CLASS_COLORS[player.class_id] ?? "#ffffff";
+  const className = CLASS_NAMES[player.class_id] ?? "Unknown";
+  const gradeColor = player.grade ? getGradeColor(player.grade) : "#9d9d9d";
+  const href = `/player/${player.region.toLowerCase()}/${encodeURIComponent(
+    player.realm,
+  )}/${player.name}`;
+  const composite =
+    player.composite_score != null ? player.composite_score.toFixed(1) : null;
+
+  return (
+    <li>
+      <Link
+        href={href}
+        className="flex items-center gap-4 px-5 py-3 hover:bg-surface-bright transition-colors"
+      >
+        <span className="font-[family-name:var(--font-label)] text-xs uppercase tracking-widest text-on-surface-variant w-8 text-right">
+          #{player.rank ?? "—"}
+        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={player.avatar_url ?? classIconUrl(player.class_id)}
+          alt={className}
+          className="w-9 h-9 rounded-full object-cover"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold truncate" style={{ color: classColor }}>
+            {player.name}
+          </p>
+          <p className="text-xs text-on-surface-variant truncate">
+            {player.spec ? `${player.spec} ${className}` : className} ·{" "}
+            {player.realm}-{player.region.toUpperCase()}
+          </p>
+        </div>
+        {player.role && (
+          <span className="hidden md:inline-block font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant bg-surface-container-lowest px-2 py-1 rounded">
+            {player.role}
+          </span>
+        )}
+        <div className="text-right flex items-baseline gap-3">
+          {composite && (
+            <span className="text-sm text-on-surface-variant hidden sm:inline">
+              {composite}
+            </span>
+          )}
+          <span
+            className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter w-12 text-right"
+            style={{ color: gradeColor }}
+          >
+            {player.grade ?? "—"}
+          </span>
+        </div>
+      </Link>
+    </li>
   );
 }
 
