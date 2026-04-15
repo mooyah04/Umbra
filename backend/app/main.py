@@ -494,26 +494,30 @@ def debug_wcl_report(code: str):
     from app.wcl.client import wcl_client
 
     fights = wcl_client.get_report_fights(code)
+    def _fight_info(f: dict) -> dict:
+        start = f.get("startTime") or 0
+        end = f.get("endTime") or 0
+        par = f.get("keystoneTime") or 0
+        return {
+            "id": f.get("id"),
+            "encounterID": f.get("encounterID"),
+            "name": f.get("name"),
+            "keystoneLevel": f.get("keystoneLevel"),
+            "kill": f.get("kill"),
+            "startTime": start,
+            "endTime": end,
+            "duration_min": round((end - start) / 60000, 2),
+            "keystoneTime_min": round(par / 60000, 2),
+            "timed_by_our_math": bool(f.get("kill") and par > 0 and (end - start) <= par),
+            "rating": f.get("rating"),
+            "averageItemLevel": f.get("averageItemLevel"),
+            "keystoneAffixes": f.get("keystoneAffixes"),
+        }
+
     result = {
         "code": code,
         "fight_count": len(fights),
-        "fights": [
-            {
-                "id": f.get("id"),
-                "encounterID": f.get("encounterID"),
-                "name": f.get("name"),
-                "keystoneLevel": f.get("keystoneLevel"),
-                "kill": f.get("kill"),
-                "startTime": f.get("startTime"),
-                "endTime": f.get("endTime"),
-                "duration_min": round((f.get("endTime", 0) - f.get("startTime", 0)) / 60000, 2),
-                "keystoneTime_min": round(f.get("keystoneTime", 0) / 60000, 2),
-                "rating": f.get("rating"),
-                "averageItemLevel": f.get("averageItemLevel"),
-                "keystoneAffixes": f.get("keystoneAffixes"),
-            }
-            for f in fights[:10]
-        ],
+        "fights": [_fight_info(f) for f in fights[:10]],
     }
     if fights:
         try:
