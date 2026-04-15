@@ -293,45 +293,104 @@ def ingest_player(
     realm: str,
     region: str,
     class_hint: int | None = None,
+    report_codes: list[str] | None = None,
 ) -> IngestResult:
     """Fetch a player's M+ data from WCL, score it, and store results.
 
-    class_hint, when provided, overrides WCL's character.classID. Useful
-    when WCL matches the wrong character entity for common names (we
-    repeatedly saw Mage 'Mooyuh' returned as Rogue, Monk 'Elonmunk' as
-    Priest, etc.). Caller supplies the authoritative class, we honor it.
+    Two paths:
+
+    1. Character-lookup mode (default). Call WCL's character(name, server,
+       region) query, use whatever reports it returns. Works when WCL has
+       a clean match for the name.
+
+    2. Report-code mode (when report_codes is supplied). Skip the broken
+       character lookup entirely and ingest directly from the given report
+       codes. Required when WCL is matching the wrong character entity for
+       common names — the only reliable way to score those players.
+       class_hint is required in this mode.
+
+    class_hint, when provided, overrides WCL's character.classID or provides
+    class info for report-code mode. Caller supplies the authoritative class.
 
     Returns an IngestResult containing the Player and any discovered groupmates.
     """
     server_slug = realm.lower().replace("'", "").replace(" ", "-")
 
-    # 1. Fetch character + recent reports
-    char_data = wcl_client.get_character_with_reports(
-        name=name,
-        server_slug=server_slug,
-        server_region=region.lower(),
-        limit=settings.max_reports_to_fetch,
-    )
-    if not char_data:
-        logger.warning("Character not found on WCL: %s-%s (%s)", name, realm, region)
-        return IngestResult(player=None, reason="wcl_not_found")
+    if report_codes:
+        # Report-code mode: bypass the broken character() lookup.
+        if class_hint is None:
+            logger.warning(
+                "Report-code mode for %s-%s requires class_hint; rejecting",
+                name, realm,
+            )
+            return IngestResult(player=None, reason="class_hint_required")
 
-    # Caller hint wins over WCL's classID for the initial value.
-    # Per-fight override later in the function can still correct both.
-    wcl_class_id = char_data["classID"]
-    class_id = class_hint if class_hint is not None else wcl_class_id
-    if class_hint is not None and class_hint != wcl_class_id:
+        # Synthesize a reports list matching the shape of char_data.recentReports.
+        # Use None for wcl_id — the character entity WCL has is wrong for
+        # this player, so we can't key the Player row by it.
+        wcl_id = None
+        class_id = class_hint
+        wow_realm = _slug_to_realm(server_slug)
+        reports = [
+            {"code": code, "startTime": 0, "zone": {"name": "Mythic+ Season 1"}}
+            for code in report_codes
+        ]
         logger.info(
-            "Using class hint for %s-%s: caller said %d, WCL said %d",
-            name, realm, class_hint, wcl_class_id,
+            "Ingesting %s-%s via %d report code(s), class_id=%d (hint)",
+            name, realm, len(report_codes), class_id,
         )
-    wcl_id = char_data["id"]
-    wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
+        char_data = None  # sentinel; rest of function handles this case
+    else:
+        # Character-lookup mode.
+        char_data = wcl_client.get_character_with_reports(
+            name=name,
+            server_slug=server_slug,
+            server_region=region.lower(),
+            limit=settings.max_reports_to_fetch,
+        )
+        if not char_data:
+            logger.warning("Character not found on WCL: %s-%s (%s)", name, realm, region)
+            return IngestResult(player=None, reason="wcl_not_found")
 
-    # 2. Upsert player record
-    stmt = select(Player).where(Player.wcl_id == wcl_id)
+        wcl_class_id = char_data["classID"]
+        class_id = class_hint if class_hint is not None else wcl_class_id
+        if class_hint is not None and class_hint != wcl_class_id:
+            logger.info(
+                "Using class hint for %s-%s: caller said %d, WCL said %d",
+                name, realm, class_hint, wcl_class_id,
+            )
+        wcl_id = char_data["id"]
+        wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
+        reports = char_data.get("recentReports", {}).get("data", [])
+
+    # 2. Upsert player record. In report-code mode wcl_id is None, so we
+    # match on (name, realm, region) instead to keep the upsert idempotent.
+    if wcl_id is not None:
+        stmt = select(Player).where(Player.wcl_id == wcl_id)
+    else:
+        stmt = select(Player).where(
+            Player.name.ilike(name),
+            Player.region.ilike(region),
+            Player.wcl_id.is_(None),
+        )
     result = session.execute(stmt)
     player = result.scalar_one_or_none()
+
+    # In report-code mode, also match the realm on the alphanumeric key so
+    # slug vs display forms don't fragment into duplicate rows.
+    if player is None and wcl_id is None:
+        target_realm_key = "".join(c.lower() for c in wow_realm if c.isalnum())
+        candidates = session.execute(
+            select(Player).where(
+                Player.name.ilike(name),
+                Player.region.ilike(region),
+                Player.wcl_id.is_(None),
+            )
+        ).scalars()
+        for c in candidates:
+            if "".join(ch.lower() for ch in c.realm if ch.isalnum()) == target_realm_key:
+                player = c
+                break
 
     if player is None:
         player = Player(
@@ -349,8 +408,8 @@ def ingest_player(
             player.class_id = class_hint
 
     # 3. Process each report — extract per-fight data (rolling window of last N runs)
-    reports = char_data.get("recentReports", {}).get("data", [])
-    # Sort newest first to ensure rolling window uses most recent runs
+    # `reports` was set above (either from char_data or report_codes).
+    # Sort newest first to ensure rolling window uses most recent runs.
     reports.sort(key=lambda r: r.get("startTime", 0), reverse=True)
 
     # Build two dedup sets:
@@ -770,6 +829,7 @@ def ingest_batch(
         result = ingest_player(
             session, p["name"], p["realm"], p["region"],
             class_hint=hint,
+            report_codes=p.get("report_codes") or None,
         )
         if result.player:
             results.append(result)

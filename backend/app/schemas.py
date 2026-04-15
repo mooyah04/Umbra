@@ -29,6 +29,11 @@ class IngestPlayer(BaseModel):
     # spec-based inference, since the caller knows best.
     class_name: str | None = None
     class_id: int | None = None
+    # Optional list of WCL report codes (the "XYZ123abc" part of a
+    # warcraftlogs.com/reports/XYZ123abc URL). When supplied, we ingest
+    # fights directly from these reports and skip the broken character()
+    # lookup that returns wrong entities on name-colliding realms.
+    report_codes: list[str] | None = None
 
     @field_validator("name", "realm", "region", mode="after")
     @classmethod
@@ -67,6 +72,7 @@ class IngestRequest(BaseModel):
             out.append(IngestPlayer(
                 name=name, realm=realm, region=region,
                 class_name=p.class_name, class_id=p.class_id,
+                report_codes=p.report_codes,
             ))
         return out
 
