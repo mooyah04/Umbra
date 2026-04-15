@@ -577,14 +577,20 @@ def ingest_player(
             critical_interrupt_ids = get_critical_interrupt_ids(encounter_id)
             crit_interrupts = _count_critical_interrupts(interrupt_table, name, critical_interrupt_ids)
 
-            # CC casts — look up by the per-fight class (authoritative), not
-            # the WCL character endpoint's classID which may be wrong for
-            # name-colliding characters. Count via the Casts table (player-
-            # sourced) so totem/pet-triggered CCs like Capacitor Totem are
-            # captured via the summon cast.
+            # CC casts — use the events API (not the Casts table) because
+            # WCL's Casts summary only surfaces top-5 abilities per player.
+            # CC spells are usually low-frequency and get truncated out.
+            # Events returns every cast.
             fight_class_id = class_id_from_name(fight_class_name) or class_id
             cc_ability_ids = get_cc_ability_ids(fight_class_id)
-            cc_count = _count_cc_casts_from_casts_table(casts_table, name, cc_ability_ids)
+            cc_count = 0
+            if actor_id and cc_ability_ids:
+                try:
+                    cc_count = wcl_client.get_player_cast_counts(
+                        report_code, [fight_id], actor_id, cc_ability_ids,
+                    )
+                except WCLQueryError as e:
+                    logger.debug("CC events query failed for %s/%d: %s", report_code, fight_id, e)
 
             duration_ms = fight.get("endTime", 0) - fight.get("startTime", 0)
 

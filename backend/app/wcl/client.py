@@ -93,6 +93,71 @@ class WCLClient:
         )
         return data.get("reportData", {}).get("report")
 
+    def get_player_cast_counts(
+        self,
+        report_code: str,
+        fight_ids: list[int],
+        source_id: int,
+        ability_ids: set[int],
+    ) -> int:
+        """Count cast events for a set of abilities the player made in a fight.
+
+        WCL's Casts table only surfaces the player's top-5 abilities by
+        frequency, so rare-but-important casts (Leg Sweep, Paralysis,
+        Capacitor Totem, etc.) are invisible in the table. Events API
+        returns every cast, so this works for CC tracking regardless of
+        frequency. Pagination handled internally.
+        """
+        if not ability_ids or not fight_ids:
+            return 0
+        query = """
+        query($code: String!, $fightIDs: [Int!]!, $sourceID: Int!,
+              $startTime: Float!, $endTime: Float) {
+          reportData {
+            report(code: $code) {
+              events(fightIDs: $fightIDs, dataType: Casts,
+                     sourceID: $sourceID, startTime: $startTime,
+                     endTime: $endTime, limit: 10000) {
+                data
+                nextPageTimestamp
+              }
+            }
+          }
+        }
+        """
+        total = 0
+        start = 0.0
+        seen_pages = 0
+        while True:
+            vars = {
+                "code": report_code,
+                "fightIDs": fight_ids,
+                "sourceID": source_id,
+                "startTime": start,
+                "endTime": None,
+            }
+            data = self.query(query, vars)
+            events = data.get("reportData", {}).get("report", {}).get("events", {})
+            batch = events.get("data") or []
+            if isinstance(batch, str):
+                # Some WCL responses return events as a JSON-encoded string.
+                import json as _json
+                try:
+                    batch = _json.loads(batch)
+                except Exception:
+                    batch = []
+            for ev in batch:
+                if ev.get("type") != "cast":
+                    continue
+                if ev.get("abilityGameID") in ability_ids:
+                    total += 1
+            nxt = events.get("nextPageTimestamp")
+            seen_pages += 1
+            if not nxt or seen_pages > 20:
+                break
+            start = nxt
+        return total
+
     def get_player_auras(
         self, report_code: str, fight_ids: list[int], source_id: int
     ) -> dict:

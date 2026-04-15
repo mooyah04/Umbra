@@ -373,14 +373,17 @@ def debug_wcl_casts(code: str, player: str):
             "players_in_casts": [e.get("name") for e in casts],
         }
     abilities = target.get("abilities") or []
-    # Return the whole ability list sorted by cast count, name + guid — that's
-    # what we need to cross-check with cc_abilities.py.
     sorted_abilities = sorted(abilities, key=lambda a: a.get("total", 0), reverse=True)
+    # Raw target keys + top-level table keys so we can see what fields exist
+    # (WCL's 'Casts' table sometimes truncates abilities[] to top 5).
     return {
         "code": code,
         "fight_id": fight_id,
         "player": target.get("name"),
         "total_casts": target.get("total"),
+        "ability_count_in_response": len(abilities),
+        "target_keys": sorted(target.keys()),
+        "table_top_level_keys": sorted(rd.get("castsTable", {}).get("data", {}).keys()),
         "abilities": [
             {"guid": a.get("guid"), "name": a.get("name"), "total": a.get("total")}
             for a in sorted_abilities
