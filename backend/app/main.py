@@ -732,6 +732,205 @@ def debug_wcl_buffs(code: str, player: str):
     }
 
 
+@app.get("/api/admin/sample-dungeon-mechanics", dependencies=[Depends(require_api_key)])
+def sample_dungeon_mechanics(
+    encounter_id: int,
+    top_n: int = Query(default=10, le=20),
+    consensus_pct: float = Query(default=30.0, ge=0, le=100),
+):
+    """Sample top-N WCL logs for a dungeon encounter, aggregate damage-
+    taken across them, and return abilities that appear in `consensus_pct`%
+    or more of the logs. The cross-log filter is the key trick: party-spec
+    abilities (Warlock procs polluting one log, Paladin procs polluting
+    another) only survive aggregation if they recur, while real boss
+    mechanics show up everywhere. Use this output as the input to
+    populate `avoidable_abilities` in dungeon modules.
+
+    Writes nothing to our DB. Pure read against WCL.
+    """
+    from collections import defaultdict
+    from app.wcl.client import wcl_client
+
+    # 1. Find the top logs for this encounter.
+    top_logs = wcl_client.get_top_logs_for_encounter(encounter_id, metric="speed", limit=top_n)
+    if not top_logs:
+        return {"error": "no rankings returned for this encounter", "encounter_id": encounter_id}
+
+    # 2. For each log, fetch the damage-taken table for the matching fight.
+    # Track per-ability: set of report_codes it appeared in, and total damage summed.
+    appearances: dict[int, set] = defaultdict(set)
+    total_damage: dict[int, int] = defaultdict(int)
+    name_for_id: dict[int, str] = {}
+    successful_logs = 0
+    for log in top_logs:
+        try:
+            entries = wcl_client.get_damage_taken_table(log["report_code"], [log["fight_id"]])
+        except Exception:
+            continue
+        if not entries:
+            continue
+        successful_logs += 1
+        for e in entries:
+            gid = e.get("guid")
+            if not isinstance(gid, int):
+                continue
+            appearances[gid].add(log["report_code"])
+            total_damage[gid] += int(e.get("total") or 0)
+            name_for_id[gid] = e.get("name") or name_for_id.get(gid, "?")
+
+    if successful_logs == 0:
+        return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}
+
+    # 3. Filter by consensus threshold and rank by total damage.
+    threshold = (consensus_pct / 100.0) * successful_logs
+    consensus = [
+        {
+            "guid": gid,
+            "name": name_for_id[gid],
+            "logs_seen_in": len(appearances[gid]),
+            "logs_pct": round(100 * len(appearances[gid]) / successful_logs, 1),
+            "total_damage": total_damage[gid],
+        }
+        for gid in appearances
+        if len(appearances[gid]) >= threshold
+    ]
+    consensus.sort(key=lambda x: x["total_damage"], reverse=True)
+
+    return {
+        "encounter_id": encounter_id,
+        "logs_sampled": successful_logs,
+        "consensus_threshold_pct": consensus_pct,
+        "abilities_passing_threshold": len(consensus),
+        "abilities": consensus[:30],
+    }
+
+
+@app.get("/api/admin/sample-spec-cooldowns", dependencies=[Depends(require_api_key)])
+def sample_spec_cooldowns(
+    class_id: int = Query(..., ge=1, le=13),
+    spec: str = Query(..., min_length=2, max_length=30),
+    encounter_id: int = Query(default=10658),  # Pit of Saron — high traffic
+    top_n: int = Query(default=10, le=20),
+    consensus_pct: float = Query(default=80.0, ge=0, le=100),
+):
+    """Sample top-N players of a (class, spec) on a representative
+    encounter, fetch their buffs from their top log, aggregate which
+    buffs they consistently have, and return ones present in
+    `consensus_pct`% or more of the sample. That's the consensus
+    cooldown list — if 80% of top Frost Mages all have buff X, X is a
+    real major CD they're talented into; if only 20% have it, it's a
+    talent choice we shouldn't track as universal.
+
+    Writes nothing to our DB. Pure read against WCL.
+    """
+    from collections import defaultdict
+    from app.wcl.client import wcl_client
+    from app.scoring.spec_to_class import CLASS_NAME_TO_ID
+
+    # Reverse lookup: class_id -> WCL className. Pick the no-space variant
+    # since WCL's API expects single-token names ("DemonHunter", not
+    # "Demon Hunter").
+    class_name = next(
+        (k for k, v in CLASS_NAME_TO_ID.items() if v == class_id and " " not in k),
+        None,
+    )
+    if not class_name:
+        raise HTTPException(status_code=400, detail=f"Unknown class_id {class_id}")
+
+    top_chars = wcl_client.get_top_characters_for_spec(
+        encounter_id=encounter_id,
+        class_name=class_name,
+        spec_name=spec,
+        metric="dps",
+        limit=top_n,
+    )
+    if not top_chars:
+        return {
+            "error": "no rankings returned",
+            "class_name": class_name, "spec": spec, "encounter_id": encounter_id,
+        }
+
+    # For each top character, resolve their actor_id in the fight, then
+    # pull their buffs aura table and tally each buff_id's appearance.
+    appearances: dict[int, set] = defaultdict(set)
+    name_for_id: dict[int, str] = {}
+    sample_uses: dict[int, list[int]] = defaultdict(list)
+    successful = 0
+    failures: list[dict] = []
+    for ch in top_chars:
+        report_code = ch["report_code"]
+        fight_id = ch["fight_id"]
+        char_name = ch["name"]
+        try:
+            rd = wcl_client.get_report_player_data(report_code, [fight_id])
+            pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {}) if rd else {}
+            actor_id = None
+            for role in ("tanks", "healers", "dps"):
+                for p in pd.get(role, []) or []:
+                    if (p.get("name") or "").lower() == char_name.lower():
+                        actor_id = p.get("id")
+                        break
+                if actor_id:
+                    break
+            if actor_id is None:
+                failures.append({"name": char_name, "reason": "actor_id not found"})
+                continue
+            auras_data = wcl_client.get_player_auras(report_code, [fight_id], actor_id)
+        except Exception as e:
+            failures.append({"name": char_name, "reason": str(e)})
+            continue
+
+        buffs = auras_data.get("buffsTable", {}).get("data", {}).get("auras", []) or []
+        successful += 1
+        for b in buffs:
+            gid = b.get("guid")
+            if not isinstance(gid, int):
+                continue
+            appearances[gid].add(char_name.lower())
+            name_for_id[gid] = b.get("name") or name_for_id.get(gid, "?")
+            uses = b.get("totalUses") or 0
+            sample_uses[gid].append(int(uses))
+
+    if successful == 0:
+        return {
+            "error": "fetched 0 successful character buff sets",
+            "class_name": class_name, "spec": spec,
+            "characters_attempted": len(top_chars),
+            "failures": failures,
+        }
+
+    threshold = (consensus_pct / 100.0) * successful
+    consensus = [
+        {
+            "buff_id": gid,
+            "name": name_for_id[gid],
+            "players_seen_in": len(appearances[gid]),
+            "players_pct": round(100 * len(appearances[gid]) / successful, 1),
+            "median_uses": sorted(sample_uses[gid])[len(sample_uses[gid]) // 2],
+            "max_uses": max(sample_uses[gid]),
+        }
+        for gid in appearances
+        if len(appearances[gid]) >= threshold
+    ]
+    # Sort by median uses (high → low). Real CDs get used multiple times
+    # per fight; passive procs get used hundreds of times. Both will pass
+    # the consensus filter; the rate distinguishes them when reviewed.
+    consensus.sort(key=lambda x: x["median_uses"])
+
+    return {
+        "class_id": class_id,
+        "class_name": class_name,
+        "spec": spec,
+        "encounter_id": encounter_id,
+        "characters_sampled": successful,
+        "characters_attempted": len(top_chars),
+        "consensus_threshold_pct": consensus_pct,
+        "buffs_passing_threshold": len(consensus),
+        "buffs": consensus[:50],
+        "failures": failures,
+    }
+
+
 @app.get("/api/admin/cd-audit-coverage", dependencies=[Depends(require_api_key)])
 def cd_audit_coverage(session: Session = Depends(get_session)):
     """Run the CD audit across every (class_id, spec) we have data for.

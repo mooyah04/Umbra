@@ -272,6 +272,90 @@ class WCLClient:
         }
 
 
+    def get_top_logs_for_encounter(
+        self,
+        encounter_id: int,
+        metric: str = "speed",
+        limit: int = 10,
+    ) -> list[dict]:
+        """Return the top N log entries for an encounter, ordered by metric.
+
+        Each entry: {report_code, fight_id, start_time, duration, amount,
+        keystone_level, keystone_time}. Used for sampling damage-taken
+        across many high-quality runs of the same dungeon.
+        """
+        if limit <= 0:
+            return []
+        query = """
+        query($encId: Int!) {
+          worldData {
+            encounter(id: $encId) {
+              fightRankings(metric: %s, page: 1)
+            }
+          }
+        }
+        """ % metric
+        data = self.query(query, {"encId": encounter_id})
+        ranking = data.get("worldData", {}).get("encounter", {}).get("fightRankings") or {}
+        rankings = ranking.get("rankings") or []
+        out: list[dict] = []
+        for r in rankings[:limit]:
+            report = r.get("report") or {}
+            out.append({
+                "report_code": report.get("code"),
+                "fight_id": report.get("fightID"),
+                "start_time": report.get("startTime"),
+                "amount": r.get("amount"),
+                "duration": r.get("duration"),
+                "keystone_level": r.get("bracketData"),
+            })
+        return [o for o in out if o["report_code"] and o["fight_id"]]
+
+    def get_top_characters_for_spec(
+        self,
+        encounter_id: int,
+        class_name: str,
+        spec_name: str,
+        metric: str = "dps",
+        limit: int = 10,
+    ) -> list[dict]:
+        """Return the top N character rankings for a (class, spec) on an
+        encounter. Each entry: {name, server_slug, server_region,
+        report_code, fight_id, amount, spec, class}. Used for sampling
+        which buffs the actual top performers of a spec consistently
+        have — anything in 80%+ of top players is a real major CD.
+        """
+        if limit <= 0:
+            return []
+        query = """
+        query($encId: Int!, $klass: String!, $spec: String!) {
+          worldData {
+            encounter(id: $encId) {
+              characterRankings(metric: %s, className: $klass, specName: $spec, page: 1)
+            }
+          }
+        }
+        """ % metric
+        data = self.query(query, {"encId": encounter_id, "klass": class_name, "spec": spec_name})
+        ranking = data.get("worldData", {}).get("encounter", {}).get("characterRankings") or {}
+        rankings = ranking.get("rankings") or []
+        out: list[dict] = []
+        for r in rankings[:limit]:
+            server = r.get("server") or {}
+            region = (server.get("region") or {}).get("slug") if isinstance(server.get("region"), dict) else server.get("region")
+            report = r.get("report") or {}
+            out.append({
+                "name": r.get("name"),
+                "server_slug": server.get("slug"),
+                "server_region": region,
+                "report_code": report.get("code"),
+                "fight_id": report.get("fightID"),
+                "amount": r.get("amount"),
+                "spec": r.get("spec"),
+                "class": r.get("class"),
+            })
+        return [o for o in out if o["report_code"] and o["fight_id"] and o["name"]]
+
     def get_damage_taken_table(
         self, report_code: str, fight_ids: list[int]
     ) -> list[dict]:
