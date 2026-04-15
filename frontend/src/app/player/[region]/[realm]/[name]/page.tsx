@@ -497,10 +497,8 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
 }
 
 function PartyGrid({ party }: { party: PartyMember[] }) {
-  // Sort the 5 members into a canonical vertical order:
+  // Sort the 5 members left to right in canonical role order:
   //   Tank → Healer → Melee DPS → Melee DPS → Ranged DPS
-  // so the role-label column reads top to bottom regardless of what
-  // WCL returned.
   const labeled = party.map((m) => {
     let role: "tank" | "healer" | "melee" | "ranged";
     if (m.role === "tank") role = "tank";
@@ -526,9 +524,9 @@ function PartyGrid({ party }: { party: PartyMember[] }) {
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {labeled.map(({ member, role }, i) => (
-        <PartyMemberRow
+        <PartyMemberCell
           key={`${member.name}-${member.realm}-${i}`}
           member={member}
           roleLabel={roleLabel[role]}
@@ -538,7 +536,7 @@ function PartyGrid({ party }: { party: PartyMember[] }) {
   );
 }
 
-function PartyMemberRow({
+function PartyMemberCell({
   member,
   roleLabel,
 }: {
@@ -550,38 +548,42 @@ function PartyMemberRow({
   const icon = classId ? specIconUrl(member.spec, classId) : null;
   return (
     <div
-      className="flex items-center gap-3 min-w-0"
+      className="min-w-0 flex flex-col"
       title={`${member.name} — ${member.spec ?? ""} ${member.class}`}
     >
-      {/* Fixed-width role label so names align on the right */}
-      <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant w-20 flex-shrink-0">
+      {/* Role label on top */}
+      <span className="font-[family-name:var(--font-label)] text-[9px] uppercase tracking-widest text-on-surface-variant mb-1.5 truncate">
         {roleLabel}
       </span>
-      {icon ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={icon}
-          alt={member.class}
-          width={22}
-          height={22}
-          className="rounded flex-shrink-0"
-          style={{ boxShadow: `0 0 0 1px ${color}` }}
-        />
-      ) : (
-        <span
-          className="inline-block w-[22px] h-[22px] rounded bg-surface-container-highest flex-shrink-0"
-          style={{ boxShadow: `0 0 0 1px ${color}` }}
-        />
-      )}
-      <span
-        className="font-[family-name:var(--font-body)] text-xs font-semibold truncate"
-        style={{ color }}
-      >
-        {member.name}
-      </span>
-      <span className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest truncate">
-        &middot; {member.realm}
-      </span>
+      <div className="flex items-center gap-2 min-w-0">
+        {icon ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={icon}
+            alt={member.class}
+            width={22}
+            height={22}
+            className="rounded flex-shrink-0"
+            style={{ boxShadow: `0 0 0 1px ${color}` }}
+          />
+        ) : (
+          <span
+            className="inline-block w-[22px] h-[22px] rounded bg-surface-container-highest flex-shrink-0"
+            style={{ boxShadow: `0 0 0 1px ${color}` }}
+          />
+        )}
+        <div className="min-w-0">
+          <p
+            className="font-[family-name:var(--font-body)] text-xs font-semibold truncate leading-tight"
+            style={{ color }}
+          >
+            {member.name}
+          </p>
+          <p className="font-[family-name:var(--font-label)] text-[9px] text-on-surface-variant uppercase truncate">
+            {member.realm}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
