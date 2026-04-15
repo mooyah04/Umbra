@@ -390,12 +390,18 @@ class WCLClient:
         """
         if not fight_ids:
             return []
+        # NOTE: do NOT pass `hostilityType: Enemies` here. For dataType
+        # DamageTaken, WCL's hostilityType filters by the entity that
+        # TAKES the damage — Enemies returns damage to mobs (your
+        # outgoing damage), Friendlies (the default) returns damage to
+        # your party (boss/enemy outgoing damage), which is what we
+        # actually want for avoidable-mechanic sampling.
         query = """
         query($code: String!, $fightIDs: [Int!]!) {
           reportData {
             report(code: $code) {
               table(dataType: DamageTaken, fightIDs: $fightIDs,
-                    viewBy: Ability, hostilityType: Enemies)
+                    viewBy: Ability)
             }
           }
         }
