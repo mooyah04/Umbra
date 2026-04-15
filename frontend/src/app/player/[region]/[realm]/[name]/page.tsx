@@ -497,62 +497,66 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
 }
 
 function PartyGrid({ party }: { party: PartyMember[] }) {
-  // Bucket party members into the four M+ role columns. DPS specs get
-  // classified as melee or ranged via classifyDpsSpec().
-  const buckets: Record<"tank" | "healer" | "melee" | "ranged", PartyMember[]> = {
-    tank: [],
-    healer: [],
-    melee: [],
-    ranged: [],
-  };
-  for (const m of party) {
-    if (m.role === "tank") buckets.tank.push(m);
-    else if (m.role === "healer") buckets.healer.push(m);
+  // Sort the 5 members into a canonical vertical order:
+  //   Tank → Healer → Melee DPS → Melee DPS → Ranged DPS
+  // so the role-label column reads top to bottom regardless of what
+  // WCL returned.
+  const labeled = party.map((m) => {
+    let role: "tank" | "healer" | "melee" | "ranged";
+    if (m.role === "tank") role = "tank";
+    else if (m.role === "healer") role = "healer";
     else {
       const classId = classIdFromName(m.class);
-      const kind = classifyDpsSpec(m.spec, classId);
-      buckets[kind].push(m);
+      role = classifyDpsSpec(m.spec, classId);
     }
-  }
-
-  const columns: Array<{ key: "tank" | "healer" | "melee" | "ranged"; label: string }> = [
-    { key: "tank", label: "Tank" },
-    { key: "healer", label: "Healer" },
-    { key: "melee", label: "Melee DPS" },
-    { key: "ranged", label: "Ranged DPS" },
-  ];
+    return { member: m, role };
+  });
+  const roleOrder: Record<string, number> = {
+    tank: 0,
+    healer: 1,
+    melee: 2,
+    ranged: 3,
+  };
+  labeled.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
+  const roleLabel: Record<string, string> = {
+    tank: "Tank",
+    healer: "Healer",
+    melee: "Melee DPS",
+    ranged: "Ranged DPS",
+  };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
-      {columns.map((col) => {
-        const members = buckets[col.key];
-        if (members.length === 0) return null;
-        return (
-          <div key={col.key} className="min-w-0">
-            <p className="font-[family-name:var(--font-label)] text-[9px] uppercase tracking-widest text-on-surface-variant mb-1.5 truncate">
-              {col.label}
-            </p>
-            <div className="space-y-1.5">
-              {members.map((m, i) => (
-                <PartyMemberChip key={`${m.name}-${m.realm}-${i}`} member={m} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+    <div className="space-y-1.5">
+      {labeled.map(({ member, role }, i) => (
+        <PartyMemberRow
+          key={`${member.name}-${member.realm}-${i}`}
+          member={member}
+          roleLabel={roleLabel[role]}
+        />
+      ))}
     </div>
   );
 }
 
-function PartyMemberChip({ member }: { member: PartyMember }) {
+function PartyMemberRow({
+  member,
+  roleLabel,
+}: {
+  member: PartyMember;
+  roleLabel: string;
+}) {
   const classId = classIdFromName(member.class);
   const color = classId ? CLASS_COLORS[classId] ?? "#9d9d9d" : "#9d9d9d";
   const icon = classId ? specIconUrl(member.spec, classId) : null;
   return (
     <div
-      className="flex items-center gap-2 min-w-0"
+      className="flex items-center gap-3 min-w-0"
       title={`${member.name} — ${member.spec ?? ""} ${member.class}`}
     >
+      {/* Fixed-width role label so names align on the right */}
+      <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant w-20 flex-shrink-0">
+        {roleLabel}
+      </span>
       {icon ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -569,17 +573,15 @@ function PartyMemberChip({ member }: { member: PartyMember }) {
           style={{ boxShadow: `0 0 0 1px ${color}` }}
         />
       )}
-      <div className="min-w-0">
-        <p
-          className="font-[family-name:var(--font-body)] text-xs font-semibold truncate leading-tight"
-          style={{ color }}
-        >
-          {member.name}
-        </p>
-        <p className="font-[family-name:var(--font-label)] text-[9px] text-on-surface-variant uppercase truncate">
-          {member.realm}
-        </p>
-      </div>
+      <span
+        className="font-[family-name:var(--font-body)] text-xs font-semibold truncate"
+        style={{ color }}
+      >
+        {member.name}
+      </span>
+      <span className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest truncate">
+        &middot; {member.realm}
+      </span>
     </div>
   );
 }
