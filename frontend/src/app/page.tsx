@@ -164,9 +164,8 @@ export default async function Home() {
         </Link>
 
         <a
-          href="https://github.com/mooyah04/Umbra/tree/master/Umbra"
-          target="_blank"
-          rel="noreferrer"
+          href="/Umbra.zip"
+          download="Umbra.zip"
           className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-8 group relative overflow-hidden"
         >
           <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
@@ -181,15 +180,18 @@ export default async function Home() {
           </h4>
           <p className="text-on-primary-container/80 leading-relaxed mb-4">
             Hover any player in-game or in the Group Finder to see their
-            Umbra grade, role, and category breakdown. Plays nicely with
-            Raider.IO.
+            Umbra grade, role, and category breakdown. Auto combat-logs
+            your M+ keys. Plays nicely with Raider.IO.
           </p>
           <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
-            Get the addon
+            Download Umbra.zip
             <span className="material-symbols-outlined text-sm">
               download
             </span>
           </span>
+          <p className="font-[family-name:var(--font-label)] text-[10px] text-on-primary-container/60 mt-3">
+            Unzip into World of Warcraft/_retail_/Interface/AddOns/
+          </p>
         </a>
       </section>
 
@@ -209,12 +211,11 @@ export default async function Home() {
             About
           </Link>
           <a
-            href="https://github.com/mooyah04/Umbra"
-            target="_blank"
-            rel="noreferrer"
+            href="/Umbra.zip"
+            download="Umbra.zip"
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
           >
-            GitHub
+            Download Addon
           </a>
         </div>
         <div className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-[0.3em]">
