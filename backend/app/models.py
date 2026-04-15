@@ -39,6 +39,10 @@ class Player(Base):
     inset_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     render_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     media_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Set on every ingest_player attempt (even zero-run outcomes). The
+    # scheduler picks the stalest rows by this timestamp to re-ingest;
+    # `updated_at` is unsuitable because it also fires on media refreshes.
+    last_ingested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

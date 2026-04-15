@@ -114,6 +114,53 @@ export async function getRunDetail(
   return fetchApi(`/api/player/${region}/${realm}/${name}/runs/${runId}`);
 }
 
+export interface ClaimResponse {
+  ok: boolean;
+  report_code: string;
+  class_name: string | null;
+  class_id: number | null;
+  runs_ingested: number;
+  reason: string | null;
+}
+
+export async function claimPlayer(
+  name: string,
+  realm: string,
+  region: string,
+  reportUrlOrCode: string,
+): Promise<ClaimResponse> {
+  const res = await fetch(`${API_URL}/api/player/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      realm,
+      region,
+      report_url_or_code: reportUrlOrCode,
+    }),
+  });
+  if (!res.ok) {
+    let detail: ApiErrorDetail | string | undefined;
+    let message = `API error ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body?.detail ?? body;
+      if (
+        detail &&
+        typeof detail === "object" &&
+        "message" in detail &&
+        typeof detail.message === "string"
+      ) {
+        message = detail.message;
+      }
+    } catch {
+      /* fall through */
+    }
+    throw new ApiError(res.status, message, detail);
+  }
+  return res.json();
+}
+
 export async function getPlayerHistory(
   region: string,
   realm: string,

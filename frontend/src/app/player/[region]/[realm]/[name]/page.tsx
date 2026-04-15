@@ -10,6 +10,7 @@ import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { specIconUrl, classIdFromName, classifyDpsSpec } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
+import ClaimForm from "@/components/ClaimForm";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
 
 interface Props {
@@ -169,6 +170,15 @@ export default async function PlayerProfilePage({ params }: Props) {
             </a>
           )}
         </div>
+        {reason === "wcl_not_found" && (
+          <div className="mt-10">
+            <ClaimForm
+              name={decodeURIComponent(name)}
+              realm={decodeURIComponent(realm)}
+              region={region}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -359,6 +369,20 @@ export default async function PlayerProfilePage({ params }: Props) {
             Download Addon
             <span className="material-symbols-outlined text-sm">download</span>
           </a>
+        </section>
+      )}
+
+      {/* Disambiguation: if WCL's character lookup returned the wrong entity
+          (common for name-colliding realms), visitors can claim by pasting a
+          log URL from their real character. Also useful when stale/empty
+          data is shown for the wrong Player entity. */}
+      {!primary && (
+        <section className="mb-10">
+          <ClaimForm
+            name={decodeURIComponent(name)}
+            realm={decodeURIComponent(realm)}
+            region={region}
+          />
         </section>
       )}
 

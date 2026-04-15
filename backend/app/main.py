@@ -19,6 +19,8 @@ from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, require_api_key
 from app.validators import ValidationError, validate_player_identity
 from app.schemas import (
+    ClaimRequest,
+    ClaimResponse,
     HistoryPoint,
     HistoryResponse,
     IngestRequest,
@@ -38,7 +40,10 @@ logger = logging.getLogger(__name__)
 def lifespan(app: FastAPI):
     # Create tables on startup (use Alembic in production)
     Base.metadata.create_all(engine)
+    from app import scheduler
+    scheduler.start()
     yield
+    scheduler.stop()
     engine.dispose()
 
 
@@ -243,6 +248,125 @@ def bulk_ingest(
     return IngestResponse(
         ingested=len(results),
         failed=len(player_dicts) - len(results),
+    )
+
+
+_WCL_REPORT_URL_RE = __import__("re").compile(r"/reports/(?:a:)?([A-Za-z0-9]{16})")
+_WCL_BARE_CODE_RE = __import__("re").compile(r"^[A-Za-z0-9]{16}$")
+
+
+def _extract_report_code(raw: str) -> str | None:
+    """Accept either a full WCL URL (any of the report path shapes) or a
+    bare 16-char report code. Return the code, or None if we can't find one."""
+    s = raw.strip()
+    m = _WCL_REPORT_URL_RE.search(s)
+    if m:
+        return m.group(1)
+    if _WCL_BARE_CODE_RE.match(s):
+        return s
+    return None
+
+
+@app.post("/api/player/claim", response_model=ClaimResponse)
+@limiter.limit(settings.rate_limit_player_lookup)
+def claim_player(
+    request: Request,
+    body: ClaimRequest,
+    session: Session = Depends(get_session),
+):
+    """Visitor-facing 'this is me' flow. When WCL's character() lookup returns
+    the wrong entity for a common name, the user pastes a report URL from one
+    of their actual logs. We identify their character within that report's
+    playerDetails (authoritative: class comes from per-fight 'type') and
+    ingest via report_codes mode, which bypasses the broken character lookup.
+
+    Public (rate-limited) — no API key required. The caller can't pollute
+    data since we still only store players that appear in a real WCL log.
+    """
+    from app.scoring.spec_to_class import class_id_from_name
+    from app.wcl.client import wcl_client
+
+    name, realm, region = _canonical_identity(body.name, body.realm, body.region)
+    code = _extract_report_code(body.report_url_or_code)
+    if not code:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "bad_report_url",
+                "message": "Could not find a WCL report code in that input. "
+                           "Paste the full log URL (e.g. warcraftlogs.com/reports/ABC123…) "
+                           "or just the 16-character code.",
+            },
+        )
+
+    fights = wcl_client.get_report_fights(code)
+    if not fights:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "no_mplus_fights",
+                "message": "That report exists but has no M+ fights — "
+                           "pick a log from a Mythic+ run that includes your character.",
+            },
+        )
+
+    fight_ids = [f["id"] for f in fights]
+    rd = wcl_client.get_report_player_data(code, fight_ids)
+    pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {}) if rd else {}
+
+    matched_name: str | None = None
+    matched_class: str | None = None
+    target_lower = name.lower()
+    for role_key in ("tanks", "healers", "dps"):
+        for p in pd.get(role_key, []) or []:
+            if (p.get("name") or "").lower() == target_lower:
+                matched_name = p.get("name")
+                matched_class = p.get("type") or p.get("icon")
+                break
+        if matched_name:
+            break
+
+    if not matched_name:
+        players_in_log = sorted({
+            p.get("name")
+            for role_key in ("tanks", "healers", "dps")
+            for p in pd.get(role_key, []) or []
+            if p.get("name")
+        })
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "name_not_in_report",
+                "message": f"No character named '{name}' in that report. "
+                           f"Pick a log where your character is in the group.",
+                "players_in_log": list(players_in_log),
+            },
+        )
+
+    class_id = class_id_from_name(matched_class)
+    result = ingest_player(
+        session, name, realm, region,
+        class_hint=class_id,
+        report_codes=[code],
+    )
+    if not result.player:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "ingest_failed",
+                "reason": result.reason,
+                "message": "Found your character in that report, but WCL "
+                           "didn't return fight data we could score. Try another log.",
+            },
+        )
+
+    runs_count = len(result.player.runs) if result.player.runs else 0
+    return ClaimResponse(
+        ok=True,
+        report_code=code,
+        class_name=matched_class,
+        class_id=class_id,
+        runs_ingested=runs_count,
     )
 
 
@@ -535,6 +659,120 @@ def debug_wcl_report(code: str):
         except Exception as e:
             result["players_error"] = str(e)
     return result
+
+
+@app.get("/api/admin/scheduler-status", dependencies=[Depends(require_api_key)])
+def scheduler_status(session: Session = Depends(get_session)):
+    """Report what the background refresher is seeing: config, the 10 stalest
+    players, and the 10 most-recently-refreshed. Use when a run doesn't
+    show up on the site and we want to know if the scheduler saw it."""
+    from app import scheduler as _sched
+
+    stalest = list(session.execute(
+        select(Player.name, Player.realm, Player.region, Player.last_ingested_at)
+        .order_by(Player.last_ingested_at.asc().nullsfirst())
+        .limit(10)
+    ))
+    freshest = list(session.execute(
+        select(Player.name, Player.realm, Player.region, Player.last_ingested_at)
+        .where(Player.last_ingested_at.is_not(None))
+        .order_by(Player.last_ingested_at.desc())
+        .limit(10)
+    ))
+    return {
+        "enabled": settings.scheduler_enabled,
+        "interval_seconds": settings.scheduler_interval_seconds,
+        "batch_size": settings.scheduler_batch_size,
+        "stale_after_seconds": settings.scheduler_stale_after_seconds,
+        "thread_alive": bool(_sched._thread and _sched._thread.is_alive()),
+        "stalest": [
+            {"name": n, "realm": r, "region": rg, "last_ingested_at": ts}
+            for n, r, rg, ts in stalest
+        ],
+        "freshest": [
+            {"name": n, "realm": r, "region": rg, "last_ingested_at": ts}
+            for n, r, rg, ts in freshest
+        ],
+    }
+
+
+@app.get("/api/debug/wcl-encounters", dependencies=[Depends(require_api_key)])
+def debug_wcl_encounters(code: str):
+    """List every M+ fight in a report with its encounterID + name. Used to
+    resolve `encounter_id=0` stubs in dungeon modules — paste a log from
+    the dungeon, read the encounter_id off the output."""
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    return {
+        "code": code,
+        "fight_count": len(fights),
+        "encounters": [
+            {
+                "fight_id": f.get("id"),
+                "encounter_id": f.get("encounterID"),
+                "name": f.get("name"),
+                "keystone_level": f.get("keystoneLevel"),
+                "kill": f.get("kill"),
+            }
+            for f in fights
+        ],
+    }
+
+
+@app.get("/api/debug/wcl-damage-taken", dependencies=[Depends(require_api_key)])
+def debug_wcl_damage_taken(
+    code: str,
+    encounter_id: int | None = None,
+    limit: int = 30,
+):
+    """Aggregate the damage-taken table across every fight in the report
+    matching `encounter_id` (or every fight if omitted). Returns top-N
+    abilities by total damage — the raw input for picking
+    `avoidable_abilities` entries for a dungeon module.
+
+    Output is sorted descending, with `guid` + `name` + `total`. Human
+    review decides which are avoidable (dodgeable AoEs, telegraphed casts)
+    vs. unavoidable (tank autos, raid-wide pulses)."""
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    if not fights:
+        return {"error": "no M+ fights in report", "code": code}
+
+    if encounter_id is not None:
+        matching = [f for f in fights if f.get("encounterID") == encounter_id]
+    else:
+        matching = fights
+    if not matching:
+        return {
+            "error": f"no fights with encounterID={encounter_id}",
+            "encounters_in_report": sorted({
+                (f.get("encounterID"), f.get("name")) for f in fights
+            }),
+        }
+
+    fight_ids = [f["id"] for f in matching]
+    entries = wcl_client.get_damage_taken_table(code, fight_ids)
+    entries.sort(key=lambda e: e.get("total", 0), reverse=True)
+    total_all = sum(e.get("total", 0) for e in entries) or 1
+    return {
+        "code": code,
+        "encounter_id": encounter_id,
+        "fight_ids": fight_ids,
+        "fight_count": len(fight_ids),
+        "ability_count": len(entries),
+        "total_damage_taken": total_all,
+        "top_abilities": [
+            {
+                "guid": e.get("guid"),
+                "name": e.get("name"),
+                "total": e.get("total"),
+                "pct_of_total": round(100 * e.get("total", 0) / total_all, 1),
+            }
+            for e in entries[:limit]
+        ],
+    }
 
 
 @app.get("/api/export/lua", response_class=PlainTextResponse)

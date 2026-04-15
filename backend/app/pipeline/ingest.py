@@ -901,6 +901,7 @@ def ingest_player(
         )
         session.add(score)
 
+    player.last_ingested_at = datetime.utcnow()
     session.commit()
     logger.info(
         "Ingested %s-%s: %d new runs, %d total stored, scored on %d most recent, %d role(s), %d groupmates discovered",

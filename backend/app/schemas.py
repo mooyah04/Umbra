@@ -82,6 +82,27 @@ class IngestResponse(BaseModel):
     failed: int
 
 
+class ClaimRequest(BaseModel):
+    """A visitor disambiguates 'which character named X is me?' by pasting a
+    WCL report URL (or bare report code) that contains their actual character.
+    We read playerDetails from that report, find the matching name, pull the
+    class from the per-fight 'type' field, and ingest via report_codes mode —
+    bypassing WCL's ambiguous character() lookup entirely."""
+    name: str
+    realm: str
+    region: str
+    report_url_or_code: str = Field(..., min_length=3, max_length=300)
+
+
+class ClaimResponse(BaseModel):
+    ok: bool
+    report_code: str
+    class_name: str | None = None
+    class_id: int | None = None
+    runs_ingested: int = 0
+    reason: str | None = None
+
+
 # ── New schemas for web frontend ─────────────────────────────────────────────
 
 class PlayerSearchResult(BaseModel):

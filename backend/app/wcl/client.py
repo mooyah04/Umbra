@@ -272,6 +272,36 @@ class WCLClient:
         }
 
 
+    def get_damage_taken_table(
+        self, report_code: str, fight_ids: list[int]
+    ) -> list[dict]:
+        """Return the damage-taken table aggregated across the given fights.
+
+        Used for dungeon-data research: which ability IDs account for the
+        bulk of avoidable damage on an encounter. Returns the 'entries'
+        list (one per ability) with 'name', 'guid', 'total'.
+        """
+        if not fight_ids:
+            return []
+        query = """
+        query($code: String!, $fightIDs: [Int!]!) {
+          reportData {
+            report(code: $code) {
+              table(dataType: DamageTaken, fightIDs: $fightIDs,
+                    viewBy: Ability, hostilityType: Enemies)
+            }
+          }
+        }
+        """
+        data = self.query(query, {"code": report_code, "fightIDs": fight_ids})
+        table = (
+            data.get("reportData", {}).get("report", {}).get("table", {}) or {}
+        )
+        tdata = table.get("data") or {}
+        entries = tdata.get("entries") or []
+        return entries
+
+
 class WCLQueryError(Exception):
     def __init__(self, errors: list[dict]):
         self.errors = errors

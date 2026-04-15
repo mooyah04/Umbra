@@ -61,6 +61,16 @@ class Settings(BaseSettings):
     bnet_client_secret: str = ""
     bnet_token_url: str = "https://oauth.battle.net/token"
 
+    # Background refresher. Every `scheduler_interval_seconds`, picks up to
+    # `scheduler_batch_size` players whose `last_ingested_at` is older than
+    # `scheduler_stale_after_seconds` (or NULL) and re-ingests them. Keeps
+    # logged data fresh without requiring anyone to visit their profile.
+    # Disable in tests / one-off containers with `SCHEDULER_ENABLED=false`.
+    scheduler_enabled: bool = True
+    scheduler_interval_seconds: int = 900       # 15 min between sweeps
+    scheduler_batch_size: int = 5               # players per sweep
+    scheduler_stale_after_seconds: int = 3600   # 1 hr since last ingest
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
