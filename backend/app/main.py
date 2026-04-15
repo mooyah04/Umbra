@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import settings
 from app.db import engine, get_session
 from app.export.lua_writer import generate_lua
-from app.models import AddonDownload, Base, DungeonRun, Player, PlayerScore
+from app.models import AddonDownload, Base, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, require_api_key
 from app.validators import ValidationError, validate_player_identity
