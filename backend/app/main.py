@@ -509,6 +509,65 @@ def merge_duplicate_players(
     }
 
 
+@app.post("/api/admin/merge-all-duplicates", dependencies=[Depends(require_api_key)])
+def merge_all_duplicate_players(session: Session = Depends(get_session)):
+    """Scan every Player row, group by (name_lower, realm_key, region_upper),
+    and merge each group into its most-run-heavy survivor. Returns per-group
+    stats. Idempotent — safe to re-run.
+
+    Intended as a one-shot cleanup after fixing the upsert bug that was
+    creating duplicates; can also run on a schedule if new bugs creep in.
+    """
+    players = list(session.execute(select(Player)).scalars())
+
+    # Group by identity. Key: (name.lower(), realm_key, region.upper()).
+    groups: dict[tuple[str, str, str], list[Player]] = {}
+    for p in players:
+        key = (
+            (p.name or "").lower(),
+            "".join(c.lower() for c in (p.realm or "") if c.isalnum()),
+            (p.region or "").upper(),
+        )
+        groups.setdefault(key, []).append(p)
+
+    reports: list[dict] = []
+    total_merged = 0
+
+    def _score(p: Player):
+        return (len(p.runs), len(p.scores), -p.id)
+
+    for key, matching in groups.items():
+        if len(matching) <= 1:
+            continue
+        matching.sort(key=_score, reverse=True)
+        winner, losers = matching[0], matching[1:]
+
+        for loser in losers:
+            for run in list(loser.runs):
+                run.player_id = winner.id
+            for score in list(loser.scores):
+                score.player_id = winner.id
+        session.flush()
+        for loser in losers:
+            session.delete(loser)
+        total_merged += len(losers)
+        reports.append({
+            "name": winner.name,
+            "realm": winner.realm,
+            "region": winner.region,
+            "kept_id": winner.id,
+            "deleted_ids": [l.id for l in losers],
+        })
+
+    session.commit()
+    return {
+        "groups_scanned": len(groups),
+        "groups_merged": len(reports),
+        "total_losers_deleted": total_merged,
+        "merges": reports,
+    }
+
+
 @app.get("/api/debug/wcl-buffs", dependencies=[Depends(require_api_key)])
 def debug_wcl_buffs(code: str, player: str):
     """Return the BuffsTable auras for a player in a report's first M+ fight.

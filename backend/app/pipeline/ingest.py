@@ -463,31 +463,38 @@ def ingest_player(
         wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
         reports = char_data.get("recentReports", {}).get("data", [])
 
-    # 2. Upsert player record.
-    # Character-lookup mode: match by wcl_id (unique per WCL character).
-    # Report-code mode: wcl_id is None because WCL's character endpoint
-    # pointed at the wrong entity. Match by name+realm+region regardless
-    # of wcl_id state — including rows that were created earlier by the
-    # character-lookup mode with a WRONG wcl_id attached. Otherwise we
-    # accumulate duplicate Player rows (one from the bad character
-    # lookup, one from each report-code ingest).
-    player = None
-    if wcl_id is not None:
-        player = session.execute(
-            select(Player).where(Player.wcl_id == wcl_id)
-        ).scalar_one_or_none()
-    else:
-        target_realm_key = "".join(c.lower() for c in wow_realm if c.isalnum())
-        candidates = session.execute(
-            select(Player).where(
-                Player.name.ilike(name),
-                Player.region.ilike(region),
-            )
-        ).scalars()
-        for c in candidates:
-            if "".join(ch.lower() for ch in c.realm if ch.isalnum()) == target_realm_key:
-                player = c
-                break
+    # 2. Upsert player record. The natural key for a character is
+    # (name, realm_key, region) — wcl_id is a tracked attribute that can
+    # legitimately change (WCL renames, collisions resolving differently
+    # on later queries, etc). Matching on wcl_id first historically caused
+    # duplicate rows: a later sweep that returned a different wcl_id
+    # couldn't find the original row and created a new one.
+    target_realm_key = "".join(c.lower() for c in wow_realm if c.isalnum())
+    candidates = list(session.execute(
+        select(Player).where(
+            Player.name.ilike(name),
+            Player.region.ilike(region),
+        )
+    ).scalars())
+    matches = [
+        c for c in candidates
+        if "".join(ch.lower() for ch in c.realm if ch.isalnum()) == target_realm_key
+    ]
+
+    if len(matches) > 1:
+        # Pre-existing duplicates: pick the row with the most runs as the
+        # survivor. Don't merge inline — keeps this function's blast radius
+        # small. Admin endpoint /api/admin/merge-all-duplicates handles it.
+        matches.sort(
+            key=lambda p: (len(p.runs), len(p.scores), -p.id),
+            reverse=True,
+        )
+        logger.warning(
+            "Duplicate Player rows for %s-%s-%s (ids=%s). Using id=%d; "
+            "run /api/admin/merge-all-duplicates to reconcile.",
+            name, realm, region, [p.id for p in matches], matches[0].id,
+        )
+    player = matches[0] if matches else None
 
     if player is None:
         player = Player(
@@ -497,6 +504,25 @@ def ingest_player(
         session.add(player)
         session.flush()
     else:
+        # Track the latest wcl_id we saw for this identity, but only if
+        # it wouldn't collide with a different row's wcl_id (unique
+        # constraint). On collision, log and leave wcl_id alone — the
+        # merge endpoint will reconcile when it runs.
+        if wcl_id is not None and player.wcl_id != wcl_id:
+            conflicting = session.execute(
+                select(Player).where(
+                    Player.wcl_id == wcl_id,
+                    Player.id != player.id,
+                )
+            ).scalar_one_or_none()
+            if conflicting is None:
+                player.wcl_id = wcl_id
+            else:
+                logger.warning(
+                    "wcl_id=%d already held by player_id=%d; not overwriting "
+                    "player_id=%d (duplicate — will merge separately).",
+                    wcl_id, conflicting.id, player.id,
+                )
         player.name = name
         player.realm = wow_realm
         player.region = region.upper()
