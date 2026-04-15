@@ -153,19 +153,41 @@ local function GetGradeString(data)
 end
 
 -- ── Tooltip Hook (hover over players in world) ─────────────────────────────
+-- The TooltipDataHandler sometimes invokes our post-call with a tooltip
+-- whose unit reference is tainted or nil (SetWorldCursor path, e.g. when
+-- the cursor sweeps across nameplates/world objects). Calling
+-- UnitIsPlayer or UnitFullName directly on that reference raises a
+-- "Secret values are only allowed during untainted execution" error —
+-- fatal noise that can fire 100+ times a minute. We use
+-- TooltipUtil.GetDisplayedUnit when available (sanctioned, taint-safe)
+-- and pcall every unit API so any lingering taint quietly bails instead
+-- of bubbling to BugSack.
 
-local function OnTooltipSetUnit(self)
-    local _, unit = self:GetUnit()
-    if not unit or not UnitIsPlayer(unit) then return end
+local function _getTooltipUnit(tooltip)
+    if TooltipUtil and TooltipUtil.GetDisplayedUnit then
+        local okU, _, unit = pcall(TooltipUtil.GetDisplayedUnit, tooltip)
+        if okU and unit then return unit end
+    end
+    local okG, _, unit = pcall(tooltip.GetUnit, tooltip)
+    if okG then return unit end
+    return nil
+end
 
-    local name, realm = UnitFullName(unit)
-    if not name then return end
+local function OnTooltipSetUnit(tooltip)
+    local unit = _getTooltipUnit(tooltip)
+    if not unit then return end
+
+    local okPlayer, isPlayer = pcall(UnitIsPlayer, unit)
+    if not okPlayer or not isPlayer then return end
+
+    local okName, name, realm = pcall(UnitFullName, unit)
+    if not okName or not name then return end
 
     local fullName = GetFullName(name, realm)
     local data = LookupPlayer(fullName)
 
     if data then
-        AddUmbraTooltip(self, data)
+        AddUmbraTooltip(tooltip, data)
     end
 end
 
