@@ -40,7 +40,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (3, "Survival"): [
         (360966, "Spearhead", 12),
-        (259489, "Kill Command", 5),
+        # Kill Command removed 2026-04-15: ~6s CD rotational spam, not a
+        # "major" cooldown. Audit showed 0 buff uses — appears as a cast
+        # event but not in the player's buff aura table.
     ],
 
     # Rogue
@@ -54,7 +56,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (4, "Subtlety"): [
         (121471, "Shadow Blades", 15),
-        (277925, "Shuriken Tornado", 5),
+        # Shuriken Tornado removed 2026-04-15: talent-gated and rarely
+        # picked in current M+ builds — Sub typically takes alternatives.
+        # Audit showed 0 uses across observed Sub Rogue logs.
     ],
 
     # Priest
@@ -69,7 +73,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (279302, "Frostwyrm's Fury", 3),
     ],
     (6, "Unholy"): [
-        (275699, "Apocalypse", 8),
+        # Apocalypse (275699) removed 2026-04-15: ~45s-90s CD (too short
+        # for "major"), not a self-buff aura. Army of the Dead is the
+        # real major CD for Unholy.
         (42650, "Army of the Dead", 3),
     ],
 
@@ -102,7 +108,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (9, "Demonology"): [
         (265187, "Summon Demonic Tyrant", 10),
-        (111898, "Grimoire: Felguard", 8),
+        # Grimoire: Felguard (111898) removed 2026-04-15: creates a pet,
+        # not a self-buff aura — BuffsTable never surfaces it. Demo has
+        # comparatively few self-buff majors; Tyrant is the primary.
     ],
     (9, "Destruction"): [
         (1122, "Summon Infernal", 10),
@@ -167,7 +175,10 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (12, "Vengeance"): [
         (187827, "Metamorphosis", 10),
-        (204021, "Fiery Brand", 10),
+        # Fiery Brand (204021) removed 2026-04-15: applies a debuff to the
+        # target (207771), not a self-buff — won't appear in the player's
+        # BuffsTable regardless of use. Metamorphosis is the one reliable
+        # self-buff major for Vengeance.
     ],
 
     # ── Healer Specs (major healing cooldowns) ───────────────────────────
@@ -201,9 +212,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     (11, "Restoration"): [
         (740, "Tranquility", 4),                # baseline, ~3min CD
         (391528, "Convoke the Spirits", 3),     # commonly talented, ~2min CD
-        (102342, "Ironbark", 10),               # baseline 1min CD external
         (22812, "Barkskin", 15),                # baseline 1min CD personal
         (29166, "Innervate", 4),                # baseline ~3min CD (on self or ally)
+        # Ironbark (102342) removed 2026-04-15: external CD — buff lands
+        # on the tank/target, not the Resto Druid. Our BuffsTable query
+        # only sees self-auras, so Ironbark is invisible here by design.
     ],
     (13, "Preservation"): [
         (363534, "Rewind", 3),
