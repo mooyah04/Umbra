@@ -87,6 +87,48 @@ export default async function Home() {
         </section>
       )}
 
+      {/* ── Tester call-to-action ────────────────────────────────────────
+           Scoring calibrates from real-log diversity, so the fastest way to
+           make grades accurate for every class/spec is simply to have more
+           people running keys with the addon installed. */}
+      <section className="mb-16">
+        <div className="relative bg-gradient-to-br from-primary-container/60 via-surface-container-high to-surface-container-high border border-primary/30 rounded-xl p-8 md:p-10 overflow-hidden">
+          <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-6xl opacity-15 pointer-events-none">
+            rocket_launch
+          </span>
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
+            Early Access
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-3xl md:text-5xl tracking-tighter text-on-surface mb-4">
+            WE NEED <span className="text-primary italic">TESTERS</span>
+          </h3>
+          <p className="text-on-surface-variant leading-relaxed max-w-3xl mb-6">
+            WoWUmbra.gg is brand new. The grading system learns from the logs
+            our community feeds it — the more diverse the keys, specs, and
+            compositions we see, the sharper every category gets. If you run
+            Mythic+, drop the addon in and play normally. That&apos;s it. Your
+            logs help tune benchmarks that will grade every player who comes
+            after you.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={ADDON_DOWNLOAD_URL}
+              className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              Download Addon
+            </a>
+            <Link
+              href="/about"
+              className="font-[family-name:var(--font-label)] text-xs uppercase tracking-widest text-primary hover:underline inline-flex items-center gap-1"
+            >
+              How the grading works
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── How it works ── */}
       <section className="mb-16">
         <div className="mb-8">
