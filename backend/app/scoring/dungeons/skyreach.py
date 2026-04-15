@@ -10,7 +10,7 @@ TODO: Populate avoidable_abilities. Source candidates:
 from app.scoring.dungeons._types import DungeonData
 
 DUNGEON = DungeonData(
-    encounter_id=0,  # TODO: confirm WCL encounter_id for Skyreach in Midnight S1
+    encounter_id=61209,  # confirmed from Elonmunk's 2026-04-15 +8 run
     name="Skyreach",
     avoidable_abilities=(),
     appearances=("Midnight S1", "Shadowlands S4", "WoD"),
