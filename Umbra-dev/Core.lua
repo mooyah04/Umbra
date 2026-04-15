@@ -351,10 +351,23 @@ if LFGListFrame then
     HookSearchPanel()
 end
 
--- Update grade display when applicant list changes
-if LFGListFrame and LFGListFrame.ApplicationViewer then
-    hooksecurefunc(LFGListFrame.ApplicationViewer, "UpdateResults", UpdateApplicantGrades)
+-- Safe hook: hooksecurefunc raises if the named method doesn't exist on
+-- the target table. Blizzard periodically renames/removes internals on
+-- the LFG frame (the ScrollBox rework being the most recent), so we
+-- verify the method is actually a function before attaching. Tracked
+-- per-instance so we never double-hook after ADDON_LOADED + PEW both fire.
+local _applicantUpdateResultsHooked = false
+local function TryHookApplicantUpdateResults()
+    if _applicantUpdateResultsHooked then return end
+    local viewer = LFGListFrame and LFGListFrame.ApplicationViewer
+    if viewer and type(viewer.UpdateResults) == "function" then
+        hooksecurefunc(viewer, "UpdateResults", UpdateApplicantGrades)
+        _applicantUpdateResultsHooked = true
+    end
 end
+
+-- Update grade display when applicant list changes
+TryHookApplicantUpdateResults()
 
 -- Fallback: hook UpdateResults when the frame becomes available
 loader:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -363,18 +376,14 @@ loader:SetScript("OnEvent", function(self, event, addonName)
         C_Timer.After(0.1, function()
             HookApplicationViewer()
             HookSearchPanel()
-            if LFGListFrame and LFGListFrame.ApplicationViewer then
-                hooksecurefunc(LFGListFrame.ApplicationViewer, "UpdateResults", UpdateApplicantGrades)
-            end
+            TryHookApplicantUpdateResults()
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- Try hooking on login in case group finder is already loaded
         if LFGListFrame then
             HookApplicationViewer()
             HookSearchPanel()
-            if LFGListFrame.ApplicationViewer then
-                hooksecurefunc(LFGListFrame.ApplicationViewer, "UpdateResults", UpdateApplicantGrades)
-            end
+            TryHookApplicantUpdateResults()
         end
         self:UnregisterEvent("PLAYER_ENTERING_WORLD")
     end
