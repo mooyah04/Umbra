@@ -142,6 +142,14 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (191427, "Metamorphosis", 15),
         (258860, "Essence Break", 5),
     ],
+    # Midnight-added 4th DH spec (ranged DPS). Void Metamorphosis is the
+    # high-confidence major CD identified from Mvpewe's audit (659 buff
+    # uses, name pattern matches Havoc/Vengeance Metamorphosis CDs).
+    # Other observed buffs (Soul Fragments, Feast of Souls, Emptiness)
+    # read as passive resources/procs and are intentionally excluded.
+    (12, "Devourer"): [
+        (1225789, "Void Metamorphosis", 15),
+    ],
 
     # Evoker
     (13, "Devastation"): [

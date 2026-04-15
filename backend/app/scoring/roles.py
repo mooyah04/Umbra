@@ -59,6 +59,7 @@ SPEC_ROLE_MAP: dict[tuple[int, str], Role] = {
     # Demon Hunter (12)
     (12, "Havoc"): Role.dps,
     (12, "Vengeance"): Role.tank,
+    (12, "Devourer"): Role.dps,  # Midnight-added DH ranged DPS spec
     # Evoker (13)
     (13, "Augmentation"): Role.dps,
     (13, "Devastation"): Role.dps,
