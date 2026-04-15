@@ -245,6 +245,51 @@ def bulk_ingest(
     )
 
 
+@app.get("/api/debug/wcl-character", dependencies=[Depends(require_api_key)])
+def debug_wcl_character(
+    region: str,
+    realm: str,
+    name: str,
+):
+    """Admin diagnostic. Returns the raw WCL character(name, serverSlug,
+    serverRegion) response so we can see which entity WCL is matching
+    (classID, internal id, recent reports). Useful when the user's actual
+    character class on WCL disagrees with what our ingest stores —
+    confirms whether WCL is returning a different actor than the one
+    the user thinks they're looking up."""
+    from app.wcl.client import wcl_client
+
+    name_c, realm_c, region_c = validate_player_identity(name, realm, region)
+    server_slug = realm_c.lower().replace("'", "").replace(" ", "-")
+    char = wcl_client.get_character_with_reports(
+        name=name_c,
+        server_slug=server_slug,
+        server_region=region_c.lower(),
+        limit=10,
+    )
+    if not char:
+        return {"found": False, "name": name_c, "realm": realm_c, "region": region_c}
+    reports = char.get("recentReports", {}).get("data", [])
+    return {
+        "found": True,
+        "wcl_id": char.get("id"),
+        "name": char.get("name"),
+        "classID": char.get("classID"),
+        "server_slug": char.get("server", {}).get("slug"),
+        "server_region": char.get("server", {}).get("region", {}).get("slug"),
+        "recent_reports_count": len(reports),
+        "recent_reports": [
+            {
+                "code": r.get("code"),
+                "title": r.get("title"),
+                "zone_name": r.get("zone", {}).get("name"),
+                "startTime": r.get("startTime"),
+            }
+            for r in reports
+        ],
+    }
+
+
 @app.get("/api/export/lua", response_class=PlainTextResponse)
 @limiter.limit(settings.rate_limit_public)
 def export_lua(
