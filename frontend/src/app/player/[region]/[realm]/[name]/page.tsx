@@ -572,17 +572,12 @@ function PartyMemberCell({
             style={{ boxShadow: `0 0 0 1px ${color}` }}
           />
         )}
-        <div className="min-w-0">
-          <p
-            className="font-[family-name:var(--font-body)] text-xs font-semibold truncate leading-tight"
-            style={{ color }}
-          >
-            {member.name}
-          </p>
-          <p className="font-[family-name:var(--font-label)] text-[9px] text-on-surface-variant uppercase truncate">
-            {member.realm}
-          </p>
-        </div>
+        <p
+          className="font-[family-name:var(--font-body)] text-xs font-semibold truncate leading-tight min-w-0"
+          style={{ color }}
+        >
+          {member.name}
+        </p>
       </div>
     </div>
   );
