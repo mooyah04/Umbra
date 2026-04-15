@@ -504,6 +504,13 @@ def debug_wcl_report(code: str):
                 "name": f.get("name"),
                 "keystoneLevel": f.get("keystoneLevel"),
                 "kill": f.get("kill"),
+                "startTime": f.get("startTime"),
+                "endTime": f.get("endTime"),
+                "duration_min": round((f.get("endTime", 0) - f.get("startTime", 0)) / 60000, 2),
+                "keystoneTime_min": round(f.get("keystoneTime", 0) / 60000, 2),
+                "rating": f.get("rating"),
+                "averageItemLevel": f.get("averageItemLevel"),
+                "keystoneAffixes": f.get("keystoneAffixes"),
             }
             for f in fights[:10]
         ],
