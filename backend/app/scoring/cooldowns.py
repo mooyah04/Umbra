@@ -99,7 +99,12 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (8, "Frost"): [
         (12472, "Icy Veins", 20),
-        (84714, "Frozen Orb", 8),
+        # Frozen Orb (84714) removed 2026-04-16: cast-only spell with no
+        # self-buff aura — same pattern as Kill Command. The orb effect
+        # exists in the world, not on the caster, so BuffsTable can't
+        # see it. Icy Veins remains; if it disappears across multiple
+        # Frost Mage logs we'll revisit the ID (Midnight may have
+        # renamed/replaced).
     ],
 
     # Warlock
