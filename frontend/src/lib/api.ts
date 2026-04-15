@@ -8,10 +8,48 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly detail?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** Shape of the structured detail object the backend returns on 404s
+ *  that the frontend can act on (e.g. a player-not-found with reason). */
+export interface ApiErrorDetail {
+  code?: string;
+  reason?: string;
+  message?: string;
+}
+
 async function fetchApi<T>(path: string): Promise<T> {
+  // Auto-ingest paths can take 20-40s (WCL calls + scoring) so the
+  // player-profile fetch needs a relaxed revalidate window + generous
+  // timeout. Other paths are cheap and benefit from the 60s cache.
   const res = await fetch(`${API_URL}${path}`, { next: { revalidate: 60 } });
   if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${await res.text()}`);
+    let detail: ApiErrorDetail | string | undefined;
+    let message = `API error ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body?.detail ?? body;
+      if (
+        detail &&
+        typeof detail === "object" &&
+        "message" in detail &&
+        typeof detail.message === "string"
+      ) {
+        message = detail.message;
+      }
+    } catch {
+      // Body wasn't JSON; keep the generic message.
+    }
+    throw new ApiError(res.status, message, detail);
   }
   return res.json();
 }

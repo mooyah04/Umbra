@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPlayerProfile } from "@/lib/api";
+import { ApiError, getPlayerProfile } from "@/lib/api";
 import { getGradeColor, getStatColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
@@ -112,22 +112,63 @@ export default async function PlayerProfilePage({ params }: Props) {
   let profile;
   try {
     profile = await getPlayerProfile(region, realm, name);
-  } catch {
+  } catch (err) {
+    const apiErr = err instanceof ApiError ? err : null;
+    const detail =
+      apiErr?.detail && typeof apiErr.detail === "object"
+        ? (apiErr.detail as { code?: string; reason?: string; message?: string })
+        : null;
+
+    // The backend now distinguishes real 'WCL doesn't know this character'
+    // from transient 'we tried to ingest but something went sideways'.
+    const code = detail?.code ?? "not_found";
+    const reason = detail?.reason ?? "";
+    const isRetryable = code === "lookup_failed_post_ingest";
+    const heading = isRetryable
+      ? "WE'RE STILL FETCHING"
+      : reason === "wcl_not_found"
+      ? "CHARACTER NOT ON WARCRAFT LOGS"
+      : "COULDN'T LOAD PROFILE";
+
     return (
-      <div className="pt-24 pb-32 px-6 max-w-7xl mx-auto text-center">
-        <h2 className="font-[family-name:var(--font-headline)] text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
-          PLAYER NOT FOUND
+      <div className="pt-28 pb-32 px-6 max-w-3xl mx-auto text-center">
+        <span className="material-symbols-outlined text-primary text-6xl mb-6 opacity-40">
+          {isRetryable ? "hourglass_empty" : "search_off"}
+        </span>
+        <h2 className="font-[family-name:var(--font-headline)] text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
+          {heading}
         </h2>
-        <p className="text-on-surface-variant mb-8">
-          Could not find {decodeURIComponent(name)} on{" "}
+        <p className="text-on-surface-variant mb-2 text-lg">
+          {decodeURIComponent(name)} &middot;{" "}
           {decodeURIComponent(realm)}-{region.toUpperCase()}
         </p>
-        <Link
-          href="/"
-          className="text-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest hover:underline"
-        >
-          Return to Search
-        </Link>
+        <p className="text-on-surface-variant mb-8 max-w-xl mx-auto leading-relaxed">
+          {isRetryable
+            ? "We just kicked off an ingest from Warcraft Logs. Give it a minute and reload — most characters finish in 20-40 seconds."
+            : reason === "wcl_not_found"
+            ? "This character doesn't have any combat logs on warcraftlogs.com yet. Download our addon, run a Mythic+ key, and your logs will feed the grading system automatically."
+            : "Something went wrong loading this profile. Try again in a moment or head back to search."}
+        </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Link
+            href="/"
+            className="bg-surface-container-high text-on-surface font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:bg-surface-bright transition-colors"
+          >
+            Return to Search
+          </Link>
+          {reason === "wcl_not_found" && (
+            <a
+              href="/Umbra.zip"
+              download="Umbra.zip"
+              className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2"
+            >
+              Download Addon
+              <span className="material-symbols-outlined text-sm">
+                download
+              </span>
+            </a>
+          )}
+        </div>
       </div>
     );
   }
@@ -290,6 +331,36 @@ export default async function PlayerProfilePage({ params }: Props) {
           color="primary"
         />
       </div>
+
+      {/* ── Not-enough-runs banner ── */}
+      {!primary && (
+        <section className="mb-10 bg-surface-container-high rounded-xl p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+          <span className="material-symbols-outlined text-primary text-5xl flex-shrink-0 opacity-60">
+            pending_actions
+          </span>
+          <div className="flex-1">
+            <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+              Almost There
+            </p>
+            <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface mb-2">
+              WE NEED MORE RUNS TO GRADE YOU
+            </h3>
+            <p className="text-on-surface-variant leading-relaxed">
+              {profile.total_runs === 0
+                ? "We found your character on Warcraft Logs, but there aren't any Mythic+ runs on file yet. Download the addon, run a key with Advanced Combat Logging on, and your grade will land here automatically."
+                : `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far — three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`}
+            </p>
+          </div>
+          <a
+            href="/Umbra.zip"
+            download="Umbra.zip"
+            className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2 flex-shrink-0"
+          >
+            Download Addon
+            <span className="material-symbols-outlined text-sm">download</span>
+          </a>
+        </section>
+      )}
 
       {/* ── How we graded you ── */}
       {primary && (

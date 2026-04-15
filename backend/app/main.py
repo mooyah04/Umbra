@@ -696,7 +696,7 @@ def search_players(
 
 
 @app.get("/api/player/{region}/{realm}/{name}/all", response_model=PlayerProfileResponse)
-@limiter.limit(settings.rate_limit_public)
+@limiter.limit(settings.rate_limit_player_lookup)
 def get_player_profile(
     request: Request,
     region: str,
@@ -704,11 +704,62 @@ def get_player_profile(
     name: str,
     session: Session = Depends(get_session),
 ):
-    """Full player profile: all role scores + recent runs."""
+    """Full player profile: all role scores + recent runs.
+
+    If the character isn't in our DB yet, we try a one-shot ingest from
+    WCL so anyone searching their own character gets a real answer
+    instead of a dead-end 404. The stricter player-lookup rate limit
+    applies (not the public limit) because each miss can trigger a
+    chain of WCL calls.
+
+    Outcomes:
+      - Player in DB: served from cache, scores may or may not be
+        populated depending on runs-analyzed threshold.
+      - Player not in DB, WCL has recent M+ reports: ingested live,
+        profile returned with whatever scored.
+      - Player not in DB, WCL returns nothing: 404 with reason
+        'wcl_not_found' so the frontend can show a tailored message.
+      - Player not in DB, WCL has the character but no M+ in recent
+        reports: profile returned with empty scores so the page can
+        render with a 'no runs yet' state.
+    """
     name, realm, region = _canonical_identity(name, realm, region)
     player = _find_player(session, region, realm, name)
     if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
+        # Try a live ingest before giving up.
+        try:
+            result = ingest_player(session, name, realm, region)
+        except Exception as e:
+            logger.warning("Auto-ingest failed for %s-%s (%s): %s",
+                           name, realm, region, e)
+            result = None
+
+        if result is None or result.player is None:
+            reason = getattr(result, "reason", None) if result else None
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "not_found",
+                    "reason": reason or "wcl_not_found",
+                    "message": (
+                        "Character not found on Warcraft Logs. Double-check "
+                        "the name and realm, or make sure you've uploaded "
+                        "at least one M+ log via the Warcraft Logs Uploader."
+                    ),
+                },
+            )
+        player = _find_player(session, region, realm, name)
+        if not player:
+            # Ingest returned a player but our lookup can't find it —
+            # should never happen, but surface it as a generic 500-ish
+            # 404 rather than silently returning nothing.
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "lookup_failed_post_ingest",
+                    "message": "Ingest succeeded but player lookup failed. Try again in a minute.",
+                },
+            )
 
     # Build role scores
     scores = [
