@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ApiError, getPlayerProfile } from "@/lib/api";
+import { ADDON_DOWNLOAD_URL, ApiError, getPlayerProfile } from "@/lib/api";
 import { getGradeColor, getStatColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
@@ -159,8 +159,7 @@ export default async function PlayerProfilePage({ params }: Props) {
           </Link>
           {reason === "wcl_not_found" && (
             <a
-              href="/Umbra.zip"
-              download="Umbra.zip"
+              href={ADDON_DOWNLOAD_URL}
               className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2"
             >
               Download Addon
@@ -362,8 +361,7 @@ export default async function PlayerProfilePage({ params }: Props) {
             </p>
           </div>
           <a
-            href="/Umbra.zip"
-            download="Umbra.zip"
+            href={ADDON_DOWNLOAD_URL}
             className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2 flex-shrink-0"
           >
             Download Addon

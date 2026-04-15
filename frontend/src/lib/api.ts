@@ -8,6 +8,10 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+/** Full URL of the tracked addon-download endpoint. Used in <a href>
+ *  elements so every click gets logged via a 302 through the backend. */
+export const ADDON_DOWNLOAD_URL = `${API_URL}/api/addon/download`;
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,

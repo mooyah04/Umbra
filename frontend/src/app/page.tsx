@@ -1,6 +1,6 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
-import { getStatsSummary, getTopPlayers, getLeaderboard } from "@/lib/api";
+import { ADDON_DOWNLOAD_URL, getStatsSummary, getTopPlayers, getLeaderboard } from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
 import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
 import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
@@ -32,8 +32,7 @@ export default async function Home() {
         </p>
         <SearchBar />
         <a
-          href="/Umbra.zip"
-          download="Umbra.zip"
+          href={ADDON_DOWNLOAD_URL}
           className="md:hidden mt-5 inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all"
         >
           <span className="material-symbols-outlined text-sm">download</span>
@@ -201,8 +200,7 @@ export default async function Home() {
         </Link>
 
         <a
-          href="/Umbra.zip"
-          download="Umbra.zip"
+          href={ADDON_DOWNLOAD_URL}
           className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-8 group relative overflow-hidden"
         >
           <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
@@ -248,8 +246,7 @@ export default async function Home() {
             About
           </Link>
           <a
-            href="/Umbra.zip"
-            download="Umbra.zip"
+            href={ADDON_DOWNLOAD_URL}
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
           >
             Download Addon

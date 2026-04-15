@@ -110,3 +110,17 @@ class PlayerScore(Base):
     )
 
     player: Mapped["Player"] = relationship(back_populates="scores")
+
+
+class AddonDownload(Base):
+    """One row per /api/addon/download request. ip_hash is salted so we can
+    dedup uniques without storing raw IPs. user_agent helps filter bot
+    traffic out of the stats view."""
+    __tablename__ = "addon_downloads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    downloaded_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False, index=True
+    )
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)

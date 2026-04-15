@@ -3,9 +3,11 @@
 import logging
 from datetime import datetime, timedelta
 
+import hashlib
+
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import Float, Integer, func, or_, select
@@ -14,7 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import settings
 from app.db import engine, get_session
 from app.export.lua_writer import generate_lua
-from app.models import Base, DungeonRun, Player, PlayerScore
+from app.models import AddonDownload, Base, DungeonRun, Player, PlayerScore
 from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, require_api_key
 from app.validators import ValidationError, validate_player_identity
@@ -165,6 +167,80 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "umbra-score-engine"}
+
+
+_DOWNLOAD_TARGET_URL = "https://wowumbra.gg/Umbra.zip"
+
+
+@app.get("/api/addon/download")
+@limiter.limit(settings.rate_limit_public)
+def download_addon(request: Request, session: Session = Depends(get_session)):
+    """Log an addon-download attempt, then 302 to the static zip on Vercel.
+
+    The 302 lets the CDN serve the actual bytes. We just record one row per
+    request. IP is salted-hashed so we can dedup uniques in stats without
+    storing raw PII; the salt is the configured API key (already a secret).
+    """
+    ip = request.client.host if request.client else None
+    ip_hash: str | None = None
+    if ip:
+        salt = settings.api_key or "umbra-fallback-salt"
+        ip_hash = hashlib.sha256(f"{ip}:{salt}".encode()).hexdigest()
+    ua = (request.headers.get("user-agent") or "")[:500]
+    try:
+        session.add(AddonDownload(ip_hash=ip_hash, user_agent=ua))
+        session.commit()
+    except Exception as e:
+        logger.warning("Failed to log addon download: %s", e)
+        session.rollback()
+    return RedirectResponse(_DOWNLOAD_TARGET_URL, status_code=302)
+
+
+@app.get("/api/admin/download-stats", dependencies=[Depends(require_api_key)])
+def download_stats(session: Session = Depends(get_session)):
+    """Aggregate download counts: total, 24h / 7d / 30d windows, and a
+    day-bucketed series for the last 30 days. `unique_ips_last_30d`
+    counts distinct ip_hash values in the window, giving a sanity check
+    against bots reloading the endpoint."""
+    now = datetime.utcnow()
+    h24 = now - timedelta(hours=24)
+    d7 = now - timedelta(days=7)
+    d30 = now - timedelta(days=30)
+
+    def _count(since: datetime | None = None) -> int:
+        stmt = select(func.count()).select_from(AddonDownload)
+        if since:
+            stmt = stmt.where(AddonDownload.downloaded_at >= since)
+        return int(session.execute(stmt).scalar() or 0)
+
+    unique_30d = int(session.execute(
+        select(func.count(func.distinct(AddonDownload.ip_hash)))
+        .where(AddonDownload.downloaded_at >= d30)
+        .where(AddonDownload.ip_hash.is_not(None))
+    ).scalar() or 0)
+
+    daily_rows = session.execute(
+        select(
+            func.date_trunc("day", AddonDownload.downloaded_at).label("day"),
+            func.count().label("n"),
+        )
+        .where(AddonDownload.downloaded_at >= d30)
+        .group_by("day")
+        .order_by("day")
+    ).all()
+
+    return {
+        "total": _count(),
+        "last_24h": _count(h24),
+        "last_7d": _count(d7),
+        "last_30d": _count(d30),
+        "unique_ips_last_30d": unique_30d,
+        "daily_series": [
+            {"day": d.date().isoformat() if hasattr(d, "date") else str(d),
+             "count": int(n)}
+            for d, n in daily_rows
+        ],
+    }
 
 
 @app.get("/api/player/{region}/{realm}/{name}", response_model=PlayerScoreResponse)
