@@ -194,7 +194,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (11, "Restoration"): [
         (33891, "Incarnation: Tree of Life", 15),
-        (740, "Tranquility", 3),
+        (740, "Tranquility", 4),
+        (132158, "Nature's Swiftness", 13),     # 1min CD, 8s window
+        (391528, "Convoke the Spirits", 3),     # 2min CD, ~4s channel
+        (197721, "Flourish", 8),                # 1min CD (talent), extends HoTs
+        (102342, "Ironbark", 10),               # 1min CD, external defensive
     ],
     (13, "Preservation"): [
         (363534, "Rewind", 3),
