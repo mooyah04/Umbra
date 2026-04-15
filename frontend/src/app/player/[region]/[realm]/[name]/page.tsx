@@ -161,21 +161,33 @@ export default async function PlayerProfilePage({ params }: Props) {
       {/* ── Hero row ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
         <div className="md:col-span-8 bg-surface-container-high rounded-xl p-8 relative overflow-hidden flex flex-col justify-end min-h-[320px]">
+          {/* Blizzard main-raw render as a subtle backdrop when available */}
+          {profile.render_url && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={profile.render_url}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover object-right opacity-30 pointer-events-none"
+              />
+            </>
+          )}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-30"
             style={{
               background: `radial-gradient(circle at 30% 50%, ${classColor}40, transparent 60%)`,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high via-surface-container-high/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high via-surface-container-high/70 to-transparent" />
           <div className="relative z-10 flex items-end gap-6">
-            {/* Spec icon — falls back to class icon if spec is unrecognized */}
+            {/* Avatar if Blizzard has one, otherwise the spec icon */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={specIconUrl(spec, profile.class_id)}
+              src={profile.avatar_url ?? specIconUrl(spec, profile.class_id)}
               alt={`${spec} ${className}`}
-              width={96}
-              height={96}
+              width={112}
+              height={112}
               className="rounded-lg border-2 shadow-xl flex-shrink-0 hidden md:block"
               style={{ borderColor: `${classColor}80` }}
             />

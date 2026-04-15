@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # Player lookup — each uncached call triggers WCL ingest (expensive).
     rate_limit_player_lookup: str = "20/minute"
 
+    # Blizzard Battle.net API credentials (develop.battle.net OAuth client).
+    # Used to fetch character avatar / inset / render URLs for display on
+    # player pages. Empty string disables all Blizzard lookups gracefully —
+    # player pages fall back to the spec icon.
+    bnet_client_id: str = ""
+    bnet_client_secret: str = ""
+    bnet_token_url: str = "https://oauth.battle.net/token"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

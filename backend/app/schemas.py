@@ -93,6 +93,8 @@ class PlayerSearchResult(BaseModel):
     role: str | None = None
     spec: str | None = None
     runs_analyzed: int | None = None
+    avatar_url: str | None = None
+    inset_url: str | None = None
 
 
 class RunResponse(BaseModel):
@@ -148,6 +150,9 @@ class PlayerProfileResponse(BaseModel):
     recent_runs: list[RunResponse]
     timed_pct: float
     total_runs: int
+    avatar_url: str | None = None
+    inset_url: str | None = None
+    render_url: str | None = None
 
 
 class HistoryPoint(BaseModel):

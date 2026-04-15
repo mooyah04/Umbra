@@ -634,6 +634,8 @@ def top_players(
             role=score.role.value,
             spec=spec,
             runs_analyzed=score.runs_analyzed,
+            avatar_url=player.avatar_url,
+            inset_url=player.inset_url,
         ))
         if len(results) >= limit:
             break
@@ -685,6 +687,8 @@ def search_players(
             role=primary.role.value if primary else None,
             spec=spec,
             runs_analyzed=primary.runs_analyzed if primary else None,
+            avatar_url=player.avatar_url,
+            inset_url=player.inset_url,
         ))
 
     return results
@@ -746,6 +750,9 @@ def get_player_profile(
         recent_runs=recent_runs,
         timed_pct=timed_pct,
         total_runs=total_runs,
+        avatar_url=player.avatar_url,
+        inset_url=player.inset_url,
+        render_url=player.render_url,
     )
 
 

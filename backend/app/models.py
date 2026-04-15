@@ -33,6 +33,12 @@ class Player(Base):
     region: Mapped[str] = mapped_column(String(10), nullable=False)
     class_id: Mapped[int] = mapped_column(Integer, nullable=False)
     wcl_id: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True)
+    # Blizzard character-media URLs, populated from the Game Data API.
+    # Nullable because some characters are hidden/private.
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    inset_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    render_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    media_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

@@ -306,9 +306,10 @@ function PlayerCard({ player }: { player: PlayerSearchResult }) {
       />
       <div className="p-5">
         <div className="flex items-start gap-3 mb-4">
+          {/* Real avatar if Blizzard has one, else spec icon */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={specIconUrl(player.spec, player.class_id)}
+            src={player.avatar_url ?? specIconUrl(player.spec, player.class_id)}
             alt={player.spec ?? className}
             width={44}
             height={44}

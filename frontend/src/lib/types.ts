@@ -17,6 +17,8 @@ export interface PlayerSearchResult {
   role: string | null;
   spec: string | null;
   runs_analyzed: number | null;
+  avatar_url?: string | null;
+  inset_url?: string | null;
 }
 
 export interface RunResponse {
@@ -71,6 +73,9 @@ export interface PlayerProfileResponse {
   recent_runs: RunResponse[];
   timed_pct: number;
   total_runs: number;
+  avatar_url?: string | null;
+  inset_url?: string | null;
+  render_url?: string | null;
 }
 
 export interface HistoryPoint {

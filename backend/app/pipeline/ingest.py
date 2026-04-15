@@ -17,6 +17,7 @@ from app.scoring.engine import score_player_runs
 from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
 from app.scoring.spec_to_class import class_id_from_name, resolve_class_id
+from app.bnet.client import bnet_client
 from app.wcl.client import wcl_client, WCLQueryError
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,37 @@ class IngestResult:
     # Reason populated when player is None, for caller-side diagnostics.
     # Known values: "wcl_not_found", "no_reports", "no_fights".
     reason: str | None = None
+
+
+def _maybe_fetch_bnet_media(player, server_slug: str, character_name: str) -> None:
+    """Populate player.avatar_url / inset_url / render_url from Blizzard API.
+
+    No-op when:
+      - BNET creds aren't configured (bnet_client.get_character_media returns None)
+      - Media was fetched within the last 7 days
+      - Blizzard returns 404 (hidden character) — the row just keeps nulls
+    """
+    from datetime import timedelta
+    if player.media_fetched_at is not None:
+        age = datetime.utcnow() - player.media_fetched_at
+        if age < timedelta(days=7):
+            return
+    media = bnet_client.get_character_media(
+        region=player.region,
+        realm_slug=server_slug,
+        character_name=character_name,
+    )
+    # Always update the timestamp so we don't hammer Bnet on every
+    # ingest for characters with hidden profiles.
+    player.media_fetched_at = datetime.utcnow()
+    if not media:
+        return
+    if "avatar" in media:
+        player.avatar_url = media["avatar"]
+    if "inset" in media:
+        player.inset_url = media["inset"]
+    if "render" in media:
+        player.render_url = media["render"]
 
 
 def _slug_to_realm(slug: str) -> str:
@@ -415,6 +447,11 @@ def ingest_player(
         # If caller provided a hint, apply it to the existing row too.
         if class_hint is not None:
             player.class_id = class_hint
+
+    # 2b. Fetch Blizzard character media (avatar / inset / render) lazily.
+    # Skip if we already pulled it recently (>7 days) or if creds aren't
+    # set. Any failure is swallowed — media is a nice-to-have, not critical.
+    _maybe_fetch_bnet_media(player, server_slug, name)
 
     # 3. Process each report — extract per-fight data (rolling window of last N runs)
     # `reports` was set above (either from char_data or report_codes).
