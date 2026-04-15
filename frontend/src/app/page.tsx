@@ -1,219 +1,350 @@
+import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
+import { getStatsSummary, getTopPlayers } from "@/lib/api";
+import { getGradeColor } from "@/lib/grades";
+import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
+import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
+import type { PlayerSearchResult } from "@/lib/types";
 
-export default function Home() {
+export const revalidate = 60;
+
+export default async function Home() {
+  // Parallel fetch so homepage renders in a single RTT to the API.
+  const [stats, recent] = await Promise.all([
+    getStatsSummary().catch(() => null),
+    getTopPlayers(8).catch(() => [] as PlayerSearchResult[]),
+  ]);
+
   return (
     <div className="min-h-screen pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
-      {/* Hero Search Section */}
-      <section className="flex flex-col items-center justify-center text-center mb-20">
+      {/* ── Hero ── */}
+      <section className="flex flex-col items-center justify-center text-center mb-12">
+        <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-6">
+          Mythic+ Performance Grading
+        </p>
         <h2 className="font-[family-name:var(--font-headline)] font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tighter mb-8 text-on-surface">
           LOOK UP <span className="text-primary italic">ANY PLAYER.</span>
         </h2>
+        <p className="max-w-2xl text-on-surface-variant text-lg mb-8">
+          One composite grade per character — built from your combat-log
+          evidence, tuned for the current season, and explained piece by piece.
+        </p>
         <SearchBar />
         <p className="mt-6 font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.2em] text-on-surface-variant">
-          Indexed: <span className="text-primary">12.4M</span> Characters
+          Indexed:{" "}
+          <span className="text-primary">
+            {stats?.total_players.toLocaleString() ?? "—"}
+          </span>{" "}
+          characters
           {" • "}
-          <span className="text-secondary">482</span> Realms
+          <span className="text-secondary">
+            {stats?.total_runs.toLocaleString() ?? "—"}
+          </span>{" "}
+          runs
           {" • "}
-          <span className="text-tertiary">Real-time</span> Log Parsing
+          <span className="text-tertiary">
+            {stats?.graded_players.toLocaleString() ?? "—"}
+          </span>{" "}
+          graded
         </p>
       </section>
 
-      {/* Bento Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Trending Players */}
-        <div className="md:col-span-8 bg-surface-container-high rounded-xl overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-transparent to-transparent" />
-          <div className="p-8">
-            <div className="flex justify-between items-end mb-8">
-              <div>
-                <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl uppercase tracking-tighter">
-                  Trending Players
-                </h3>
-                <p className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant uppercase tracking-widest mt-1">
-                  High-Frequency Activity (Last 60m)
-                </p>
-              </div>
-              <span className="font-[family-name:var(--font-label)] text-[10px] text-primary bg-primary-container/20 px-2 py-1 rounded">
-                LIVE UPDATES
-              </span>
-            </div>
-            <div className="space-y-1">
-              <TrendingRow
-                name="Zyr-Area52"
-                region="US"
-                spec="Havoc Demon Hunter"
-                ilvl={489}
-                stat="148.2k DPS"
-                statColor="text-primary"
-                rank="Global Rank #12"
-                icon="swords"
-                iconColor="text-primary"
-                iconBg="bg-primary"
-                bgClass="bg-surface-container"
-              />
-              <TrendingRow
-                name="Lumina-TwistingNether"
-                region="EU"
-                spec="Holy Paladin"
-                ilvl={491}
-                stat="112.5k HPS"
-                statColor="text-tertiary"
-                rank="Top 0.1% Healer"
-                icon="ecg_heart"
-                iconColor="text-tertiary"
-                iconBg="bg-tertiary"
-                bgClass="bg-surface-container-low"
-              />
-              <TrendingRow
-                name="Korg-TarrenMill"
-                region="EU"
-                spec="Blood Death Knight"
-                ilvl={488}
-                stat="3.4k Rating"
-                statColor="text-on-surface"
-                rank="Mythic+ Elite"
-                icon="shield"
-                iconColor="text-secondary"
-                iconBg="bg-secondary"
-                bgClass="bg-surface-container"
-              />
-            </div>
-          </div>
+      {/* ── Stats strip ── */}
+      {stats && (
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+          <StatTile
+            label="Total Characters"
+            value={stats.total_players.toLocaleString()}
+            icon="group"
+            color="primary"
+          />
+          <StatTile
+            label="Runs Parsed"
+            value={stats.total_runs.toLocaleString()}
+            icon="fort"
+            color="secondary"
+          />
+          <StatTile
+            label="Tanks Graded"
+            value={(stats.role_counts.tank ?? 0).toString()}
+            icon="shield"
+            color="tertiary"
+          />
+          <StatTile
+            label="Healers Graded"
+            value={(stats.role_counts.healer ?? 0).toString()}
+            icon="healing"
+            color="primary"
+          />
+        </section>
+      )}
+
+      {/* ── How it works ── */}
+      <section className="mb-16">
+        <div className="mb-8">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+            Getting Started
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
+            HOW IT WORKS
+          </h3>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StepCard
+            num="01"
+            title="Install the addon"
+            icon="extension"
+            body="Drop the Umbra/ folder into Interface/AddOns. It auto-enables Advanced Combat Logging and toggles /combatlog on when your M+ key starts."
+          />
+          <StepCard
+            num="02"
+            title="Upload to Warcraft Logs"
+            icon="cloud_upload"
+            body="The official Warcraft Logs Uploader picks up your log file automatically. No extra steps — your logs are already feeding our data pipeline."
+          />
+          <StepCard
+            num="03"
+            title="Get your grade"
+            icon="insights"
+            body="Search any character on the homepage. We parse every run, score each category, and show you the raw numbers behind the grade — no black box."
+          />
+        </div>
+      </section>
 
-        {/* Right sidebar */}
-        <div className="md:col-span-4 flex flex-col gap-6">
-          {/* Recent History */}
-          <div className="bg-surface-container-low p-8 rounded-xl flex-grow">
-            <h3 className="font-[family-name:var(--font-headline)] font-bold text-xl uppercase tracking-tighter mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">history</span>
-              History
-            </h3>
-            <ul className="space-y-4">
-              <HistoryItem name="Vantuss-Kazzak" time="Updated 2m ago" />
-              <HistoryItem name="Nex-Stormrage" time="Updated 14m ago" />
-              <HistoryItem name="Echo-Ragnaros" time="Updated 1h ago" />
-            </ul>
-            <button className="w-full mt-8 py-3 bg-surface-container-highest hover:bg-surface-bright transition-all font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant rounded">
-              Clear Recent History
-            </button>
-          </div>
-
-          {/* CTA Block */}
-          <div className="bg-gradient-to-br from-primary-container to-surface-container-highest p-8 rounded-xl relative overflow-hidden">
-            <div className="relative z-10">
-              <h4 className="font-[family-name:var(--font-headline)] font-black text-2xl leading-none text-on-primary-container italic">
-                RAID PREP
-                <br />
-                MODE
-              </h4>
-              <p className="font-[family-name:var(--font-body)] text-xs text-on-primary-container/80 mt-2 mb-4">
-                Analyze your entire roster&apos;s performance in one click.
+      {/* ── Recently graded showcase ── */}
+      {recent.length > 0 && (
+        <section className="mb-16">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+                Fresh Data
               </p>
-              <button className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] px-4 py-2 uppercase tracking-widest font-bold rounded">
-                Explore Tools
-              </button>
+              <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
+                RECENTLY GRADED
+              </h3>
             </div>
-            <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl text-primary opacity-5">
-              query_stats
+            <span className="font-[family-name:var(--font-label)] text-[10px] text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded uppercase tracking-widest">
+              Live
             </span>
           </div>
-        </div>
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {recent.map((p) => (
+              <PlayerCard key={`${p.name}-${p.realm}`} player={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-outline-variant/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+      {/* ── CTA row: about + addon ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+        <Link
+          href="/about"
+          className="bg-surface-container-high rounded-xl p-8 group hover:bg-surface-bright transition-colors relative overflow-hidden"
+        >
+          <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
+            verified
+          </span>
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-3">
+            About Umbra
+          </p>
+          <h4 className="font-[family-name:var(--font-headline)] font-bold text-3xl tracking-tighter text-on-surface mb-3">
+            FAIR GRADES,{" "}
+            <span className="text-primary italic">FULL TRANSPARENCY</span>
+          </h4>
+          <p className="text-on-surface-variant leading-relaxed mb-4">
+            Why we weight tanks differently from DPS. Why talent-gated CDs
+            aren&apos;t scored. How the composite actually gets computed.
+          </p>
+          <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
+            Read the methodology
+            <span className="material-symbols-outlined text-sm">
+              arrow_forward
+            </span>
+          </span>
+        </Link>
+
+        <a
+          href="https://github.com/mooyah04/Umbra/tree/master/Umbra"
+          target="_blank"
+          rel="noreferrer"
+          className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-8 group relative overflow-hidden"
+        >
+          <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
+            extension
+          </span>
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-3">
+            WoW Addon
+          </p>
+          <h4 className="font-[family-name:var(--font-headline)] font-bold text-3xl tracking-tighter text-on-primary-container mb-3">
+            IN-GAME GRADE{" "}
+            <span className="text-primary italic">TOOLTIPS</span>
+          </h4>
+          <p className="text-on-primary-container/80 leading-relaxed mb-4">
+            Hover any player in-game or in the Group Finder to see their
+            Umbra grade, role, and category breakdown. Plays nicely with
+            Raider.IO.
+          </p>
+          <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
+            Get the addon
+            <span className="material-symbols-outlined text-sm">
+              download
+            </span>
+          </span>
+        </a>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-outline-variant/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#8a2be2]" />
             <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant">
-              Global Sync: Stable
+              Midnight Season 1
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-xs text-on-surface-variant">dns</span>
-            <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant">
-              Latency: 24ms
-            </span>
-          </div>
+          <Link
+            href="/about"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            About
+          </Link>
+          <a
+            href="https://github.com/mooyah04/Umbra"
+            target="_blank"
+            rel="noreferrer"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            GitHub
+          </a>
         </div>
         <div className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-[0.3em]">
-          WoWUmbra.gg © 2025 • Deep-Audit Performance Data
+          WoWUmbra.gg © 2026
         </div>
       </footer>
     </div>
   );
 }
 
-function TrendingRow({
-  name,
-  region,
-  spec,
-  ilvl,
-  stat,
-  statColor,
-  rank,
+function StatTile({
+  label,
+  value,
   icon,
-  iconColor,
-  iconBg,
-  bgClass,
+  color,
 }: {
-  name: string;
-  region: string;
-  spec: string;
-  ilvl: number;
-  stat: string;
-  statColor: string;
-  rank: string;
+  label: string;
+  value: string;
   icon: string;
-  iconColor: string;
-  iconBg: string;
-  bgClass: string;
+  color: "primary" | "secondary" | "tertiary";
 }) {
-  const regionColor = region === "US" ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-primary/10 text-primary border-primary/20";
+  const tint = {
+    primary: "text-primary border-primary/30",
+    secondary: "text-secondary border-secondary/30",
+    tertiary: "text-tertiary border-tertiary/30",
+  }[color];
   return (
-    <div className={`group flex items-center justify-between p-4 ${bgClass} hover:bg-surface-container-highest transition-all cursor-pointer`}>
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-surface-container-lowest flex items-center justify-center relative overflow-hidden rounded">
-          <div className={`absolute inset-0 opacity-20 ${iconBg}`} />
-          <span className={`material-symbols-outlined ${iconColor}`}>{icon}</span>
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-[family-name:var(--font-headline)] font-bold text-lg">{name}</span>
-            <span className={`text-[10px] font-[family-name:var(--font-label)] px-1 border uppercase ${regionColor}`}>
-              {region}
-            </span>
-          </div>
-          <p className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant">
-            {spec} • ILVL {ilvl}
-          </p>
-        </div>
-      </div>
-      <div className="text-right">
-        <span className={`font-[family-name:var(--font-label)] text-sm ${statColor}`}>{stat}</span>
-        <p className="text-[10px] font-[family-name:var(--font-label)] text-on-surface-variant uppercase tracking-widest">
-          {rank}
+    <div className={`bg-surface-container rounded-xl p-5 border-l-2 ${tint}`}>
+      <div className="flex items-center gap-3 mb-2">
+        <span className={`material-symbols-outlined ${tint.split(" ")[0]}`}>
+          {icon}
+        </span>
+        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant">
+          {label}
         </p>
       </div>
+      <p className="font-[family-name:var(--font-headline)] font-black text-3xl text-on-surface tracking-tighter">
+        {value}
+      </p>
     </div>
   );
 }
 
-function HistoryItem({ name, time }: { name: string; time: string }) {
+function StepCard({
+  num,
+  title,
+  icon,
+  body,
+}: {
+  num: string;
+  title: string;
+  icon: string;
+  body: string;
+}) {
   return (
-    <li className="flex items-center justify-between group cursor-pointer">
-      <div className="flex flex-col">
-        <span className="font-[family-name:var(--font-body)] font-medium text-on-surface group-hover:text-primary transition-colors">
-          {name}
-        </span>
-        <span className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase">
-          {time}
-        </span>
-      </div>
-      <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
-        arrow_forward_ios
+    <div className="bg-surface-container-high rounded-xl p-6 relative overflow-hidden">
+      <span className="font-[family-name:var(--font-headline)] font-black text-[5rem] leading-none text-primary/10 absolute -top-2 -right-2">
+        {num}
       </span>
-    </li>
+      <span className="material-symbols-outlined text-primary text-3xl mb-4 relative">
+        {icon}
+      </span>
+      <h4 className="font-[family-name:var(--font-headline)] font-bold text-xl text-on-surface mb-2 tracking-tight relative">
+        {title}
+      </h4>
+      <p className="text-on-surface-variant leading-relaxed relative">{body}</p>
+    </div>
+  );
+}
+
+function PlayerCard({ player }: { player: PlayerSearchResult }) {
+  const classColor = CLASS_COLORS[player.class_id] ?? "#ffffff";
+  const className = CLASS_NAMES[player.class_id] ?? "Unknown";
+  const gradeColor = player.grade
+    ? getGradeColor(player.grade)
+    : "#9d9d9d";
+  const href = `/player/${player.region.toLowerCase()}/${encodeURIComponent(
+    player.realm,
+  )}/${player.name}`;
+
+  return (
+    <Link
+      href={href}
+      className="bg-surface-container-high rounded-xl overflow-hidden group hover:bg-surface-bright transition-colors relative"
+    >
+      <div
+        className="h-1"
+        style={{ backgroundColor: classColor }}
+      />
+      <div className="p-5">
+        <div className="flex items-start gap-3 mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={specIconUrl(player.spec, player.class_id)}
+            alt={player.spec ?? className}
+            width={44}
+            height={44}
+            className="rounded-md border-2"
+            style={{ borderColor: `${classColor}60` }}
+          />
+          <div className="flex-1 min-w-0">
+            <h4 className="font-[family-name:var(--font-body)] font-bold text-on-surface truncate">
+              {player.name}
+            </h4>
+            <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest truncate">
+              {player.realm} • {player.region}
+            </p>
+          </div>
+          {player.grade && (
+            <span
+              className="font-[family-name:var(--font-headline)] font-black text-2xl leading-none"
+              style={{
+                color: gradeColor,
+                textShadow: `0 0 8px ${gradeColor}60`,
+              }}
+            >
+              {player.grade}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest">
+          <span style={{ color: classColor }}>
+            {player.spec ?? "—"} {className}
+          </span>
+          <span className="text-on-surface-variant">
+            {player.role ?? ""}
+            {player.runs_analyzed ? ` • ${player.runs_analyzed}r` : ""}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }

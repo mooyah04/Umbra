@@ -555,6 +555,92 @@ def export_lua(
 
 # ── New endpoints for web frontend ──────────────────────────────────────────
 
+@app.get("/api/stats/summary")
+@limiter.limit(settings.rate_limit_public)
+def stats_summary(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Public homepage stats: total characters, runs, and role counts.
+    Cheap aggregate queries — used by the homepage header strip."""
+    from sqlalchemy import func as _f
+    from app.models import Role
+
+    total_players = session.execute(select(_f.count()).select_from(Player)).scalar() or 0
+    total_runs = session.execute(select(_f.count()).select_from(DungeonRun)).scalar() or 0
+    graded_players = session.execute(
+        select(_f.count(_f.distinct(PlayerScore.player_id)))
+    ).scalar() or 0
+
+    role_counts: dict[str, int] = {}
+    for r in (Role.tank, Role.healer, Role.dps):
+        role_counts[r.value] = session.execute(
+            select(_f.count(_f.distinct(PlayerScore.player_id)))
+            .where(PlayerScore.role == r, PlayerScore.primary_role.is_(True))
+        ).scalar() or 0
+
+    return {
+        "total_players": total_players,
+        "total_runs": total_runs,
+        "graded_players": graded_players,
+        "role_counts": role_counts,
+    }
+
+
+@app.get("/api/players/top", response_model=list[PlayerSearchResult])
+@limiter.limit(settings.rate_limit_public)
+def top_players(
+    request: Request,
+    role: str | None = None,
+    region: str | None = None,
+    limit: int = Query(default=10, le=50),
+    session: Session = Depends(get_session),
+):
+    """Recently-graded players surfaced for the homepage showcase.
+
+    Ordered by most-recent PlayerScore computation so the homepage
+    reflects fresh ingests. Filters to primary-role scores only so we
+    don't return the same player twice (once per role).
+    """
+    stmt = (
+        select(PlayerScore)
+        .where(PlayerScore.primary_role.is_(True))
+        .options(selectinload(PlayerScore.player))
+        .order_by(PlayerScore.computed_at.desc())
+        .limit(limit * 2)  # over-fetch, then filter in Python for region
+    )
+    scores = session.execute(stmt).scalars().all()
+
+    results: list[PlayerSearchResult] = []
+    for score in scores:
+        player = score.player
+        if region and player.region.upper() != region.upper():
+            continue
+        if role and score.role.value != role.lower():
+            continue
+        run_stmt = (
+            select(DungeonRun.spec_name)
+            .where(DungeonRun.player_id == player.id)
+            .order_by(DungeonRun.logged_at.desc())
+            .limit(1)
+        )
+        spec = session.execute(run_stmt).scalar_one_or_none()
+        results.append(PlayerSearchResult(
+            name=player.name,
+            realm=player.realm,
+            region=player.region,
+            class_id=player.class_id,
+            grade=score.overall_grade,
+            role=score.role.value,
+            spec=spec,
+            runs_analyzed=score.runs_analyzed,
+        ))
+        if len(results) >= limit:
+            break
+
+    return results
+
+
 @app.get("/api/players/search", response_model=list[PlayerSearchResult])
 @limiter.limit(settings.rate_limit_public)
 def search_players(

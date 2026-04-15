@@ -25,6 +25,28 @@ export async function searchPlayers(
   return fetchApi(`/api/players/search?${params}`);
 }
 
+export async function getTopPlayers(
+  limit = 10,
+  role?: "tank" | "healer" | "dps",
+  region?: string,
+): Promise<PlayerSearchResult[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (role) params.set("role", role);
+  if (region) params.set("region", region);
+  return fetchApi(`/api/players/top?${params}`);
+}
+
+export interface StatsSummary {
+  total_players: number;
+  total_runs: number;
+  graded_players: number;
+  role_counts: Record<string, number>;
+}
+
+export async function getStatsSummary(): Promise<StatsSummary> {
+  return fetchApi<StatsSummary>(`/api/stats/summary`);
+}
+
 export async function getPlayerProfile(
   region: string,
   realm: string,

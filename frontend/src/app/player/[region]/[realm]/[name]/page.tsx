@@ -7,6 +7,7 @@ import {
   ROLE_WEIGHT_PROFILES,
 } from "@/lib/methodology";
 import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
+import { specIconUrl } from "@/lib/wow-assets";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import type { RunResponse, RoleScore } from "@/lib/types";
 
@@ -167,33 +168,45 @@ export default async function PlayerProfilePage({ params }: Props) {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high via-surface-container-high/60 to-transparent" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-2">
-              <span className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] px-2 py-0.5 rounded-sm uppercase font-bold tracking-widest">
-                {role.toUpperCase()} MAIN
-              </span>
-              <span className="text-[10px] font-[family-name:var(--font-label)] px-2 py-0.5 border border-primary/20 text-primary uppercase">
-                {region.toUpperCase()}
-              </span>
-              <span
-                className="text-[10px] font-[family-name:var(--font-label)] px-2 py-0.5 border uppercase font-bold"
-                style={{
-                  color: classColor,
-                  borderColor: `${classColor}40`,
-                }}
-              >
-                {className}
-              </span>
+          <div className="relative z-10 flex items-end gap-6">
+            {/* Spec icon — falls back to class icon if spec is unrecognized */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={specIconUrl(spec, profile.class_id)}
+              alt={`${spec} ${className}`}
+              width={96}
+              height={96}
+              className="rounded-lg border-2 shadow-xl flex-shrink-0 hidden md:block"
+              style={{ borderColor: `${classColor}80` }}
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
+                <span className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] px-2 py-0.5 rounded-sm uppercase font-bold tracking-widest">
+                  {role.toUpperCase()} MAIN
+                </span>
+                <span className="text-[10px] font-[family-name:var(--font-label)] px-2 py-0.5 border border-primary/20 text-primary uppercase">
+                  {region.toUpperCase()}
+                </span>
+                <span
+                  className="text-[10px] font-[family-name:var(--font-label)] px-2 py-0.5 border uppercase font-bold"
+                  style={{
+                    color: classColor,
+                    borderColor: `${classColor}40`,
+                  }}
+                >
+                  {className}
+                </span>
+              </div>
+              <h2 className="font-[family-name:var(--font-headline)] font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tighter text-on-surface uppercase leading-[0.9]">
+                {profile.name}
+              </h2>
+              <p className="font-[family-name:var(--font-body)] text-on-surface-variant text-lg tracking-wide mt-2">
+                {profile.realm} &middot;{" "}
+                <span style={{ color: classColor }}>
+                  {spec} {className}
+                </span>
+              </p>
             </div>
-            <h2 className="font-[family-name:var(--font-headline)] font-extrabold text-6xl md:text-8xl tracking-tighter text-on-surface uppercase">
-              {profile.name}
-            </h2>
-            <p className="font-[family-name:var(--font-body)] text-on-surface-variant text-lg tracking-wide">
-              {profile.realm} &middot;{" "}
-              <span style={{ color: classColor }}>
-                {spec} {className}
-              </span>
-            </p>
           </div>
         </div>
 
