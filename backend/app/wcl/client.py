@@ -278,11 +278,21 @@ class WCLClient:
         metric: str = "speed",
         limit: int = 10,
     ) -> list[dict]:
-        """Return the top N log entries for an encounter, ordered by metric.
+        """Return up to `limit` log entries for an encounter, sampled
+        evenly across the top 100 ranked logs.
 
-        Each entry: {report_code, fight_id, start_time, duration, amount,
-        keystone_level, keystone_time}. Used for sampling damage-taken
-        across many high-quality runs of the same dungeon.
+        Returning the strict top N has a flaw: top N is all the same
+        meta comp, so the cross-log "consensus mechanic" filter sees
+        Augmentation Evoker / Brewmaster abilities in 100% of logs and
+        can't distinguish them from real boss mechanics. Sampling every
+        Nth log across the top-100 page diversifies the comp mix —
+        ranks 1-20 are meta, but ranks 50-100 bring different
+        specs/strategies, so player-ability noise drops below
+        consensus while real boss mechanics survive.
+
+        Each entry: {report_code, fight_id, start_time, amount,
+        duration, keystone_level}. Used for sampling damage-taken
+        across many high-quality but DIVERSE runs of the same dungeon.
         """
         if limit <= 0:
             return []
@@ -298,8 +308,21 @@ class WCLClient:
         data = self.query(query, {"encId": encounter_id})
         ranking = data.get("worldData", {}).get("encounter", {}).get("fightRankings") or {}
         rankings = ranking.get("rankings") or []
+        if not rankings:
+            return []
+
+        # Even-stride sampling: pick `limit` entries spread across the
+        # full ranking page. e.g. limit=20 from 100 entries → take
+        # ranks 1, 6, 11, ..., 96. Falls back to the natural ordering
+        # if there aren't enough entries to stride over.
+        if len(rankings) <= limit:
+            picks = rankings
+        else:
+            stride = len(rankings) / limit
+            picks = [rankings[int(i * stride)] for i in range(limit)]
+
         out: list[dict] = []
-        for r in rankings[:limit]:
+        for r in picks:
             report = r.get("report") or {}
             out.append({
                 "report_code": report.get("code"),
