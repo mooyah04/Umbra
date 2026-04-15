@@ -290,6 +290,45 @@ def debug_wcl_character(
     }
 
 
+@app.get("/api/debug/wcl-report", dependencies=[Depends(require_api_key)])
+def debug_wcl_report(code: str):
+    """Admin diagnostic. Returns the list of M+ fights in a given report
+    plus the players in the first fight. Lets us verify whether our
+    difficulty=10 filter matches the log, and which players WCL sees."""
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    result = {
+        "code": code,
+        "fight_count": len(fights),
+        "fights": [
+            {
+                "id": f.get("id"),
+                "encounterID": f.get("encounterID"),
+                "name": f.get("name"),
+                "keystoneLevel": f.get("keystoneLevel"),
+                "kill": f.get("kill"),
+            }
+            for f in fights[:10]
+        ],
+    }
+    if fights:
+        try:
+            pdata = wcl_client.get_report_player_data(code, [fights[0]["id"]])
+            pd = (pdata or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
+            players = []
+            for role in ("tanks", "healers", "dps"):
+                for p in pd.get(role, []):
+                    players.append({
+                        "role": role, "name": p.get("name"),
+                        "type": p.get("type"), "server": p.get("server"),
+                    })
+            result["players_in_first_fight"] = players
+        except Exception as e:
+            result["players_error"] = str(e)
+    return result
+
+
 @app.get("/api/export/lua", response_class=PlainTextResponse)
 @limiter.limit(settings.rate_limit_public)
 def export_lua(
