@@ -732,6 +732,137 @@ def debug_wcl_buffs(code: str, player: str):
     }
 
 
+@app.get("/api/debug/wcl-cd-audit", dependencies=[Depends(require_api_key)])
+def debug_wcl_cd_audit(code: str, player: str):
+    """Audit our tracked major cooldowns against what a player actually used.
+
+    Resolves the player's class/spec from the first M+ fight's
+    playerDetails, then compares our `SPEC_MAJOR_COOLDOWNS[(class_id,
+    spec)]` list to the player's BuffsTable for that fight. Returns
+    three buckets:
+
+      - `tracked_and_seen`  : tracked CDs with >=1 use. Validated.
+      - `tracked_never_seen`: tracked CDs with 0 uses. Either our buff ID
+                              is wrong OR the player didn't talent into
+                              this CD. Needs a human judgment call.
+      - `seen_not_tracked`  : top buffs (by totalUses) not in our list.
+                              Candidates to add if they're major CDs we
+                              missed.
+
+    Audit workflow: paste a recent +M+ log, read the output, update
+    `app/scoring/cooldowns.py` accordingly, commit. Repeat per spec as
+    logs arrive.
+    """
+    from app.scoring.cooldowns import SPEC_MAJOR_COOLDOWNS
+    from app.scoring.spec_to_class import class_id_from_name
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    if not fights:
+        return {"error": "no M+ fights in report", "code": code}
+
+    # Find the player across any fight in the report. Use the first match.
+    found_fight_id: int | None = None
+    actor_id: int | None = None
+    resolved_class_name: str | None = None
+    resolved_spec: str | None = None
+    tried: list[dict] = []
+    for f in fights:
+        fid = f.get("id")
+        rd = wcl_client.get_report_player_data(code, [fid])
+        pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
+        names_here: list[str] = []
+        for role in ("tanks", "healers", "dps"):
+            for p in pd.get(role, []) or []:
+                names_here.append(p.get("name"))
+                if (p.get("name") or "").lower() == player.lower():
+                    actor_id = p.get("id")
+                    resolved_class_name = p.get("type") or p.get("class")
+                    resolved_spec = p.get("specs", [{}])[0].get("spec") if p.get("specs") else None
+                    if not resolved_spec:
+                        resolved_spec = p.get("icon", "").split("-")[-1] or None
+                    found_fight_id = fid
+                    break
+            if actor_id:
+                break
+        tried.append({"fight_id": fid, "names": names_here})
+        if actor_id:
+            break
+
+    if actor_id is None:
+        return {"error": "player not in any fight", "fights_inspected": tried}
+
+    class_id = class_id_from_name(resolved_class_name)
+    if not class_id:
+        return {
+            "error": f"could not resolve class_id from '{resolved_class_name}'",
+            "player": player,
+        }
+
+    tracked = SPEC_MAJOR_COOLDOWNS.get((class_id, resolved_spec or ""), [])
+    tracked_ids = {cd[0] for cd in tracked}
+
+    auras_data = wcl_client.get_player_auras(code, [found_fight_id], actor_id)
+    buffs = auras_data.get("buffsTable", {}).get("data", {}).get("auras", []) or []
+
+    # Index observed buffs by guid for fast lookup.
+    observed: dict[int, dict] = {}
+    for b in buffs:
+        gid = b.get("guid")
+        if isinstance(gid, int):
+            observed[gid] = b
+
+    # Bucket 1: tracked CDs that appeared (validated our ID + player talented in).
+    tracked_and_seen: list[dict] = []
+    # Bucket 2: tracked CDs that never appeared (our ID wrong OR player didn't talent).
+    tracked_never_seen: list[dict] = []
+    for buff_id, name, expected_uptime in tracked:
+        obs = observed.get(buff_id)
+        if obs:
+            tracked_and_seen.append({
+                "buff_id": buff_id,
+                "our_name": name,
+                "wcl_name": obs.get("name"),
+                "total_uses": obs.get("totalUses"),
+                "total_uptime_ms": obs.get("totalUptime"),
+                "expected_uptime_pct": expected_uptime,
+            })
+        else:
+            tracked_never_seen.append({
+                "buff_id": buff_id,
+                "our_name": name,
+                "expected_uptime_pct": expected_uptime,
+            })
+
+    # Bucket 3: observed buffs we don't track, sorted by frequency. Limit to
+    # 15 so output stays skimmable — real major CDs cluster near the top.
+    untracked = [b for b in buffs if b.get("guid") not in tracked_ids]
+    untracked.sort(key=lambda b: b.get("totalUses", 0), reverse=True)
+    seen_not_tracked = [
+        {
+            "buff_id": b.get("guid"),
+            "name": b.get("name"),
+            "total_uses": b.get("totalUses"),
+            "total_uptime_ms": b.get("totalUptime"),
+        }
+        for b in untracked[:15]
+    ]
+
+    return {
+        "code": code,
+        "fight_id": found_fight_id,
+        "player": player,
+        "class_id": class_id,
+        "class_name": resolved_class_name,
+        "spec": resolved_spec,
+        "tracked_count": len(tracked),
+        "observed_buff_count": len(buffs),
+        "tracked_and_seen": tracked_and_seen,
+        "tracked_never_seen": tracked_never_seen,
+        "seen_not_tracked": seen_not_tracked,
+    }
+
+
 @app.get("/api/debug/wcl-casts", dependencies=[Depends(require_api_key)])
 def debug_wcl_casts(code: str, player: str):
     """Return the per-ability casts breakdown for a player in a report's
