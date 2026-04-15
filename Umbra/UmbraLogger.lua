@@ -90,9 +90,19 @@ logger:SetScript("OnEvent", function(_, event)
 
     if event == "CHALLENGE_MODE_START" then
         EnableLogging()
-    elseif event == "CHALLENGE_MODE_COMPLETED"
-        or event == "CHALLENGE_MODE_RESET"
-        or event == "PLAYER_LEAVING_WORLD" then
+    elseif event == "CHALLENGE_MODE_COMPLETED" or event == "CHALLENGE_MODE_RESET" then
+        -- Delay the disable so the CHALLENGE_MODE_END combat-log line has
+        -- time to flush to WoWCombatLog.txt. Without this, WCL sees
+        -- keystoneTime=0 / kill=false / rating=null even though the key
+        -- was completed cleanly — the completion record was cut off.
+        if C_Timer and C_Timer.After then
+            C_Timer.After(8, DisableLogging)
+        else
+            DisableLogging()
+        end
+    elseif event == "PLAYER_LEAVING_WORLD" then
+        -- Player left the instance; cut the log immediately — no key in
+        -- progress to record completion for.
         DisableLogging()
     end
 end)
