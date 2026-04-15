@@ -290,6 +290,59 @@ def debug_wcl_character(
     }
 
 
+@app.post("/api/admin/merge-duplicates", dependencies=[Depends(require_api_key)])
+def merge_duplicate_players(
+    region: str, realm: str, name: str,
+    session: Session = Depends(get_session),
+):
+    """For a (region, realm, name) tuple, collapse multiple Player rows into
+    the one that has the most DungeonRuns. All runs + scores from the losers
+    get re-pointed at the winner; losers are deleted. Idempotent.
+
+    Needed for cleanup when earlier bugs created duplicate rows (e.g.
+    report-code mode before the wcl_id-agnostic lookup fix).
+    """
+    name_c, realm_c, region_c = validate_player_identity(name, realm, region)
+    target_key = "".join(c.lower() for c in realm_c if c.isalnum())
+
+    candidates = list(session.execute(
+        select(Player).where(
+            Player.name.ilike(name_c),
+            Player.region.ilike(region_c),
+        )
+    ).scalars())
+    # Filter to same-realm (alphanumeric key match).
+    matching = [
+        p for p in candidates
+        if "".join(c.lower() for c in p.realm if c.isalnum()) == target_key
+    ]
+    if len(matching) <= 1:
+        return {"merged": 0, "kept_id": matching[0].id if matching else None}
+
+    # Winner = player with the most runs; tie-break on most scores, then lowest id.
+    def _score(p: Player):
+        return (len(p.runs), len(p.scores), -p.id)
+    matching.sort(key=_score, reverse=True)
+    winner, losers = matching[0], matching[1:]
+
+    for loser in losers:
+        for run in list(loser.runs):
+            run.player_id = winner.id
+        for score in list(loser.scores):
+            score.player_id = winner.id
+    session.flush()
+    for loser in losers:
+        session.delete(loser)
+    session.commit()
+
+    return {
+        "merged": len(losers),
+        "kept_id": winner.id,
+        "kept_runs": len(winner.runs),
+        "deleted_ids": [l.id for l in losers],
+    }
+
+
 @app.get("/api/debug/wcl-report", dependencies=[Depends(require_api_key)])
 def debug_wcl_report(code: str):
     """Admin diagnostic. Returns the list of M+ fights in a given report

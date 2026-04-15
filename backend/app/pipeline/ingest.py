@@ -363,28 +363,25 @@ def ingest_player(
         wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
         reports = char_data.get("recentReports", {}).get("data", [])
 
-    # 2. Upsert player record. In report-code mode wcl_id is None, so we
-    # match on (name, realm, region) instead to keep the upsert idempotent.
+    # 2. Upsert player record.
+    # Character-lookup mode: match by wcl_id (unique per WCL character).
+    # Report-code mode: wcl_id is None because WCL's character endpoint
+    # pointed at the wrong entity. Match by name+realm+region regardless
+    # of wcl_id state — including rows that were created earlier by the
+    # character-lookup mode with a WRONG wcl_id attached. Otherwise we
+    # accumulate duplicate Player rows (one from the bad character
+    # lookup, one from each report-code ingest).
+    player = None
     if wcl_id is not None:
-        stmt = select(Player).where(Player.wcl_id == wcl_id)
+        player = session.execute(
+            select(Player).where(Player.wcl_id == wcl_id)
+        ).scalar_one_or_none()
     else:
-        stmt = select(Player).where(
-            Player.name.ilike(name),
-            Player.region.ilike(region),
-            Player.wcl_id.is_(None),
-        )
-    result = session.execute(stmt)
-    player = result.scalar_one_or_none()
-
-    # In report-code mode, also match the realm on the alphanumeric key so
-    # slug vs display forms don't fragment into duplicate rows.
-    if player is None and wcl_id is None:
         target_realm_key = "".join(c.lower() for c in wow_realm if c.isalnum())
         candidates = session.execute(
             select(Player).where(
                 Player.name.ilike(name),
                 Player.region.ilike(region),
-                Player.wcl_id.is_(None),
             )
         ).scalars()
         for c in candidates:
