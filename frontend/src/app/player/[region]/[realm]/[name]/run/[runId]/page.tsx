@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getRunDetail } from "@/lib/api";
-import { formatDuration, formatNumber } from "@/lib/utils";
+import { formatNumber, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
+import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
+import { dungeonName } from "@/lib/dungeons";
+import type { PartyMember } from "@/lib/types";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string; runId: string }>;
@@ -43,14 +46,17 @@ export default async function RunDetailPage({ params }: Props) {
               &larr; {decodeURIComponent(name)}
             </Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="bg-primary text-on-primary font-black font-[family-name:var(--font-headline)] px-3 py-1 text-2xl italic tracking-tighter">
               +{run.keystone_level}
             </span>
             <h2 className="text-4xl md:text-6xl font-black font-[family-name:var(--font-headline)] tracking-tighter uppercase text-on-surface">
-              {run.spec_name}
+              {dungeonName(run.encounter_id)}
             </h2>
           </div>
+          <p className="text-on-surface-variant font-[family-name:var(--font-label)] text-xs uppercase tracking-widest mt-1">
+            {run.spec_name}
+          </p>
           <div className="flex items-center gap-6 text-on-surface-variant font-[family-name:var(--font-label)] uppercase tracking-tighter text-sm">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-xs">timer</span>
@@ -199,6 +205,29 @@ export default async function RunDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Party Composition */}
+        {run.party_comp && run.party_comp.length > 0 && (
+          <div className="md:col-span-12 bg-surface-container-high rounded-lg p-8">
+            <div className="flex items-end justify-between mb-6">
+              <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter uppercase text-on-surface italic">
+                Team Composition
+              </h3>
+              <span className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant tracking-widest uppercase">
+                {run.party_comp.length} players
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {run.party_comp.map((member) => (
+                <PartyCard
+                  key={`${member.name}-${member.realm}`}
+                  member={member}
+                  region={region}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats Bar */}
         <div className="md:col-span-12 bg-surface-container-high rounded-lg p-8">
           <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter uppercase text-on-surface italic mb-6">
@@ -254,6 +283,77 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub: st
     </div>
   );
 }
+
+function PartyCard({
+  member,
+  region,
+}: {
+  member: PartyMember;
+  region: string;
+}) {
+  const classId = classIdFromName(member.class);
+  const classColor = classId ? CLASS_COLORS[classId] ?? "#ffffff" : "#9d9d9d";
+  const className = classId ? CLASS_NAMES[classId] ?? member.class : member.class;
+  const icon = classId ? specIconUrl(member.spec, classId) : null;
+  const roleLabel = {
+    tank: "Tank",
+    healer: "Healer",
+    dps: "DPS",
+  }[member.role] ?? member.role.toUpperCase();
+
+  // Link to the player page if their realm + name look sane. If realm is
+  // unknown we just render a non-clickable card.
+  const hasProfileLink = !!member.realm && !!member.name;
+  const href = hasProfileLink
+    ? `/player/${region.toLowerCase()}/${encodeURIComponent(
+        member.realm,
+      )}/${member.name}`
+    : "#";
+
+  const content = (
+    <div
+      className="bg-surface-container-highest rounded-lg p-3 border-l-2 flex items-center gap-3 hover:bg-surface-bright transition-colors"
+      style={{ borderColor: classColor }}
+    >
+      {icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt={`${member.spec ?? className}`}
+          width={36}
+          height={36}
+          className="rounded flex-shrink-0"
+          style={{ boxShadow: `0 0 0 1px ${classColor}60` }}
+        />
+      ) : (
+        <div className="w-9 h-9 rounded bg-surface-container flex-shrink-0" />
+      )}
+      <div className="min-w-0">
+        <p className="font-[family-name:var(--font-body)] font-semibold text-on-surface text-sm truncate">
+          {member.name}
+        </p>
+        <p
+          className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest truncate"
+          style={{ color: classColor }}
+        >
+          {member.spec ?? ""} {className}
+        </p>
+        <p className="font-[family-name:var(--font-label)] text-[9px] uppercase tracking-widest text-on-surface-variant mt-0.5 truncate">
+          {roleLabel} &middot; {member.realm}
+        </p>
+      </div>
+    </div>
+  );
+
+  return hasProfileLink ? (
+    <Link href={href} className="block">
+      {content}
+    </Link>
+  ) : (
+    content
+  );
+}
+
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

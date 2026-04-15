@@ -124,6 +124,7 @@ class RunResponse(BaseModel):
     cc_casts: int | None = None
     critical_interrupts: int | None = None
     avoidable_deaths: int | None = None
+    party_comp: list[dict] | None = None
 
 
 class RunListResponse(BaseModel):

@@ -9,6 +9,31 @@
  * a separate, bigger workstream.
  */
 
+/** WCL 'type' string → class_id. Used to map party_comp entries
+ *  (which carry class strings, not IDs) to icon/color helpers. */
+export const CLASS_NAME_TO_ID: Record<string, number> = {
+  Warrior: 1,
+  Paladin: 2,
+  Hunter: 3,
+  Rogue: 4,
+  Priest: 5,
+  DeathKnight: 6,
+  "Death Knight": 6,
+  Shaman: 7,
+  Mage: 8,
+  Warlock: 9,
+  Monk: 10,
+  Druid: 11,
+  DemonHunter: 12,
+  "Demon Hunter": 12,
+  Evoker: 13,
+};
+
+export function classIdFromName(className: string | null | undefined): number | null {
+  if (!className) return null;
+  return CLASS_NAME_TO_ID[className.trim()] ?? null;
+}
+
 /** Class icon filename by class_id. Lowercase, no spaces. */
 const CLASS_ICON_SLUG: Record<number, string> = {
   1: "warrior",

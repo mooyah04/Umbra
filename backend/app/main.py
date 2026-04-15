@@ -151,6 +151,7 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
         cc_casts=run.cc_casts,
         critical_interrupts=run.critical_interrupts,
         avoidable_deaths=run.avoidable_deaths,
+        party_comp=run.party_comp,
     )
 
 

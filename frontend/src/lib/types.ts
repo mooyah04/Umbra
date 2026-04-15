@@ -47,6 +47,15 @@ export interface RunResponse {
   cc_casts: number | null;
   critical_interrupts: number | null;
   avoidable_deaths: number | null;
+  party_comp?: PartyMember[] | null;
+}
+
+export interface PartyMember {
+  name: string;
+  realm: string;
+  class: string;
+  role: string;
+  spec: string | null;
 }
 
 export interface RunListResponse {

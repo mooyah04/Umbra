@@ -80,6 +80,9 @@ class DungeonRun(Base):
     cc_casts: Mapped[int | None] = mapped_column(Integer, nullable=True)
     critical_interrupts: Mapped[int | None] = mapped_column(Integer, nullable=True)
     avoidable_deaths: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Party composition snapshot — [{name, realm, class, role, spec}, ...] for
+    # all 5 participants in the fight. Captured from WCL's playerDetails.
+    party_comp: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     player: Mapped["Player"] = relationship(back_populates="runs")
 

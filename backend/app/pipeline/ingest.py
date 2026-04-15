@@ -319,6 +319,36 @@ def _extract_groupmates(player_details: dict, exclude_name: str, region: str) ->
     return groupmates
 
 
+def _extract_party_comp(player_details: dict) -> list[dict]:
+    """Snapshot all 5 party members for this fight.
+
+    Returns [{name, realm, class, role, spec}, ...] ordered
+    tank → healer → dps so the frontend renders them in that
+    canonical layout without resorting. 'class' is WCL's type
+    string; the frontend maps it to class_id for icon lookup.
+    """
+    party: list[dict] = []
+    details = player_details.get("data", {}).get("playerDetails", {})
+    role_label = {"tanks": "tank", "healers": "healer", "dps": "dps"}
+    for role_group in ("tanks", "healers", "dps"):
+        for player in details.get(role_group, []):
+            name = player.get("name") or ""
+            if not name:
+                continue
+            specs = player.get("specs") or []
+            spec = None
+            if specs and isinstance(specs[0], dict):
+                spec = specs[0].get("spec")
+            party.append({
+                "name": name,
+                "realm": player.get("server") or "",
+                "class": player.get("type") or "",
+                "role": role_label[role_group],
+                "spec": spec,
+            })
+    return party
+
+
 def ingest_player(
     session: Session,
     name: str,
@@ -700,6 +730,7 @@ def ingest_player(
                 cc_casts=cc_count,
                 critical_interrupts=crit_interrupts,
                 avoidable_deaths=avoidable_death_count,
+                party_comp=_extract_party_comp(player_details) or None,
             )
             session.add(run)
             runs.append(run)

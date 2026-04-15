@@ -8,6 +8,7 @@ import {
 } from "@/lib/methodology";
 import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { specIconUrl } from "@/lib/wow-assets";
+import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import type { RunResponse, RoleScore } from "@/lib/types";
 
@@ -440,12 +441,10 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
         </div>
         <div>
           <h4 className="font-[family-name:var(--font-body)] font-bold text-on-surface">
-            {run.spec_name} &middot;{" "}
-            <span className="text-on-surface-variant font-normal">
-              {formatDuration(run.duration)}
-            </span>
+            {dungeonName(run.encounter_id)}
           </h4>
           <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5">
+            {run.spec_name} &middot; {formatDuration(run.duration)} &middot;{" "}
             {when} &middot; ilvl {run.ilvl.toFixed(0)}
             {run.rating ? ` • ${run.rating} pts` : ""}
           </p>
