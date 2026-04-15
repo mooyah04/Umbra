@@ -98,6 +98,10 @@ class PlayerScore(Base):
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False)
     role: Mapped[Role] = mapped_column(Enum(Role), nullable=False)
     overall_grade: Mapped[str] = mapped_column(String(5), nullable=False)
+    # Raw 0-100 composite score that produced overall_grade. Needed for
+    # leaderboard ordering (letter grades tie too often). Nullable so rows
+    # written before migration 005 survive without a backfill.
+    composite_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     category_scores: Mapped[dict] = mapped_column(JSON, nullable=False)
     runs_analyzed: Mapped[int] = mapped_column(Integer, nullable=False)
     primary_role: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

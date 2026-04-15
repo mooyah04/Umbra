@@ -882,6 +882,72 @@ def top_players(
     return results
 
 
+@app.get("/api/players/leaderboard", response_model=list[PlayerSearchResult])
+@limiter.limit(settings.rate_limit_public)
+def leaderboard(
+    request: Request,
+    role: str | None = None,
+    region: str | None = None,
+    class_id: int | None = Query(default=None, ge=1, le=13),
+    limit: int = Query(default=50, le=200),
+    session: Session = Depends(get_session),
+):
+    """Top-N players ordered by composite score.
+
+    Optional filters: role (tank/healer/dps), region (EU/US/KR/TW/CN),
+    class_id (1-13 Blizzard class mapping). Falls back to letter-grade
+    ordering on rows where `composite_score` is NULL (pre-migration-005
+    writes) so older data still appears — just at the end of the list.
+    """
+    stmt = (
+        select(PlayerScore)
+        .where(PlayerScore.primary_role.is_(True))
+        .options(selectinload(PlayerScore.player))
+        # NULL composite sorts LAST (Postgres default is NULLS LAST on DESC).
+        .order_by(PlayerScore.composite_score.desc(), PlayerScore.computed_at.desc())
+    )
+    if role:
+        try:
+            stmt = stmt.where(PlayerScore.role == Role(role.lower()))
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Unknown role: {role}")
+
+    # Over-fetch so region + class filters still produce `limit` results
+    # without a second query. Worst case we scan 4× what we return.
+    scores = session.execute(stmt.limit(limit * 4)).scalars().all()
+
+    results: list[PlayerSearchResult] = []
+    for score in scores:
+        player = score.player
+        if region and player.region.upper() != region.upper():
+            continue
+        if class_id is not None and player.class_id != class_id:
+            continue
+        spec = session.execute(
+            select(DungeonRun.spec_name)
+            .where(DungeonRun.player_id == player.id)
+            .order_by(DungeonRun.logged_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        results.append(PlayerSearchResult(
+            name=player.name,
+            realm=player.realm,
+            region=player.region,
+            class_id=player.class_id,
+            grade=score.overall_grade,
+            role=score.role.value,
+            spec=spec,
+            runs_analyzed=score.runs_analyzed,
+            avatar_url=player.avatar_url,
+            inset_url=player.inset_url,
+            composite_score=score.composite_score,
+            rank=len(results) + 1,
+        ))
+        if len(results) >= limit:
+            break
+    return results
+
+
 @app.get("/api/players/search", response_model=list[PlayerSearchResult])
 @limiter.limit(settings.rate_limit_public)
 def search_players(

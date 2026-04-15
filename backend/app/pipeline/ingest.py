@@ -945,6 +945,7 @@ def ingest_player(
             player_id=player.id,
             role=role,
             overall_grade=result.overall_grade,
+            composite_score=result.composite_score,
             category_scores=result.category_scores,
             runs_analyzed=total_runs,
             primary_role=(role == primary_role),

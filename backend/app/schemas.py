@@ -116,6 +116,11 @@ class PlayerSearchResult(BaseModel):
     runs_analyzed: int | None = None
     avatar_url: str | None = None
     inset_url: str | None = None
+    # Populated on leaderboard responses so the UI can show "B+ · 78.3".
+    # Null on older score rows written before migration 005.
+    composite_score: float | None = None
+    # Rank within the filtered leaderboard slice (1-based).
+    rank: int | None = None
 
 
 class RunResponse(BaseModel):

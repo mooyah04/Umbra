@@ -74,6 +74,19 @@ export async function getTopPlayers(
   return fetchApi(`/api/players/top?${params}`);
 }
 
+export async function getLeaderboard(opts: {
+  role?: "tank" | "healer" | "dps";
+  region?: string;
+  classId?: number;
+  limit?: number;
+} = {}): Promise<PlayerSearchResult[]> {
+  const params = new URLSearchParams({ limit: String(opts.limit ?? 50) });
+  if (opts.role) params.set("role", opts.role);
+  if (opts.region) params.set("region", opts.region);
+  if (opts.classId) params.set("class_id", String(opts.classId));
+  return fetchApi(`/api/players/leaderboard?${params}`);
+}
+
 export interface StatsSummary {
   total_players: number;
   total_runs: number;

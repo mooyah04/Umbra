@@ -20,6 +20,12 @@ export default function Nav() {
               Search
             </Link>
             <Link
+              href="/leaderboard"
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
+            >
+              Leaderboard
+            </Link>
+            <Link
               href="/about"
               className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
             >
@@ -68,12 +74,12 @@ export default function Nav() {
           </span>
         </Link>
         <Link
-          href="#"
+          href="/leaderboard"
           className="flex flex-col items-center justify-center text-on-surface/50 pt-1 hover:text-primary"
         >
-          <span className="material-symbols-outlined">account_circle</span>
+          <span className="material-symbols-outlined">leaderboard</span>
           <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
-            Profile
+            Ranks
           </span>
         </Link>
       </nav>

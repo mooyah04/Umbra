@@ -19,6 +19,8 @@ export interface PlayerSearchResult {
   runs_analyzed: number | null;
   avatar_url?: string | null;
   inset_url?: string | null;
+  composite_score?: number | null;
+  rank?: number | null;
 }
 
 export interface RunResponse {
