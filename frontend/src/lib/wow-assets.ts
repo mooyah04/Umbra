@@ -121,3 +121,42 @@ export function specIconUrl(specName: string | null | undefined, classId: number
   if (!icon) return classIconUrl(classId);
   return `https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg`;
 }
+
+/**
+ * Melee vs ranged DPS classifier for the Recent Runs party columns.
+ * Specs not listed default to ranged. Augmentation is treated as
+ * ranged since it operates at caster distance. Frost is ambiguous
+ * (DK = melee, Mage = ranged) — resolve via class_id.
+ */
+const MELEE_SPECS = new Set<string>([
+  "Arms", "Fury",
+  "Retribution",
+  "Survival",
+  "Assassination", "Outlaw", "Subtlety",
+  "Unholy",
+  "Enhancement",
+  "Windwalker",
+  "Feral",
+  "Havoc",
+]);
+
+const RANGED_SPECS = new Set<string>([
+  "Beast Mastery", "Marksmanship",
+  "Shadow",
+  "Elemental",
+  "Arcane", "Fire",
+  "Affliction", "Demonology", "Destruction",
+  "Balance",
+  "Devastation", "Augmentation",
+]);
+
+export function classifyDpsSpec(
+  spec: string | null | undefined,
+  classId: number | null,
+): "melee" | "ranged" {
+  if (!spec) return "ranged";
+  if (MELEE_SPECS.has(spec)) return "melee";
+  if (RANGED_SPECS.has(spec)) return "ranged";
+  if (spec === "Frost") return classId === 6 ? "melee" : "ranged";
+  return "ranged";
+}

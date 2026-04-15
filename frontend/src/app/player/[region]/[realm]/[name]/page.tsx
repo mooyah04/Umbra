@@ -7,7 +7,7 @@ import {
   ROLE_WEIGHT_PROFILES,
 } from "@/lib/methodology";
 import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
-import { specIconUrl, classIdFromName } from "@/lib/wow-assets";
+import { specIconUrl, classIdFromName, classifyDpsSpec } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
@@ -426,9 +426,10 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
   return (
     <Link
       href={href}
-      className="bg-surface-container-high rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 group hover:bg-surface-bright transition-colors"
+      className="bg-surface-container-high rounded-lg p-4 flex flex-col lg:flex-row lg:items-center gap-4 group hover:bg-surface-bright transition-colors"
     >
-      <div className="flex items-center gap-4 md:min-w-0 md:flex-1">
+      {/* Left — key badge + dungeon meta */}
+      <div className="flex items-center gap-4 lg:min-w-0 lg:w-64 flex-shrink-0">
         <div className="w-14 h-14 bg-surface-container-highest rounded-md flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0">
           {run.timed && (
             <span className="absolute inset-0 bg-primary/10" />
@@ -446,13 +447,23 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
             {dungeonName(run.encounter_id)}
           </h4>
           <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5 truncate">
-            {run.spec_name} &middot; {formatDuration(run.duration)} &middot;{" "}
+            {run.spec_name} &middot; {formatDuration(run.duration)}
+          </p>
+          <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest truncate">
             {when} &middot; ilvl {run.ilvl.toFixed(0)}
           </p>
-          {party.length > 0 && <PartyStrip party={party} />}
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-6 text-[11px] font-[family-name:var(--font-label)] uppercase tracking-widest flex-shrink-0">
+
+      {/* Middle — party composition grouped by role */}
+      {party.length > 0 && (
+        <div className="flex-1 min-w-0">
+          <PartyGrid party={party} />
+        </div>
+      )}
+
+      {/* Right — stats */}
+      <div className="flex items-center gap-3 lg:gap-5 text-[11px] font-[family-name:var(--font-label)] uppercase tracking-widest flex-shrink-0">
         <Stat label="Kicks" value={run.interrupts} color="text-primary" />
         <Stat label="Dispels" value={run.dispels} color="text-tertiary" />
         <Stat
@@ -485,45 +496,90 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
   );
 }
 
-function PartyStrip({ party }: { party: PartyMember[] }) {
-  // Canonical order: tanks first, then healers, then dps. Backend already
-  // stores in this order but enforce here so mixed older rows still look
-  // right.
-  const order: Record<string, number> = { tank: 0, healer: 1, dps: 2 };
-  const sorted = [...party].sort(
-    (a, b) => (order[a.role] ?? 3) - (order[b.role] ?? 3),
-  );
+function PartyGrid({ party }: { party: PartyMember[] }) {
+  // Bucket party members into the four M+ role columns. DPS specs get
+  // classified as melee or ranged via classifyDpsSpec().
+  const buckets: Record<"tank" | "healer" | "melee" | "ranged", PartyMember[]> = {
+    tank: [],
+    healer: [],
+    melee: [],
+    ranged: [],
+  };
+  for (const m of party) {
+    if (m.role === "tank") buckets.tank.push(m);
+    else if (m.role === "healer") buckets.healer.push(m);
+    else {
+      const classId = classIdFromName(m.class);
+      const kind = classifyDpsSpec(m.spec, classId);
+      buckets[kind].push(m);
+    }
+  }
+
+  const columns: Array<{ key: "tank" | "healer" | "melee" | "ranged"; label: string }> = [
+    { key: "tank", label: "Tank" },
+    { key: "healer", label: "Healer" },
+    { key: "melee", label: "Melee DPS" },
+    { key: "ranged", label: "Ranged DPS" },
+  ];
+
   return (
-    <div className="flex items-center gap-1.5 mt-2">
-      {sorted.map((m, i) => {
-        const classId = classIdFromName(m.class);
-        const color = classId ? CLASS_COLORS[classId] ?? "#555" : "#555";
-        const icon = classId ? specIconUrl(m.spec, classId) : null;
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
+      {columns.map((col) => {
+        const members = buckets[col.key];
+        if (members.length === 0) return null;
         return (
-          <span
-            key={`${m.name}-${m.realm}-${i}`}
-            className="relative inline-block"
-            title={`${m.name} — ${m.spec ?? ""} ${m.class}`}
-          >
-            {icon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={icon}
-                alt={m.class}
-                width={22}
-                height={22}
-                className="rounded"
-                style={{ boxShadow: `0 0 0 1px ${color}` }}
-              />
-            ) : (
-              <span
-                className="inline-block w-[22px] h-[22px] rounded bg-surface-container-highest"
-                style={{ boxShadow: `0 0 0 1px ${color}` }}
-              />
-            )}
-          </span>
+          <div key={col.key} className="min-w-0">
+            <p className="font-[family-name:var(--font-label)] text-[9px] uppercase tracking-widest text-on-surface-variant mb-1.5 truncate">
+              {col.label}
+            </p>
+            <div className="space-y-1.5">
+              {members.map((m, i) => (
+                <PartyMemberChip key={`${m.name}-${m.realm}-${i}`} member={m} />
+              ))}
+            </div>
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+function PartyMemberChip({ member }: { member: PartyMember }) {
+  const classId = classIdFromName(member.class);
+  const color = classId ? CLASS_COLORS[classId] ?? "#9d9d9d" : "#9d9d9d";
+  const icon = classId ? specIconUrl(member.spec, classId) : null;
+  return (
+    <div
+      className="flex items-center gap-2 min-w-0"
+      title={`${member.name} — ${member.spec ?? ""} ${member.class}`}
+    >
+      {icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt={member.class}
+          width={22}
+          height={22}
+          className="rounded flex-shrink-0"
+          style={{ boxShadow: `0 0 0 1px ${color}` }}
+        />
+      ) : (
+        <span
+          className="inline-block w-[22px] h-[22px] rounded bg-surface-container-highest flex-shrink-0"
+          style={{ boxShadow: `0 0 0 1px ${color}` }}
+        />
+      )}
+      <div className="min-w-0">
+        <p
+          className="font-[family-name:var(--font-body)] text-xs font-semibold truncate leading-tight"
+          style={{ color }}
+        >
+          {member.name}
+        </p>
+        <p className="font-[family-name:var(--font-label)] text-[9px] text-on-surface-variant uppercase truncate">
+          {member.realm}
+        </p>
+      </div>
     </div>
   );
 }
