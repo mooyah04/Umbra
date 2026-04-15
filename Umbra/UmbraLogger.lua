@@ -65,14 +65,19 @@ end
 
 -- CHALLENGE_MODE_START fires the instant the timer starts ticking.
 -- CHALLENGE_MODE_COMPLETED fires on timed or depleted finish.
--- CHALLENGE_MODE_RESET fires when the group resets the instance mid-run.
--- PLAYER_LEAVING_WORLD covers "player left the instance" (e.g., hearthed out).
+-- PLAYER_LEAVING_WORLD covers "player left the instance" (e.g., hearthed out),
+--   guarded by a still-in-key check so the countdown's internal world flip
+--   doesn't trigger it.
 -- PLAYER_LOGIN: one-time setup chance to flip Advanced Combat Logging on.
+--
+-- NOT listening to CHALLENGE_MODE_RESET: it fires both on manual mid-run
+-- resets AND when the instance pre-resets for key insertion — which
+-- arrives ~8s before the countdown ends, exactly lining up with our
+-- flush delay and killing the log right as the key starts.
 local logger = CreateFrame("Frame")
 logger:RegisterEvent("PLAYER_LOGIN")
 logger:RegisterEvent("CHALLENGE_MODE_START")
 logger:RegisterEvent("CHALLENGE_MODE_COMPLETED")
-logger:RegisterEvent("CHALLENGE_MODE_RESET")
 logger:RegisterEvent("PLAYER_LEAVING_WORLD")
 
 logger:SetScript("OnEvent", function(_, event)
@@ -90,7 +95,7 @@ logger:SetScript("OnEvent", function(_, event)
 
     if event == "CHALLENGE_MODE_START" then
         EnableLogging()
-    elseif event == "CHALLENGE_MODE_COMPLETED" or event == "CHALLENGE_MODE_RESET" then
+    elseif event == "CHALLENGE_MODE_COMPLETED" then
         -- Delay the disable so the CHALLENGE_MODE_END combat-log line has
         -- time to flush to WoWCombatLog.txt. Without this, WCL sees
         -- keystoneTime=0 / kill=false / rating=null even though the key
