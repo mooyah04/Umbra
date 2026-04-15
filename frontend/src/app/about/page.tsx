@@ -1,9 +1,5 @@
 import Link from "next/link";
-import {
-  CATEGORY_EXPLANATIONS,
-  DESIGN_PRINCIPLES,
-  DIFFERENTIATORS,
-} from "@/lib/methodology";
+import { DESIGN_PRINCIPLES, DIFFERENTIATORS } from "@/lib/methodology";
 
 export const metadata = {
   title: "About — WoWUmbra.gg",
@@ -93,58 +89,34 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Categories methodology */}
+      {/* Methodology teaser → dedicated page */}
       <section className="mb-20">
-        <div className="mb-10">
-          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-            Methodology
+        <Link
+          href="/methodology"
+          className="block bg-surface-container-high rounded-xl p-8 md:p-10 group hover:bg-surface-bright transition-colors relative overflow-hidden"
+        >
+          <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
+            rule
+          </span>
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-3">
+            Deeper reading
           </p>
-          <h2 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
-            WHAT WE MEASURE
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface mb-3">
+            FULL METHODOLOGY{" "}
+            <span className="text-primary italic">→</span>
           </h2>
-          <p className="mt-4 text-on-surface-variant max-w-3xl">
-            Seven categories feed a composite score. Role weights are listed
-            on each player&apos;s page so you can see exactly how their grade
-            was computed.
+          <p className="text-on-surface-variant leading-relaxed max-w-3xl mb-4">
+            Role weights, category-by-category explanations, the keystone
+            weighting curve, and the universal timing modifier — every input
+            that produces a composite grade, written up end-to-end.
           </p>
-        </div>
-        <div className="space-y-4">
-          {CATEGORY_EXPLANATIONS.map((cat) => (
-            <div
-              key={cat.key}
-              className="bg-surface-container-high rounded-xl p-6 md:p-8 flex flex-col md:flex-row md:items-start gap-6"
-            >
-              <div className="flex items-center gap-4 md:w-64 flex-shrink-0">
-                <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-primary text-3xl">
-                    {cat.icon}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-[family-name:var(--font-headline)] font-bold text-xl text-on-surface tracking-tight">
-                    {cat.label}
-                  </h3>
-                  <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant mt-1">
-                    {cat.roles.join(" • ")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex-1 space-y-3">
-                <p className="text-on-surface leading-relaxed">
-                  {cat.description}
-                </p>
-                <div className="bg-surface-container-low rounded p-4 border-l-2 border-primary/40">
-                  <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary mb-1">
-                    Improve
-                  </p>
-                  <p className="text-sm text-on-surface-variant">
-                    {cat.howToImprove}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+          <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
+            Read the methodology
+            <span className="material-symbols-outlined text-sm">
+              arrow_forward
+            </span>
+          </span>
+        </Link>
       </section>
 
       {/* What's next */}
