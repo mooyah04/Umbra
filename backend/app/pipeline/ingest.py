@@ -432,20 +432,23 @@ def ingest_player(
     # matches the wrong entity; the per-fight 'type' is authoritative.
     observed_class_names: list[str] = []
 
+    logger.info("Processing %d reports for %s-%s", len(reports), name, realm)
     for report in reports:
         report_code = report["code"]
         zone = report.get("zone", {})
         zone_name = zone.get("name", "")
 
         if "mythic+" not in zone_name.lower():
+            logger.debug("Report %s zone='%s' — skipped (not M+)", report_code, zone_name)
             continue
 
         # Get M+ fights from this report
         try:
             fights = wcl_client.get_report_fights(report_code)
         except WCLQueryError as e:
-            logger.debug("Skipping report %s: %s", report_code, e)
+            logger.warning("Report %s fights query errored: %s", report_code, e)
             continue
+        logger.info("Report %s: %d M+ fights", report_code, len(fights))
         if not fights:
             continue
 
@@ -456,9 +459,10 @@ def ingest_player(
             try:
                 report_data = wcl_client.get_report_player_data(report_code, [fight_id])
             except WCLQueryError as e:
-                logger.debug("Skipping fight %s/%d: %s", report_code, fight_id, e)
+                logger.warning("Fight %s/%d data query errored: %s", report_code, fight_id, e)
                 continue
             if not report_data:
+                logger.warning("Fight %s/%d: no report_data returned", report_code, fight_id)
                 continue
 
             player_details = report_data.get("playerDetails", {})
@@ -466,6 +470,15 @@ def ingest_player(
             # Only process fights where our player participated
             player_info = _find_player_in_details(player_details, name)
             if not player_info:
+                all_names = []
+                pd_inner = player_details.get("data", {}).get("playerDetails", {})
+                for rg in ("dps", "tanks", "healers"):
+                    for p in pd_inner.get(rg, []):
+                        all_names.append(p.get("name", ""))
+                logger.warning(
+                    "Fight %s/%d: player %r not found in playerDetails. Names present: %s",
+                    report_code, fight_id, name, all_names,
+                )
                 continue
 
             # Discover groupmates from this fight
