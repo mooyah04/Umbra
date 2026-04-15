@@ -732,6 +732,130 @@ def debug_wcl_buffs(code: str, player: str):
     }
 
 
+@app.get("/api/admin/cd-audit-coverage", dependencies=[Depends(require_api_key)])
+def cd_audit_coverage(session: Session = Depends(get_session)):
+    """Run the CD audit across every (class_id, spec) we have data for.
+
+    Picks one representative DungeonRun per unique (class_id, spec) —
+    the most recent — and runs the buff audit against it. Returns a
+    per-spec summary so we can see in a single response which specs
+    need `cooldowns.py` cleanup first. Slow (1 WCL round-trip per
+    unique spec); admin-only, no rate-limit.
+
+    Each result contains the same three buckets as /api/debug/wcl-cd-audit
+    plus a sample_log field pointing at the source run."""
+    from app.scoring.cooldowns import SPEC_MAJOR_COOLDOWNS
+    from app.wcl.client import wcl_client
+
+    # Pick one representative row per (player_id, spec_name) — most recent.
+    # Then de-duplicate across players per (class_id, spec_name).
+    runs = list(session.execute(
+        select(
+            DungeonRun.id,
+            DungeonRun.player_id,
+            DungeonRun.spec_name,
+            DungeonRun.wcl_report_id,
+            DungeonRun.fight_id,
+            DungeonRun.logged_at,
+        ).order_by(DungeonRun.logged_at.desc())
+    ))
+
+    # Build (class_id, spec) -> first encountered run (newest first).
+    seen: dict[tuple[int, str], dict] = {}
+    for r in runs:
+        player = session.get(Player, r.player_id)
+        if not player:
+            continue
+        key = (player.class_id, r.spec_name)
+        if key in seen:
+            continue
+        seen[key] = {
+            "player_name": player.name,
+            "realm": player.realm,
+            "region": player.region,
+            "class_id": player.class_id,
+            "spec": r.spec_name,
+            "report_code": r.wcl_report_id,
+            "fight_id": r.fight_id,
+            "logged_at": r.logged_at,
+        }
+
+    results: list[dict] = []
+    for key, sample in seen.items():
+        class_id, spec = key
+        tracked = SPEC_MAJOR_COOLDOWNS.get((class_id, spec), [])
+        tracked_ids = {cd[0] for cd in tracked}
+
+        report_code = sample["report_code"]
+        fight_id = sample["fight_id"]
+        player_name = sample["player_name"]
+
+        # Resolve actor_id via playerDetails for this single fight.
+        actor_id: int | None = None
+        try:
+            rd = wcl_client.get_report_player_data(report_code, [fight_id])
+            pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {}) if rd else {}
+            for role in ("tanks", "healers", "dps"):
+                for p in pd.get(role, []) or []:
+                    if (p.get("name") or "").lower() == player_name.lower():
+                        actor_id = p.get("id")
+                        break
+                if actor_id:
+                    break
+        except Exception as e:
+            results.append({**sample, "error": f"player_data fetch failed: {e}"})
+            continue
+
+        if actor_id is None:
+            results.append({**sample, "error": "player not in fight playerDetails"})
+            continue
+
+        try:
+            auras_data = wcl_client.get_player_auras(report_code, [fight_id], actor_id)
+        except Exception as e:
+            results.append({**sample, "error": f"auras fetch failed: {e}"})
+            continue
+
+        buffs = auras_data.get("buffsTable", {}).get("data", {}).get("auras", []) or []
+        observed = {b.get("guid"): b for b in buffs if isinstance(b.get("guid"), int)}
+
+        tracked_and_seen = []
+        tracked_never_seen = []
+        for buff_id, name, expected_uptime in tracked:
+            obs = observed.get(buff_id)
+            if obs:
+                tracked_and_seen.append({
+                    "buff_id": buff_id, "our_name": name,
+                    "wcl_name": obs.get("name"),
+                    "total_uses": obs.get("totalUses"),
+                })
+            else:
+                tracked_never_seen.append({"buff_id": buff_id, "our_name": name})
+
+        untracked = [b for b in buffs if b.get("guid") not in tracked_ids]
+        untracked.sort(key=lambda b: b.get("totalUses", 0), reverse=True)
+        seen_not_tracked = [
+            {"buff_id": b.get("guid"), "name": b.get("name"),
+             "total_uses": b.get("totalUses")}
+            for b in untracked[:10]
+        ]
+
+        results.append({
+            **sample,
+            "tracked_count": len(tracked),
+            "tracked_and_seen": tracked_and_seen,
+            "tracked_never_seen": tracked_never_seen,
+            "seen_not_tracked": seen_not_tracked,
+        })
+
+    # Sort: highest "suspect" count first so worst-off specs surface at top.
+    results.sort(
+        key=lambda r: len(r.get("tracked_never_seen", [])) if "tracked_never_seen" in r else 0,
+        reverse=True,
+    )
+    return {"unique_specs": len(results), "results": results}
+
+
 @app.get("/api/debug/wcl-cd-audit", dependencies=[Depends(require_api_key)])
 def debug_wcl_cd_audit(code: str, player: str):
     """Audit our tracked major cooldowns against what a player actually used.
