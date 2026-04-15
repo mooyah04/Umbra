@@ -179,6 +179,7 @@ end)
 -- ── LFG Applicant Tooltip (hover over applicants in Group Finder) ───────────
 
 local function OnLFGApplicantEnter(self)
+    if UmbraSettings and not UmbraSettings.showLFG then return end
     if not self.applicantID or not self.memberIdx then return end
 
     local name, class, localizedClass, level, itemLevel, honorLevel,
@@ -223,6 +224,7 @@ end
 -- ── LFG Search Results (browsing groups to join) ────────────────────────────
 
 local function OnLFGSearchResultEnter(self)
+    if UmbraSettings and not UmbraSettings.showLFG then return end
     if not self.resultID then return end
 
     local searchResultInfo = C_LFGList.GetSearchResultInfo(self.resultID)
@@ -274,6 +276,21 @@ local function HasRaiderIO()
 end
 
 local function UpdateApplicantGrades()
+    if UmbraSettings and not UmbraSettings.showLFG then
+        -- Hide any badges we previously rendered.
+        local appViewer = LFGListFrame and LFGListFrame.ApplicationViewer
+        local scrollBox = appViewer and appViewer.ScrollBox
+        if scrollBox then
+            scrollBox:ForEachFrame(function(button)
+                if button and button.Members then
+                    for _, m in pairs(button.Members) do
+                        if m.UmbraGrade then m.UmbraGrade:Hide() end
+                    end
+                end
+            end)
+        end
+        return
+    end
     if HasRaiderIO() then
         -- Don't fight Raider.IO for the same pixels.
         return
