@@ -272,6 +272,137 @@ class WCLClient:
         }
 
 
+    def get_report_master_data(self, report_code: str) -> dict:
+        """Return the report's masterData with actor list.
+
+        Each actor entry has {id, name, type, subType, server}. type
+        distinguishes Player / NPC / Boss / Pet — needed to filter
+        damage events to only those caused by enemies (not friendly
+        Aug Evoker buffs or party AoEs that pollute the table view).
+        """
+        query = """
+        query($code: String!) {
+          reportData {
+            report(code: $code) {
+              masterData {
+                actors { id name type subType }
+              }
+            }
+          }
+        }
+        """
+        data = self.query(query, {"code": report_code})
+        report = data.get("reportData", {}).get("report") or {}
+        master = report.get("masterData") or {}
+        return master
+
+    def get_damage_taken_from_npcs(
+        self, report_code: str, fight_ids: list[int]
+    ) -> dict[int, dict]:
+        """Return per-ability damage taken by the party FROM NPCs/Bosses
+        only, aggregated across the given fights. Excludes Player and
+        Pet sources, which removes Aug Evoker buff noise / party AoE
+        pollution that the simpler `table(viewBy: Ability)` query
+        couldn't filter out.
+
+        Returns {ability_id: {name, total}}. Caller can sort/threshold.
+        """
+        if not fight_ids:
+            return {}
+        master = self.get_report_master_data(report_code)
+        actors = master.get("actors") or []
+        # Only NPC + Boss are real enemy sources. Pet damage usually
+        # belongs to the player who owns the pet (would re-introduce
+        # noise). Player sources are obviously what we're filtering out.
+        npc_ids = {
+            a["id"] for a in actors
+            if a.get("type") in ("NPC", "Boss") and isinstance(a.get("id"), int)
+        }
+        if not npc_ids:
+            return {}
+
+        # Paginate through events. WCL caps at ~10k events per page;
+        # M+ fights can have 30k-100k damage events, so 3-10 pages
+        # typical per fight.
+        query = """
+        query($code: String!, $fightIDs: [Int!]!, $startTime: Float!) {
+          reportData {
+            report(code: $code) {
+              events(dataType: DamageTaken, fightIDs: $fightIDs,
+                     startTime: $startTime, limit: 10000) {
+                data
+                nextPageTimestamp
+              }
+            }
+          }
+        }
+        """
+        per_ability: dict[int, dict] = {}
+        # Resolve ability names from the same masterData payload's
+        # ability list — but masterData query only returned actors, so
+        # we'll harvest names from event payloads (each event includes
+        # ability info or ability ID we resolve later).
+        start = 0.0
+        seen_pages = 0
+        while True:
+            data = self.query(
+                query,
+                {"code": report_code, "fightIDs": fight_ids, "startTime": start},
+            )
+            events_blob = (
+                data.get("reportData", {}).get("report", {}).get("events", {}) or {}
+            )
+            batch = events_blob.get("data") or []
+            if isinstance(batch, str):
+                import json as _json
+                try:
+                    batch = _json.loads(batch)
+                except Exception:
+                    batch = []
+            for ev in batch:
+                if ev.get("type") not in ("damage", "calculateddamage"):
+                    continue
+                src = ev.get("sourceID")
+                if src not in npc_ids:
+                    continue
+                aid = ev.get("abilityGameID")
+                if not isinstance(aid, int):
+                    continue
+                amount = int(ev.get("amount") or 0) + int(ev.get("absorbed") or 0)
+                slot = per_ability.setdefault(aid, {"name": None, "total": 0})
+                slot["total"] += amount
+            nxt = events_blob.get("nextPageTimestamp")
+            seen_pages += 1
+            if not nxt or seen_pages > 20:
+                break
+            start = nxt
+
+        # Resolve ability names with one extra masterData-style query.
+        # WCL exposes abilities via the report's masterData abilities[]
+        # — refetch with that field included.
+        if per_ability:
+            try:
+                names_query = """
+                query($code: String!) {
+                  reportData {
+                    report(code: $code) {
+                      masterData { abilities { gameID name } }
+                    }
+                  }
+                }
+                """
+                data = self.query(names_query, {"code": report_code})
+                ab_list = (
+                    data.get("reportData", {}).get("report", {}).get("masterData", {}).get("abilities") or []
+                )
+                name_by_id = {a.get("gameID"): a.get("name") for a in ab_list if a.get("gameID")}
+                for aid, slot in per_ability.items():
+                    slot["name"] = name_by_id.get(aid) or "?"
+            except Exception:
+                pass
+
+        return per_ability
+
     def get_top_logs_for_encounter(
         self,
         encounter_id: int,

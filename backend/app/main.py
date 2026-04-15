@@ -756,27 +756,28 @@ def sample_dungeon_mechanics(
     if not top_logs:
         return {"error": "no rankings returned for this encounter", "encounter_id": encounter_id}
 
-    # 2. For each log, fetch the damage-taken table for the matching fight.
-    # Track per-ability: set of report_codes it appeared in, and total damage summed.
+    # 2. For each log, pull damage-taken EVENTS filtered to NPC/Boss
+    # sources only (the table view leaks player abilities and Aug
+    # Evoker buff aura noise that we can't filter post-hoc by
+    # ability ID alone).
     appearances: dict[int, set] = defaultdict(set)
     total_damage: dict[int, int] = defaultdict(int)
     name_for_id: dict[int, str] = {}
     successful_logs = 0
     for log in top_logs:
         try:
-            entries = wcl_client.get_damage_taken_table(log["report_code"], [log["fight_id"]])
+            per_ability = wcl_client.get_damage_taken_from_npcs(
+                log["report_code"], [log["fight_id"]]
+            )
         except Exception:
             continue
-        if not entries:
+        if not per_ability:
             continue
         successful_logs += 1
-        for e in entries:
-            gid = e.get("guid")
-            if not isinstance(gid, int):
-                continue
+        for gid, slot in per_ability.items():
             appearances[gid].add(log["report_code"])
-            total_damage[gid] += int(e.get("total") or 0)
-            name_for_id[gid] = e.get("name") or name_for_id.get(gid, "?")
+            total_damage[gid] += int(slot.get("total") or 0)
+            name_for_id[gid] = slot.get("name") or name_for_id.get(gid, "?")
 
     if successful_logs == 0:
         return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}
