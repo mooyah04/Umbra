@@ -328,13 +328,25 @@ def ingest_player(
         # Synthesize a reports list matching the shape of char_data.recentReports.
         # Use None for wcl_id — the character entity WCL has is wrong for
         # this player, so we can't key the Player row by it.
+        # Fetch each report's startTime so fight timestamps are real
+        # wall-clock values (not epoch+fight-offset). Cross-log dedup
+        # depends on this.
         wcl_id = None
         class_id = class_hint
         wow_realm = _slug_to_realm(server_slug)
-        reports = [
-            {"code": code, "startTime": 0, "zone": {"name": "Mythic+ Season 1"}}
-            for code in report_codes
-        ]
+        reports = []
+        for code in report_codes:
+            try:
+                header = wcl_client.get_report_header_and_fights(code)
+                start_time = header.get("startTime", 0)
+            except WCLQueryError as e:
+                logger.warning("Could not fetch header for report %s: %s", code, e)
+                start_time = 0
+            reports.append({
+                "code": code,
+                "startTime": start_time,
+                "zone": {"name": "Mythic+ Season 1"},
+            })
         logger.info(
             "Ingesting %s-%s via %d report code(s), class_id=%d (hint)",
             name, realm, len(report_codes), class_id,

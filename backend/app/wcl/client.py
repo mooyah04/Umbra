@@ -66,6 +66,22 @@ class WCLClient:
             return []
         return report.get("fights", [])
 
+    def get_report_header_and_fights(self, report_code: str) -> dict:
+        """Return {'startTime': int, 'fights': list[dict]} in one query.
+
+        Callers needing wall-clock timestamps for fights should use this
+        — report.startTime is the absolute ms epoch, fight.startTime is
+        the offset within the report.
+        """
+        from app.wcl.queries import REPORT_FIGHTS
+
+        data = self.query(REPORT_FIGHTS, {"code": report_code})
+        report = data.get("reportData", {}).get("report") or {}
+        return {
+            "startTime": report.get("startTime", 0),
+            "fights": report.get("fights", []),
+        }
+
     def get_report_player_data(
         self, report_code: str, fight_ids: list[int]
     ) -> dict | None:

@@ -28,6 +28,7 @@ REPORT_FIGHTS = """
 query($code: String!) {
   reportData {
     report(code: $code) {
+      startTime
       fights(difficulty: 10) {
         id
         encounterID
