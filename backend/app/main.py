@@ -290,6 +290,47 @@ def debug_wcl_character(
     }
 
 
+@app.post("/api/admin/delete-player-runs", dependencies=[Depends(require_api_key)])
+def delete_player_runs(
+    region: str, realm: str, name: str,
+    report_code: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Delete stored DungeonRuns for a player so a re-ingest re-parses
+    them fresh. Use when our parsing logic changed and we need to pick
+    up the new values on existing logs.
+
+    If report_code is given, only delete runs from that report. Otherwise
+    delete all runs for the player. Also clears PlayerScore rows (they'll
+    be regenerated on next ingest once min_runs_for_grade is hit again).
+    """
+    name_c, realm_c, region_c = validate_player_identity(name, realm, region)
+    player = _find_player(session, region_c, realm_c, name_c)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    run_query = select(DungeonRun).where(DungeonRun.player_id == player.id)
+    if report_code:
+        run_query = run_query.where(DungeonRun.wcl_report_id == report_code)
+    runs = list(session.execute(run_query).scalars())
+    for r in runs:
+        session.delete(r)
+
+    scores = list(session.execute(
+        select(PlayerScore).where(PlayerScore.player_id == player.id)
+    ).scalars())
+    for s in scores:
+        session.delete(s)
+
+    session.commit()
+    return {
+        "player_id": player.id,
+        "runs_deleted": len(runs),
+        "scores_deleted": len(scores),
+        "report_code_filter": report_code,
+    }
+
+
 @app.post("/api/admin/merge-duplicates", dependencies=[Depends(require_api_key)])
 def merge_duplicate_players(
     region: str, realm: str, name: str,
