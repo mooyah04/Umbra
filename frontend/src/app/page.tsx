@@ -216,14 +216,14 @@ export default async function Home() {
       {/* ── CTA row: about + addon ── */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
         <Link
-          href="/about"
+          href="/methodology"
           className="bg-surface-container-high rounded-xl p-8 group hover:bg-surface-bright transition-colors relative overflow-hidden"
         >
           <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
             verified
           </span>
           <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-3">
-            About Umbra
+            Methodology
           </p>
           <h4 className="font-[family-name:var(--font-headline)] font-bold text-3xl tracking-tighter text-on-surface mb-3">
             FAIR GRADES,{" "}
