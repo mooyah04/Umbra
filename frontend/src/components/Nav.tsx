@@ -38,9 +38,14 @@ export default function Nav() {
               Methodology
             </Link>
           </nav>
-          <span className="material-symbols-outlined text-primary cursor-pointer scale-95 duration-100">
-            search
-          </span>
+          <a
+            href="/Umbra.zip"
+            download="Umbra.zip"
+            className="hidden md:inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-4 py-2 rounded hover:brightness-110 transition-all"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Download Addon
+          </a>
         </div>
       </header>
 

@@ -31,6 +31,14 @@ export default async function Home() {
           evidence, tuned for the current season, and explained piece by piece.
         </p>
         <SearchBar />
+        <a
+          href="/Umbra.zip"
+          download="Umbra.zip"
+          className="md:hidden mt-5 inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all"
+        >
+          <span className="material-symbols-outlined text-sm">download</span>
+          Download Addon
+        </a>
         <p className="mt-6 font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.2em] text-on-surface-variant">
           Indexed:{" "}
           <span className="text-primary">
