@@ -13,6 +13,25 @@ export default function SearchBar() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const VALID_REGIONS = new Set(["us", "eu", "kr", "tw", "cn"]);
+
+  /**
+   * Parse a `Name-Realm-Region` string (or `Name-Realm Name-Region` with
+   * a spaced realm) into a route target. The trailing token must be a
+   * known region code; realm can contain hyphens (Area-52) so we join
+   * everything between the first and last segments.
+   */
+  function parseIdentity(input: string): { name: string; realm: string; region: string } | null {
+    const parts = input.trim().split("-").map((s) => s.trim()).filter(Boolean);
+    if (parts.length < 3) return null;
+    const region = parts[parts.length - 1].toLowerCase();
+    if (!VALID_REGIONS.has(region)) return null;
+    const name = parts[0];
+    const realm = parts.slice(1, -1).join("-");
+    if (!name || !realm) return null;
+    return { name, realm, region };
+  }
+
   async function handleSearch(value: string) {
     setQuery(value);
     if (value.length < 2) {
@@ -29,6 +48,24 @@ export default function SearchBar() {
       setResults([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter") return;
+    const parsed = parseIdentity(query);
+    if (parsed) {
+      // Looked like Name-Realm-Region — skip autocomplete, go straight in.
+      e.preventDefault();
+      setOpen(false);
+      setQuery("");
+      router.push(
+        `/player/${parsed.region}/${encodeURIComponent(parsed.realm)}/${encodeURIComponent(parsed.name)}`,
+      );
+    } else if (results.length > 0) {
+      // Otherwise enter picks the top autocomplete match.
+      e.preventDefault();
+      selectPlayer(results[0]);
     }
   }
 
@@ -54,9 +91,10 @@ export default function SearchBar() {
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
+          onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
-          placeholder="Enter Character-Realm (e.g. Vantuss-Kazzak)"
+          placeholder="Enter Name-Realm-Region (e.g. Elonmunk-Tarren Mill-EU)"
           className="bg-transparent border-none focus:ring-0 focus:outline-none w-full font-[family-name:var(--font-label)] text-lg md:text-xl placeholder:text-on-surface-variant/40 text-on-surface"
         />
         {loading ? (
