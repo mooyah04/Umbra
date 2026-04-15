@@ -384,6 +384,51 @@ def merge_duplicate_players(
     }
 
 
+@app.get("/api/debug/wcl-buffs", dependencies=[Depends(require_api_key)])
+def debug_wcl_buffs(code: str, player: str):
+    """Return the BuffsTable auras for a player in a report's first M+ fight.
+    Lets us verify which buff IDs WCL records for cooldowns we care about.
+    If a CD in cooldowns.py doesn't appear with the expected id, that's our
+    bug (wrong id) or a genuine 'player never cast it' signal."""
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    if not fights:
+        return {"error": "no M+ fights", "code": code}
+    fight_id = fights[0]["id"]
+    rd = wcl_client.get_report_player_data(code, [fight_id])
+    if not rd:
+        return {"error": "no report_data"}
+    # Find actor id for this player from playerDetails.
+    pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
+    actor_id = None
+    for role in ("tanks", "healers", "dps"):
+        for p in pd.get(role, []):
+            if (p.get("name") or "").lower() == player.lower():
+                actor_id = p.get("id")
+                break
+        if actor_id:
+            break
+    if actor_id is None:
+        return {"error": "player not in playerDetails"}
+
+    auras_data = wcl_client.get_player_auras(code, [fight_id], actor_id)
+    buffs = auras_data.get("buffsTable", {}).get("data", {}).get("auras", [])
+    sorted_buffs = sorted(buffs, key=lambda b: b.get("totalUses", 0), reverse=True)
+    return {
+        "code": code,
+        "fight_id": fight_id,
+        "player": player,
+        "actor_id": actor_id,
+        "buff_count": len(buffs),
+        "buffs": [
+            {"guid": b.get("guid"), "name": b.get("name"),
+             "totalUses": b.get("totalUses"), "totalUptime": b.get("totalUptime")}
+            for b in sorted_buffs[:50]
+        ],
+    }
+
+
 @app.get("/api/debug/wcl-casts", dependencies=[Depends(require_api_key)])
 def debug_wcl_casts(code: str, player: str):
     """Return the per-ability casts breakdown for a player in a report's
