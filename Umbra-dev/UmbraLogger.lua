@@ -101,8 +101,15 @@ logger:SetScript("OnEvent", function(_, event)
             DisableLogging()
         end
     elseif event == "PLAYER_LEAVING_WORLD" then
-        -- Player left the instance; cut the log immediately — no key in
-        -- progress to record completion for.
+        -- PLAYER_LEAVING_WORLD fires not only when the player hearths
+        -- out but also during the M+ countdown → start transition
+        -- (instance pre-reset that flushes trash/buffs). Blindly
+        -- disabling here kills the log mid-key and forces a manual
+        -- /combatlog. Only cut the log when we're genuinely not
+        -- inside an active challenge.
+        local activeMap = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+            and C_ChallengeMode.GetActiveChallengeMapID()
+        if activeMap then return end
         DisableLogging()
     end
 end)
