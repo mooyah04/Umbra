@@ -20,16 +20,16 @@ export default function Nav() {
               Search
             </Link>
             <Link
-              href="#"
+              href="/about"
               className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
             >
-              Trends
+              About
             </Link>
             <Link
-              href="#"
+              href="/about#methodology"
               className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
             >
-              History
+              Methodology
             </Link>
           </nav>
           <span className="material-symbols-outlined text-primary cursor-pointer scale-95 duration-100">
@@ -50,21 +50,21 @@ export default function Nav() {
           </span>
         </Link>
         <Link
-          href="#"
+          href="/about"
           className="flex flex-col items-center justify-center text-on-surface/50 pt-1 hover:text-primary"
         >
-          <span className="material-symbols-outlined">query_stats</span>
+          <span className="material-symbols-outlined">info</span>
           <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
-            Trends
+            About
           </span>
         </Link>
         <Link
-          href="#"
+          href="/about#methodology"
           className="flex flex-col items-center justify-center text-on-surface/50 pt-1 hover:text-primary"
         >
-          <span className="material-symbols-outlined">history</span>
+          <span className="material-symbols-outlined">rule</span>
           <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
-            History
+            Methodology
           </span>
         </Link>
         <Link
