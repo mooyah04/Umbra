@@ -119,7 +119,7 @@ export default async function Home() {
               Download Addon
             </a>
             <Link
-              href="/about"
+              href="/methodology"
               className="font-[family-name:var(--font-label)] text-xs uppercase tracking-widest text-primary hover:underline inline-flex items-center gap-1"
             >
               How the grading works
