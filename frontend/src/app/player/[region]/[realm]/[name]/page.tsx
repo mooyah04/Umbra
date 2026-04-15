@@ -7,10 +7,10 @@ import {
   ROLE_WEIGHT_PROFILES,
 } from "@/lib/methodology";
 import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
-import { specIconUrl } from "@/lib/wow-assets";
+import { specIconUrl, classIdFromName } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
-import type { RunResponse, RoleScore } from "@/lib/types";
+import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string }>;
@@ -421,13 +421,15 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
   const ccExplainer = getCategoryExplanation("utility");
   void ccExplainer; // avoid unused warning in release builds
 
+  const party = (run.party_comp ?? []) as PartyMember[];
+
   return (
     <Link
       href={href}
       className="bg-surface-container-high rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 group hover:bg-surface-bright transition-colors"
     >
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 bg-surface-container-highest rounded-md flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex items-center gap-4 md:min-w-0 md:flex-1">
+        <div className="w-14 h-14 bg-surface-container-highest rounded-md flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0">
           {run.timed && (
             <span className="absolute inset-0 bg-primary/10" />
           )}
@@ -439,18 +441,18 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
             +{run.keystone_level}
           </span>
         </div>
-        <div>
-          <h4 className="font-[family-name:var(--font-body)] font-bold text-on-surface">
+        <div className="min-w-0">
+          <h4 className="font-[family-name:var(--font-body)] font-bold text-on-surface truncate">
             {dungeonName(run.encounter_id)}
           </h4>
-          <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5">
+          <p className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5 truncate">
             {run.spec_name} &middot; {formatDuration(run.duration)} &middot;{" "}
             {when} &middot; ilvl {run.ilvl.toFixed(0)}
-            {run.rating ? ` • ${run.rating} pts` : ""}
           </p>
+          {party.length > 0 && <PartyStrip party={party} />}
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-6 text-[11px] font-[family-name:var(--font-label)] uppercase tracking-widest">
+      <div className="flex items-center gap-3 md:gap-6 text-[11px] font-[family-name:var(--font-label)] uppercase tracking-widest flex-shrink-0">
         <Stat label="Kicks" value={run.interrupts} color="text-primary" />
         <Stat label="Dispels" value={run.dispels} color="text-tertiary" />
         <Stat
@@ -480,6 +482,49 @@ function RunRow({ run, href }: { run: RunResponse; href: string }) {
         </span>
       </div>
     </Link>
+  );
+}
+
+function PartyStrip({ party }: { party: PartyMember[] }) {
+  // Canonical order: tanks first, then healers, then dps. Backend already
+  // stores in this order but enforce here so mixed older rows still look
+  // right.
+  const order: Record<string, number> = { tank: 0, healer: 1, dps: 2 };
+  const sorted = [...party].sort(
+    (a, b) => (order[a.role] ?? 3) - (order[b.role] ?? 3),
+  );
+  return (
+    <div className="flex items-center gap-1.5 mt-2">
+      {sorted.map((m, i) => {
+        const classId = classIdFromName(m.class);
+        const color = classId ? CLASS_COLORS[classId] ?? "#555" : "#555";
+        const icon = classId ? specIconUrl(m.spec, classId) : null;
+        return (
+          <span
+            key={`${m.name}-${m.realm}-${i}`}
+            className="relative inline-block"
+            title={`${m.name} — ${m.spec ?? ""} ${m.class}`}
+          >
+            {icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={icon}
+                alt={m.class}
+                width={22}
+                height={22}
+                className="rounded"
+                style={{ boxShadow: `0 0 0 1px ${color}` }}
+              />
+            ) : (
+              <span
+                className="inline-block w-[22px] h-[22px] rounded bg-surface-container-highest"
+                style={{ boxShadow: `0 0 0 1px ${color}` }}
+              />
+            )}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
