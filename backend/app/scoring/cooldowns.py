@@ -192,13 +192,18 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (322118, "Yu'lon", 12),
         (115310, "Revival", 2),
     ],
+    # Core CDs every Resto Druid has regardless of talent build.
+    # Tree of Life, Nature's Swiftness, and Flourish are talent choices
+    # (mutually exclusive with other capstones) — scoring a player on
+    # talents they didn't pick is unfair. Convoke sits between talent
+    # and near-universal, but kept because it's the baseline assumption
+    # in current Midnight S1 builds.
     (11, "Restoration"): [
-        (33891, "Incarnation: Tree of Life", 15),
-        (740, "Tranquility", 4),
-        (132158, "Nature's Swiftness", 13),     # 1min CD, 8s window
-        (391528, "Convoke the Spirits", 3),     # 2min CD, ~4s channel
-        (197721, "Flourish", 8),                # 1min CD (talent), extends HoTs
-        (102342, "Ironbark", 10),               # 1min CD, external defensive
+        (740, "Tranquility", 4),                # baseline, ~3min CD
+        (391528, "Convoke the Spirits", 3),     # commonly talented, ~2min CD
+        (102342, "Ironbark", 10),               # baseline 1min CD external
+        (22812, "Barkskin", 15),                # baseline 1min CD personal
+        (29166, "Innervate", 4),                # baseline ~3min CD (on self or ally)
     ],
     (13, "Preservation"): [
         (363534, "Rewind", 3),
