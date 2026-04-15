@@ -120,4 +120,63 @@ class BnetClient:
             return None
 
 
+    # ── Character profile ────────────────────────────────────────────────
+
+    def get_character_profile(
+        self,
+        region: str,
+        realm_slug: str,
+        character_name: str,
+    ) -> dict | None:
+        """Fetch the canonical character profile (class / race / spec).
+
+        Returned dict: {"class_id": int, "class_name": str, "spec_name": str | None}
+        or None if the character is hidden, missing, or the request failed.
+
+        Used as the FIRST class-resolution source during ingest, ahead of
+        WCL's character() lookup (which returns non-deterministic entities
+        for name-colliding realms). Blizzard's class_id is canonical and
+        matches the WCL classID mapping 1-13.
+        """
+        token = self._get_token()
+        if not token:
+            return None
+
+        region_lower = region.lower()
+        name_lower = character_name.lower()
+        url = (
+            f"https://{region_lower}.api.blizzard.com/profile/wow/character/"
+            f"{realm_slug}/{name_lower}"
+        )
+        namespace = "profile-" + region_lower
+        try:
+            with httpx.Client() as client:
+                resp = client.get(
+                    url,
+                    params={"namespace": namespace, "locale": "en_US"},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10.0,
+                )
+            if resp.status_code == 404:
+                logger.info("Bnet: profile not found / hidden: %s/%s (%s)",
+                            realm_slug, name_lower, region_lower)
+                return None
+            resp.raise_for_status()
+            data = resp.json()
+            klass = data.get("character_class") or {}
+            spec = data.get("active_spec") or {}
+            class_id = klass.get("id")
+            if not class_id:
+                return None
+            return {
+                "class_id": int(class_id),
+                "class_name": klass.get("name") or "",
+                "spec_name": spec.get("name") or None,
+            }
+        except Exception as e:
+            logger.warning("Bnet profile fetch failed for %s/%s: %s",
+                           realm_slug, name_lower, e)
+            return None
+
+
 bnet_client = BnetClient()

@@ -378,6 +378,12 @@ def ingest_player(
     """
     server_slug = realm.lower().replace("'", "").replace(" ", "-")
 
+    # `effective_hint` = caller's hint, or (in char-lookup mode) the class_id
+    # we resolved via Blizzard's character-profile API. Declared here so both
+    # branches (report-code vs char-lookup) can share the downstream
+    # "stamp player.class_id" logic.
+    effective_hint = class_hint
+
     if report_codes:
         # Report-code mode: bypass the broken character() lookup.
         if class_hint is None:
@@ -416,6 +422,26 @@ def ingest_player(
         char_data = None  # sentinel; rest of function handles this case
     else:
         # Character-lookup mode.
+        # FIRST, ask Blizzard for the canonical class. WCL's character()
+        # returns a non-deterministic entity for name-colliding realms so
+        # its classID is unreliable. Bnet is authoritative per (region,
+        # realm, name) — if we can get a class_id there, promote it to
+        # class_hint so the rest of the pipeline treats it as truth.
+        # No-ops cleanly when Bnet creds aren't set or the profile is hidden.
+        if effective_hint is None:
+            from app.bnet.client import bnet_client
+            profile = bnet_client.get_character_profile(
+                region=region,
+                realm_slug=server_slug,
+                character_name=name,
+            )
+            if profile and profile.get("class_id"):
+                effective_hint = profile["class_id"]
+                logger.info(
+                    "Bnet class-hint for %s-%s: class_id=%d (%s)",
+                    name, realm, effective_hint, profile.get("class_name") or "?",
+                )
+
         char_data = wcl_client.get_character_with_reports(
             name=name,
             server_slug=server_slug,
@@ -427,11 +453,11 @@ def ingest_player(
             return IngestResult(player=None, reason="wcl_not_found")
 
         wcl_class_id = char_data["classID"]
-        class_id = class_hint if class_hint is not None else wcl_class_id
-        if class_hint is not None and class_hint != wcl_class_id:
+        class_id = effective_hint if effective_hint is not None else wcl_class_id
+        if effective_hint is not None and effective_hint != wcl_class_id:
             logger.info(
-                "Using class hint for %s-%s: caller said %d, WCL said %d",
-                name, realm, class_hint, wcl_class_id,
+                "Using class hint for %s-%s: hint said %d, WCL said %d",
+                name, realm, effective_hint, wcl_class_id,
             )
         wcl_id = char_data["id"]
         wow_realm = _slug_to_realm(char_data.get("server", {}).get("slug", server_slug))
@@ -474,9 +500,12 @@ def ingest_player(
         player.name = name
         player.realm = wow_realm
         player.region = region.upper()
-        # If caller provided a hint, apply it to the existing row too.
-        if class_hint is not None:
-            player.class_id = class_hint
+        # Keep an existing Player row's class_id in sync with our best
+        # resolution (caller hint > Bnet > WCL). Subsequent fight-data
+        # correction can still override this below when observed
+        # playerDetails.type disagrees.
+        if effective_hint is not None and player.class_id != effective_hint:
+            player.class_id = effective_hint
 
     # 2b. Fetch Blizzard character media (avatar / inset / render) lazily.
     # Skip if we already pulled it recently (>7 days) or if creds aren't
@@ -855,6 +884,12 @@ def ingest_player(
     #      (handles Resto Shaman vs Resto Druid — spec alone can't tell).
     #   2. Spec-based inference for unambiguous specs (Brewmaster → Monk).
     #   3. Whatever WCL's character endpoint returned.
+    #
+    # Bnet-resolved `effective_hint` is intentionally NOT treated as absolute
+    # here: if Bnet says Mage but all fights in recent reports are Rogue,
+    # WCL is almost certainly serving a different player's logs under this
+    # name. We surface that collision below as a loud warning so we can
+    # decide whether to act on it (reject ingest, ask user to claim, etc).
     if class_hint is None:
         from collections import Counter
 
@@ -876,6 +911,21 @@ def ingest_player(
             )
             class_id = resolved_class_id
             player.class_id = resolved_class_id
+
+        # Bnet-vs-fight-data collision check: fires when Bnet told us the
+        # character is class X but every recent fight shows class Y. The
+        # logs are almost certainly a different player's — surface this
+        # clearly so future ops can reject / quarantine these ingests.
+        if (
+            effective_hint is not None
+            and resolved_class_id is not None
+            and effective_hint != resolved_class_id
+        ):
+            logger.warning(
+                "COLLISION SUSPECT %s-%s-%s: Bnet class_id=%d, but fights imply %d. "
+                "WCL may be serving a different character's logs under this name.",
+                name, realm, region, effective_hint, resolved_class_id,
+            )
 
     # Clear old scores
     old_scores_stmt = select(PlayerScore).where(PlayerScore.player_id == player.id)
