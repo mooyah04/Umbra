@@ -395,36 +395,45 @@ def debug_wcl_buffs(code: str, player: str):
     fights = wcl_client.get_report_fights(code)
     if not fights:
         return {"error": "no M+ fights", "code": code}
-    fight_id = fights[0]["id"]
-    rd = wcl_client.get_report_player_data(code, [fight_id])
-    if not rd:
-        return {"error": "no report_data"}
-    # Find actor id for this player from playerDetails.
-    pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
+
+    # Search every fight for the player (they may not be in fight #1).
+    found_fight_id = None
     actor_id = None
-    for role in ("tanks", "healers", "dps"):
-        for p in pd.get(role, []):
-            if (p.get("name") or "").lower() == player.lower():
-                actor_id = p.get("id")
+    tried = []
+    for f in fights:
+        fid = f.get("id")
+        rd = wcl_client.get_report_player_data(code, [fid])
+        pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
+        names_here = []
+        for role in ("tanks", "healers", "dps"):
+            for p in pd.get(role, []):
+                names_here.append(p.get("name"))
+                if (p.get("name") or "").lower() == player.lower():
+                    actor_id = p.get("id")
+                    found_fight_id = fid
+                    break
+            if actor_id:
                 break
+        tried.append({"fight_id": fid, "names": names_here})
         if actor_id:
             break
-    if actor_id is None:
-        return {"error": "player not in playerDetails"}
 
-    auras_data = wcl_client.get_player_auras(code, [fight_id], actor_id)
+    if actor_id is None:
+        return {"error": "player not in any fight", "fights_inspected": tried}
+
+    auras_data = wcl_client.get_player_auras(code, [found_fight_id], actor_id)
     buffs = auras_data.get("buffsTable", {}).get("data", {}).get("auras", [])
     sorted_buffs = sorted(buffs, key=lambda b: b.get("totalUses", 0), reverse=True)
     return {
         "code": code,
-        "fight_id": fight_id,
+        "fight_id": found_fight_id,
         "player": player,
         "actor_id": actor_id,
         "buff_count": len(buffs),
         "buffs": [
             {"guid": b.get("guid"), "name": b.get("name"),
              "totalUses": b.get("totalUses"), "totalUptime": b.get("totalUptime")}
-            for b in sorted_buffs[:50]
+            for b in sorted_buffs[:60]
         ],
     }
 
