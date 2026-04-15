@@ -343,6 +343,51 @@ def merge_duplicate_players(
     }
 
 
+@app.get("/api/debug/wcl-casts", dependencies=[Depends(require_api_key)])
+def debug_wcl_casts(code: str, player: str):
+    """Return the per-ability casts breakdown for a player in a report's
+    first M+ fight. Lets us see exactly which ability IDs WCL reports —
+    critical for debugging 'cc_casts=0' when the player swears they cast
+    Leg Sweep / Paralysis / Capacitor Totem etc. If the ID WCL returns
+    differs from what our cc_abilities.py has, that's our bug."""
+    from app.wcl.client import wcl_client
+
+    fights = wcl_client.get_report_fights(code)
+    if not fights:
+        return {"error": "no M+ fights in report", "code": code}
+
+    fight_id = fights[0]["id"]
+    rd = wcl_client.get_report_player_data(code, [fight_id])
+    if not rd:
+        return {"error": "no report_data", "code": code, "fight_id": fight_id}
+
+    casts = rd.get("castsTable", {}).get("data", {}).get("entries", [])
+    target = None
+    for entry in casts:
+        if entry.get("name", "").lower() == player.lower():
+            target = entry
+            break
+    if target is None:
+        return {
+            "error": "player not in casts table",
+            "players_in_casts": [e.get("name") for e in casts],
+        }
+    abilities = target.get("abilities") or []
+    # Return the whole ability list sorted by cast count, name + guid — that's
+    # what we need to cross-check with cc_abilities.py.
+    sorted_abilities = sorted(abilities, key=lambda a: a.get("total", 0), reverse=True)
+    return {
+        "code": code,
+        "fight_id": fight_id,
+        "player": target.get("name"),
+        "total_casts": target.get("total"),
+        "abilities": [
+            {"guid": a.get("guid"), "name": a.get("name"), "total": a.get("total")}
+            for a in sorted_abilities
+        ],
+    }
+
+
 @app.get("/api/debug/wcl-report", dependencies=[Depends(require_api_key)])
 def debug_wcl_report(code: str):
     """Admin diagnostic. Returns the list of M+ fights in a given report
