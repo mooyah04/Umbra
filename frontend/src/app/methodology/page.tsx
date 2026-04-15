@@ -180,17 +180,18 @@ export default function MethodologyPage() {
         </div>
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
-            Timing modifier
+            Timing
           </p>
           <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
-            ±8 POINTS, UNIVERSAL
+            SHOWN, NOT SCORED
           </h3>
           <p className="text-on-surface-variant leading-relaxed">
-            After the weighted categories sum, a timing bonus of up to +8 (or
-            penalty of up to -8) is applied based on how many of your recent
-            keys you timed. This is the same adjustment for every role —
-            finishing the key on time matters regardless of what you pressed
-            during it.
+            We track keys timed as a displayed stat, but it doesn&apos;t feed
+            the composite. Pushing a +18 that fails timing is a harder run
+            than one-shotting a +5 — scoring timing would punish the
+            correct direction. Mythic+ keys are also resettable, so timing
+            is gameable. The key level is already rewarded inside every
+            category via per-run weighting.
           </p>
         </div>
       </section>

@@ -472,10 +472,20 @@ def score_player_runs(
     if zone_dps_ilvl_percentile is not None:
         category_scores["damage_output_ilvl"] = round(zone_dps_ilvl_percentile, 1)
 
-    # Apply universal timing modifier
+    # Compute and record the timing stat for display, but do NOT fold it
+    # into the composite. Reasons:
+    #   - Higher keys are meant to be hard; penalizing players who fail to
+    #     time a push key punishes them for attempting the correct content.
+    #   - Mythic+ keys can be reset/re-rolled, so timing is gameable —
+    #     sandbagging at low keys and only logging timed runs would inflate
+    #     grades without reflecting actual play.
+    #   - Key level is already rewarded inside every category via the
+    #     per-run weight (higher keys count more). Timing would be double-
+    #     counting on top of that.
+    # The stat is still exported so the UI can show "X% keys timed".
     timing_mod = _timing_modifier(runs)
     category_scores["timing_modifier"] = round(timing_mod, 1)
-    composite = max(0, min(100, composite + timing_mod))
+    composite = max(0, min(100, composite))
 
     return ScoreResult(
         role=role,
