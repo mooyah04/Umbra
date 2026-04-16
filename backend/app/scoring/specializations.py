@@ -61,8 +61,9 @@ SPEC_ID_TO_CLASS: dict[int, tuple[int, str]] = {
     # Demon Hunter (12)
     577: (12, "Havoc"),
     581: (12, "Vengeance"),
-    # (12, "Devourer") — Midnight-added 4th DH spec. Spec ID unknown
-    # until we see one in a live leaderboard response; populate then.
+    # Devourer — Midnight-added 4th DH spec. Spec id 1480 learned 2026-04-16
+    # from the first live Blizzard leaderboard scrape (EU, dry-run).
+    1480: (12, "Devourer"),
     # Evoker (13)
     1467: (13, "Devastation"),
     1468: (13, "Preservation"),

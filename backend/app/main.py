@@ -1440,7 +1440,7 @@ def discover_players(
 
     our_names = {_norm(d.name): (eid, d.name) for eid, d in _DUNGEONS.items()}
     matched_dungeons: list[dict] = []  # {bnet_id, bnet_name, wcl_encounter_id, wcl_name}
-    unmatched_bnet: list[str] = []
+    our_matched_keys: set[str] = set()
     for bd in bnet_dungeons:
         key = _norm(bd["name"])
         if key in our_names:
@@ -1449,10 +1449,13 @@ def discover_players(
                 "bnet_id": bd["id"], "bnet_name": bd["name"],
                 "wcl_encounter_id": wcl_eid, "wcl_name": wcl_name,
             })
+            our_matched_keys.add(key)
+    our_unmatched = [name for key, (_, name) in our_names.items()
+                     if key not in our_matched_keys]
     if not matched_dungeons:
         return {"error": "no Blizzard dungeons matched our active season",
-                "bnet_dungeons_seen": [d["name"] for d in bnet_dungeons][:20],
-                "our_active": list(our_names.values())[:20]}
+                "bnet_dungeons_seen": [d["name"] for d in bnet_dungeons][:30],
+                "our_unmatched": our_unmatched}
 
     # 2. Current mythic period (weekly, so fetch every call — cheap).
     period_id = bnet_client.get_current_mythic_period(region_upper)
@@ -1523,6 +1526,8 @@ def discover_players(
         "realms_available_total": len(all_realms),
         "dungeons_scanned": [d["bnet_name"] for d in dungeons_to_scan],
         "dungeons_matched_total": len(matched_dungeons),
+        "our_unmatched_dungeons": our_unmatched,
+        "bnet_dungeons_all": [d["name"] for d in bnet_dungeons],
         "leaderboard_calls": leaderboard_calls,
         "unique_players_found": len(discovered),
         "unknown_spec_ids": sorted(unknown_specs),
