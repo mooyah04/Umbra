@@ -959,7 +959,7 @@ def debug_wcl_fight_pulls(code: str, fight_id: int):
               name
               startTime
               endTime
-              bossIds
+              kill
               enemyNPCs { id gameID minimumInstanceID maximumInstanceID }
             }
           }
