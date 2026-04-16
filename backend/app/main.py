@@ -887,6 +887,62 @@ def sample_dungeon_mechanics(
     }
 
 
+@app.get("/api/debug/wcl-timeline-raw", dependencies=[Depends(require_api_key)])
+def debug_wcl_timeline_raw(code: str, fight_id: int, actor_id: int):
+    """Show what events the Level B timeline pulls see for a given
+    (report, fight, player). Used to diagnose why avoidable-damage
+    events come back empty on runs that clearly took avoidable hits.
+
+    Returns event counts + the top 10 per type (raw, unfiltered by
+    ability-id intersection), plus the unique abilityGameIDs present
+    in the first 100 damage events so we can sanity-check whether our
+    avoidable list actually overlaps with what WCL returned.
+    """
+    from app.wcl.client import wcl_client
+    out: dict = {"report": code, "fight_id": fight_id, "actor_id": actor_id}
+    try:
+        dmg_raw = wcl_client.get_player_events(
+            code, [fight_id], data_type="DamageTaken", target_id=actor_id,
+        )
+    except Exception as e:
+        return {**out, "error": f"damage fetch: {e}"}
+    try:
+        int_raw = wcl_client.get_player_events(
+            code, [fight_id], data_type="Interrupts", source_id=actor_id,
+        )
+    except Exception as e:
+        return {**out, "error": f"interrupt fetch: {e}"}
+    try:
+        death_raw = wcl_client.get_player_events(
+            code, [fight_id], data_type="Deaths", target_id=actor_id,
+        )
+    except Exception as e:
+        return {**out, "error": f"death fetch: {e}"}
+
+    dmg_types: dict[str, int] = {}
+    dmg_abilities: dict[int, int] = {}
+    for ev in dmg_raw:
+        t = ev.get("type") or "?"
+        dmg_types[t] = dmg_types.get(t, 0) + 1
+        aid = ev.get("abilityGameID")
+        if isinstance(aid, int):
+            dmg_abilities[aid] = dmg_abilities.get(aid, 0) + 1
+
+    return {
+        **out,
+        "damage_event_count": len(dmg_raw),
+        "damage_event_types": dmg_types,
+        "damage_unique_abilities_top20": sorted(
+            dmg_abilities.items(), key=lambda kv: -kv[1]
+        )[:20],
+        "damage_sample_first_3": dmg_raw[:3],
+        "interrupt_event_count": len(int_raw),
+        "interrupt_sample_first_3": int_raw[:3],
+        "death_event_count": len(death_raw),
+        "death_sample_first_3": death_raw[:3],
+    }
+
+
 @app.get("/api/debug/wcl-interrupts", dependencies=[Depends(require_api_key)])
 def debug_wcl_interrupts(code: str, fight_id: int):
     """Return the raw interruptTable payload for one specific fight so we
