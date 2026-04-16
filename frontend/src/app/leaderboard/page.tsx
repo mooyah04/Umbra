@@ -28,6 +28,24 @@ const ROLE_TABS: Array<{ key: string; label: string }> = [
 
 const REGIONS = ["all", "eu", "us", "kr", "tw", "cn"] as const;
 
+// Class ids in the canonical WoW character-creation order. Shown as a
+// horizontal icon row so the filter feels native to players.
+const CLASS_FILTER_ORDER: number[] = [
+  1,  // Warrior
+  2,  // Paladin
+  3,  // Hunter
+  4,  // Rogue
+  5,  // Priest
+  6,  // Death Knight
+  7,  // Shaman
+  8,  // Mage
+  9,  // Warlock
+  10, // Monk
+  11, // Druid
+  12, // Demon Hunter
+  13, // Evoker
+];
+
 interface PageProps {
   searchParams: Promise<{
     role?: string;
@@ -104,7 +122,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
       </div>
 
       {/* Secondary filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-8 text-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
         <span className="text-on-surface-variant text-xs uppercase tracking-widest">Region:</span>
         {REGIONS.map((r) => (
           <Link
@@ -120,14 +138,51 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
             {r === "all" ? "All" : r.toUpperCase()}
           </Link>
         ))}
-        {classId && (
-          <Link
-            href={buildHref({ role, region, class: sp.class }, { class: undefined })}
-            className="ml-auto bg-surface-container-high px-3 py-1 rounded text-xs text-on-surface-variant hover:text-primary"
-          >
-            × Clear class filter ({CLASS_NAMES[classId] ?? classId})
-          </Link>
-        )}
+      </div>
+
+      {/* Class picker — 13 class icons, click to filter, class-colored
+          ring on the active choice. "All" clears. */}
+      <div className="flex flex-wrap items-center gap-2 mb-8">
+        <span className="text-on-surface-variant text-xs uppercase tracking-widest mr-1">Class:</span>
+        <Link
+          href={buildHref({ role, region, class: sp.class }, { class: undefined })}
+          className={
+            "px-3 py-1 rounded text-xs font-[family-name:var(--font-label)] uppercase tracking-widest " +
+            (!classId
+              ? "bg-primary/30 text-on-primary-container"
+              : "text-on-surface-variant hover:text-primary")
+          }
+        >
+          All
+        </Link>
+        {CLASS_FILTER_ORDER.map((cid) => {
+          const active = classId === cid;
+          const color = CLASS_COLORS[cid] ?? "#ffffff";
+          return (
+            <Link
+              key={cid}
+              href={buildHref(
+                { role, region, class: sp.class },
+                { class: active ? undefined : String(cid) },
+              )}
+              title={CLASS_NAMES[cid]}
+              className={
+                "relative w-9 h-9 rounded overflow-hidden transition-all " +
+                (active
+                  ? "ring-2 scale-110"
+                  : "opacity-60 hover:opacity-100 hover:scale-105")
+              }
+              style={active ? { boxShadow: `0 0 0 2px ${color}, 0 0 10px ${color}80` } : {}}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={classIconUrl(cid)}
+                alt={CLASS_NAMES[cid] ?? String(cid)}
+                className="w-full h-full object-cover"
+              />
+            </Link>
+          );
+        })}
       </div>
 
       {/* Rows */}
