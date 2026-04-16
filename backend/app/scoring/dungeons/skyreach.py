@@ -2,18 +2,34 @@
 
 Appearances: WoD launch, Shadowlands S4, Midnight S1.
 
-TODO: Populate avoidable_abilities. Source candidates:
-- WCL damage-taken breakdowns for +10 Skyreach keys in Midnight S1
-- Archon.gg / U.gg dungeon guides
-- Wowhead strategy pages for each boss (Ranjit, Araknath, Rukhran, High Sage Viryx)
+Avoidable abilities sourced 2026-04-16 from cross-log sampler (14 top +10 logs,
+events API + masterData NPC/Boss source filter).
 """
 from app.scoring.dungeons._types import DungeonData
 
 DUNGEON = DungeonData(
-    encounter_id=61209,  # confirmed from Elonmunk's 2026-04-15 +8 run
+    encounter_id=61209,
     name="Skyreach",
-    avoidable_abilities=(),
+    avoidable_abilities=(
+        (1253543, "Scorching Ray"),
+        (1253368, "Burning Pursuit"),
+        (153757, "Fan of Blades"),
+        (1287905, "Light Ray"),
+        (1254475, "Blade Rush"),
+        (1254672, "Fiery Talon"),
+        (1253510, "Sunbreak"),
+        (1254569, "Dire Screech"),
+        (1253446, "Solar Flame"),
+        (1273358, "Solar Barrier"),
+        (1254666, "Ricocheting Chakram"),
+        (1253519, "Burning Claws"),
+        (154135, "Supernova"),
+        (1254679, "Wrathful Wind"),
+        (1254332, "Solar Flare"),
+        (1252691, "Gale Surge"),
+        (1258174, "Dread Wind"),
+    ),
     appearances=("Midnight S1", "Shadowlands S4", "WoD"),
-    last_reviewed=None,
-    verified=False,
+    last_reviewed="2026-04-16",
+    verified=True,
 )
