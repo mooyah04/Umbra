@@ -28,11 +28,23 @@ _thread: threading.Thread | None = None
 _stop_event = threading.Event()
 
 
+def _region_filter_list() -> list[str]:
+    """Parse SCHEDULER_REGION_FILTER into an uppercase list. Empty = no filter."""
+    raw = settings.scheduler_region_filter or ""
+    return [r.strip().upper() for r in raw.split(",") if r.strip()]
+
+
 def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str, str, str]]:
     """Return up to `limit` (name, realm, region) tuples for players whose
     last_ingested_at is older than the cutoff, oldest first. NULL counts
-    as 'never ingested' and sorts to the top."""
+    as 'never ingested' and sorts to the top.
+
+    If `SCHEDULER_REGION_FILTER` is set, only players in those regions are
+    eligible — useful for prioritizing a single region (EU for internal
+    testing) while leaving non-matching stubs in the queue for later.
+    """
     cutoff = datetime.utcnow() - timedelta(seconds=stale_after_seconds)
+    region_whitelist = _region_filter_list()
     with SessionLocal() as session:
         stmt = (
             select(Player.name, Player.realm, Player.region)
@@ -45,6 +57,8 @@ def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str,
             .order_by(Player.last_ingested_at.asc().nullsfirst())
             .limit(limit)
         )
+        if region_whitelist:
+            stmt = stmt.where(Player.region.in_(region_whitelist))
         return [(n, r, rg) for n, r, rg in session.execute(stmt)]
 
 

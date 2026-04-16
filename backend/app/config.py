@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     scheduler_interval_seconds: int = 300       # 5 min between sweeps
     scheduler_batch_size: int = 15              # players per sweep
     scheduler_stale_after_seconds: int = 3600   # 1 hr since last ingest
+    # Optional region filter for the ingest sweep. Empty string = all regions;
+    # set to "EU" (or comma-separated "EU,US") to prioritize specific regions
+    # while leaving other regions' stubs in the queue untouched. Useful when
+    # pre-public we only care about one region's data being fresh.
+    scheduler_region_filter: str = ""
 
     # Leaderboard discovery. Polls Blizzard's mythic-keystone leaderboards
     # per connected realm per active-season dungeon, creating stub Player

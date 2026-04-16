@@ -1593,6 +1593,7 @@ def scheduler_status(session: Session = Depends(get_session)):
         "interval_seconds": settings.scheduler_interval_seconds,
         "batch_size": settings.scheduler_batch_size,
         "stale_after_seconds": settings.scheduler_stale_after_seconds,
+        "region_filter": _sched._region_filter_list() or "(all regions)",
         "thread_alive": bool(_sched._thread and _sched._thread.is_alive()),
         "stalest": [
             {"name": n, "realm": r, "region": rg, "last_ingested_at": ts}
