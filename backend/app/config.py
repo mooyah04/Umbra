@@ -66,10 +66,23 @@ class Settings(BaseSettings):
     # `scheduler_stale_after_seconds` (or NULL) and re-ingests them. Keeps
     # logged data fresh without requiring anyone to visit their profile.
     # Disable in tests / one-off containers with `SCHEDULER_ENABLED=false`.
+    # Defaults tuned for Platinum WCL (18k calls/hour). An ingest is ~30
+    # WCL calls, so 15 players × (60s/300s) = 180/hr = ~5.4k calls/hr ≈ 30%
+    # of budget — leaves room for visitor lookups and refresh=true calls.
     scheduler_enabled: bool = True
-    scheduler_interval_seconds: int = 900       # 15 min between sweeps
-    scheduler_batch_size: int = 5               # players per sweep
+    scheduler_interval_seconds: int = 300       # 5 min between sweeps
+    scheduler_batch_size: int = 15              # players per sweep
     scheduler_stale_after_seconds: int = 3600   # 1 hr since last ingest
+
+    # Leaderboard discovery. Polls Blizzard's mythic-keystone leaderboards
+    # per connected realm per active-season dungeon, creating stub Player
+    # rows for anyone not yet in our DB. Picked up by the WCL sweep above
+    # on its next tick. Rotates through regions round-robin so Blizzard's
+    # 36k/hr rate limit is never stressed.
+    leaderboard_enabled: bool = True
+    leaderboard_interval_seconds: int = 3600    # 1 hr between ticks
+    leaderboard_realms_per_tick: int = 4        # 4 realms × 8 dungeons = 32 Blizzard calls/tick
+    leaderboard_regions: str = "US,EU,KR,TW"    # CSV, round-robin one per tick
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

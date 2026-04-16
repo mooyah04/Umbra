@@ -42,9 +42,11 @@ logger = logging.getLogger(__name__)
 def lifespan(app: FastAPI):
     # Create tables on startup (use Alembic in production)
     Base.metadata.create_all(engine)
-    from app import scheduler
+    from app import scheduler, scheduler_leaderboard
     scheduler.start()
+    scheduler_leaderboard.start()
     yield
+    scheduler_leaderboard.stop()
     scheduler.stop()
     engine.dispose()
 
@@ -1408,137 +1410,88 @@ def discover_players(
     realm_limit: int = Query(default=3, ge=1, le=50),
     dungeon_limit: int = Query(default=2, ge=1, le=8),
 ):
-    """Dry-run cold-start discovery.
+    """Dry-run cold-start discovery. No DB writes.
 
     Pulls Blizzard's mythic-keystone leaderboards for the first
-    `realm_limit` connected realms × first `dungeon_limit` of our active
-    Midnight S1 dungeons in the given region, extracts unique (name,
-    realm, class, spec) tuples, and returns a sample + counts. Makes NO
-    database writes — use this to validate the pipeline before wiring
-    it into the scheduler.
+    `realm_limit` connected realms × first `dungeon_limit` matched
+    dungeons in the given region, returns unique players + stats.
 
-    Blizzard's leaderboard response gives us specialization.id; we map
-    that locally via app.scoring.specializations to (class_id, spec_name)
-    so the resulting records match what ingest.py expects.
+    For the persistent background version see app.scheduler_leaderboard.
     """
     from app.bnet.client import bnet_client
-    from app.scoring.specializations import resolve_spec
-    from app.scoring.dungeons.registry import _DUNGEONS
+    from app.discovery import discover_from_realm, match_active_dungeons
 
     region_upper = region.upper()
 
-    # 1. Dungeon index + name-match to our active-season dungeons.
-    bnet_dungeons = bnet_client.get_keystone_dungeon_index(region_upper)
-    if not bnet_dungeons:
-        return {"error": "could not fetch Blizzard keystone dungeon index",
-                "region": region_upper}
-
-    def _norm(s: str) -> str:
-        # Lowercase, drop all apostrophes (singular vs plural possessive
-        # varies between ours and Blizzard's names — Magister's vs
-        # Magisters'), strip a leading "the " (prefix only, so inner
-        # "the"s like "Seat of the Triumvirate" aren't damaged), and
-        # collapse whitespace.
-        s = (s or "").lower().replace("\u2019", "").replace("'", "").strip()
-        if s.startswith("the "):
-            s = s[4:]
-        return " ".join(s.split())
-
-    our_names = {_norm(d.name): (eid, d.name) for eid, d in _DUNGEONS.items()}
-    matched_dungeons: list[dict] = []  # {bnet_id, bnet_name, wcl_encounter_id, wcl_name}
-    our_matched_keys: set[str] = set()
-    for bd in bnet_dungeons:
-        key = _norm(bd["name"])
-        if key in our_names:
-            wcl_eid, wcl_name = our_names[key]
-            matched_dungeons.append({
-                "bnet_id": bd["id"], "bnet_name": bd["name"],
-                "wcl_encounter_id": wcl_eid, "wcl_name": wcl_name,
-            })
-            our_matched_keys.add(key)
-    our_unmatched = [name for key, (_, name) in our_names.items()
-                     if key not in our_matched_keys]
-    if not matched_dungeons:
+    matched = match_active_dungeons(region_upper)
+    if not matched:
+        bnet_dungeons = bnet_client.get_keystone_dungeon_index(region_upper)
         return {"error": "no Blizzard dungeons matched our active season",
-                "bnet_dungeons_seen": [d["name"] for d in bnet_dungeons][:30],
-                "our_unmatched": our_unmatched}
+                "region": region_upper,
+                "bnet_dungeons_seen": [d["name"] for d in bnet_dungeons][:30]}
 
-    # 2. Current mythic period (weekly, so fetch every call — cheap).
     period_id = bnet_client.get_current_mythic_period(region_upper)
     if not period_id:
         return {"error": "could not resolve current mythic period",
                 "region": region_upper}
 
-    # 3. Connected-realm list.
     all_realms = bnet_client.get_connected_realms_index(region_upper)
     if not all_realms:
-        return {"error": "no connected realms returned",
-                "region": region_upper}
+        return {"error": "no connected realms returned", "region": region_upper}
+
     realms_to_scan = all_realms[:realm_limit]
-    dungeons_to_scan = matched_dungeons[:dungeon_limit]
+    dungeons_to_scan = matched[:dungeon_limit]
 
-    # 4. Fan out. Keep it sequential for dry-run — production scheduler
-    # can parallelize. 5 players per group × 500 groups × N calls adds
-    # up fast; the rate limiter at 36k/hr is generous but let's keep the
-    # dry-run modest.
-    discovered: dict[tuple[str, str, str], dict] = {}
+    all_players: dict[tuple[str, str, str], dict] = {}
     unknown_specs: set[int] = set()
-    leaderboard_calls = 0
     for realm_id in realms_to_scan:
-        # Slug lookup so we can store something humans recognize. One
-        # connected realm may host several display realms — take the
-        # first (primary) slug.
-        slugs = bnet_client.get_connected_realm_slugs(region_upper, realm_id)
-        primary_slug = slugs[0] if slugs else f"realm-{realm_id}"
+        players, unknowns = discover_from_realm(
+            region_upper, realm_id, period_id, dungeons_to_scan,
+        )
+        unknown_specs |= unknowns
+        for p in players:
+            key = (p.region, p.realm.lower(), p.name.lower())
+            if key not in all_players:
+                all_players[key] = {
+                    "name": p.name, "realm": p.realm, "region": p.region,
+                    "class_id": p.class_id, "spec_name": p.spec_name,
+                }
 
-        for d in dungeons_to_scan:
-            board = bnet_client.get_mythic_leaderboard(
-                region_upper, realm_id, d["bnet_id"], period_id
-            )
-            leaderboard_calls += 1
-            if not board:
-                continue
-            for group in board.get("leading_groups") or []:
-                for m in group.get("members") or []:
-                    profile = m.get("profile") or {}
-                    spec = m.get("specialization") or {}
-                    name = profile.get("name")
-                    spec_id = spec.get("id")
-                    realm_obj = profile.get("realm") or {}
-                    player_realm_slug = realm_obj.get("slug") or primary_slug
-                    if not name or not isinstance(spec_id, int):
-                        continue
-                    resolved = resolve_spec(spec_id)
-                    if not resolved:
-                        unknown_specs.add(spec_id)
-                        continue
-                    class_id, spec_name = resolved
-                    key = (region_upper, player_realm_slug.lower(), name.lower())
-                    if key in discovered:
-                        continue
-                    discovered[key] = {
-                        "name": name,
-                        "realm": player_realm_slug,
-                        "region": region_upper,
-                        "class_id": class_id,
-                        "spec_name": spec_name,
-                    }
-
-    sample = list(discovered.values())[:25]
     return {
         "region": region_upper,
         "period_id": period_id,
         "realms_scanned": len(realms_to_scan),
         "realms_available_total": len(all_realms),
         "dungeons_scanned": [d["bnet_name"] for d in dungeons_to_scan],
-        "dungeons_matched_total": len(matched_dungeons),
-        "our_unmatched_dungeons": our_unmatched,
-        "bnet_dungeons_all": [d["name"] for d in bnet_dungeons],
-        "leaderboard_calls": leaderboard_calls,
-        "unique_players_found": len(discovered),
+        "dungeons_matched_total": len(matched),
+        "leaderboard_calls": len(realms_to_scan) * len(dungeons_to_scan),
+        "unique_players_found": len(all_players),
         "unknown_spec_ids": sorted(unknown_specs),
-        "sample_players": sample,
+        "sample_players": list(all_players.values())[:25],
     }
+
+
+@app.get("/api/admin/leaderboard-status", dependencies=[Depends(require_api_key)])
+def leaderboard_status():
+    """Report the persistent leaderboard-discovery poller state. Shows
+    where the region/realm cursors are, last tick stats, and lifetime
+    totals since the current process started."""
+    from app import scheduler_leaderboard
+    return scheduler_leaderboard.status()
+
+
+@app.post("/api/admin/leaderboard-tick", dependencies=[Depends(require_api_key)])
+def leaderboard_tick_now():
+    """Force a leaderboard tick immediately (otherwise it only runs on the
+    configured interval). Useful for manual testing / seeding right after
+    deploy. Runs inline and returns the tick result."""
+    from app import scheduler_leaderboard
+    before = dict(scheduler_leaderboard._state)
+    try:
+        scheduler_leaderboard._tick_once()
+    except Exception as e:
+        return {"error": str(e), "state_before": before}
+    return {"status": "ok", "state_after": scheduler_leaderboard.status()}
 
 
 @app.get("/api/admin/scheduler-status", dependencies=[Depends(require_api_key)])
