@@ -1,11 +1,23 @@
 import time
 import logging
+import threading
 
 import httpx
 from app.config import settings
 from app.wcl.auth import wcl_auth
 
 logger = logging.getLogger(__name__)
+
+
+# Global semaphore capping concurrent WCL requests. Parallel ingest workers
+# can burst over WCL's rate limit faster than 429 backoff recovers; this
+# smooths the spike so fewer requests ever need to retry.
+#
+# Sized for Platinum tier (~18k calls/hour = 5/sec sustained). Four in-flight
+# gives headroom for latency variance without walking into rate-limit ceilings.
+# Bumpable via settings if we change WCL tier.
+_WCL_MAX_IN_FLIGHT = 4
+_wcl_semaphore = threading.Semaphore(_WCL_MAX_IN_FLIGHT)
 
 
 class WCLClient:
@@ -15,31 +27,45 @@ class WCLClient:
         token = wcl_auth.get_token()
         max_retries = 5
 
-        for attempt in range(max_retries):
-            with httpx.Client() as client:
-                resp = client.post(
-                    settings.wcl_api_url,
-                    json={"query": graphql, "variables": variables or {}},
-                    headers={"Authorization": f"Bearer {token}"},
-                    timeout=30.0,
-                )
+        # Gate concurrent in-flight requests across all caller threads.
+        # The acquire blocks (no timeout) — if the app really wants to
+        # make N>max calls in parallel, it just queues them up here.
+        with _wcl_semaphore:
+            for attempt in range(max_retries):
+                with httpx.Client() as client:
+                    resp = client.post(
+                        settings.wcl_api_url,
+                        json={"query": graphql, "variables": variables or {}},
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=30.0,
+                    )
 
-            if resp.status_code == 429:
-                wait = 15 * (attempt + 1)  # 15, 30, 45, 60, 75s
-                logger.warning("WCL rate limited, waiting %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
-                time.sleep(wait)
-                continue
+                if resp.status_code == 429:
+                    # Respect WCL's Retry-After if present; otherwise use
+                    # exponential-ish backoff that doesn't exceed ~75s total.
+                    retry_after = resp.headers.get("Retry-After")
+                    try:
+                        wait = int(retry_after) if retry_after else 15 * (attempt + 1)
+                    except ValueError:
+                        wait = 15 * (attempt + 1)
+                    logger.warning(
+                        "WCL rate limited, waiting %ds (attempt %d/%d)",
+                        wait, attempt + 1, max_retries,
+                    )
+                    time.sleep(wait)
+                    continue
 
+                resp.raise_for_status()
+                data = resp.json()
+
+                if "errors" in data:
+                    raise WCLQueryError(data["errors"])
+                return data["data"]
+
+            # All retries exhausted. Surface the last response's error so
+            # the caller sees "429" (not a generic None) in their logs.
             resp.raise_for_status()
-            data = resp.json()
-
-            if "errors" in data:
-                raise WCLQueryError(data["errors"])
-            return data["data"]
-
-        # Final attempt failed
-        resp.raise_for_status()
-        return {}
+            return {}
 
     def get_character_with_reports(
         self, name: str, server_slug: str, server_region: str, limit: int = 10
