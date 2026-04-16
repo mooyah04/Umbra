@@ -286,6 +286,176 @@ def _get_cooldown_usage(
     return sum(cd_scores) / len(cd_scores) if cd_scores else 100
 
 
+# Minimum keystone level at which we build a per-run event timeline. Below
+# this, Level B adds WCL budget cost without much payoff — +5 keys are
+# practice pulls and the timeline wouldn't be actionable. Bumpable via
+# settings if we want broader coverage later.
+_TIMELINE_MIN_KEYSTONE = 8
+# Hard cap on events we keep per run. Keeps the JSON blob small (1-2 KB)
+# and rendering fast. Priority order when trimming: deaths > critical
+# interrupts > biggest avoidable damage hits.
+_TIMELINE_MAX_EVENTS = 15
+
+
+def _build_timeline_events(
+    *,
+    death_table: dict,
+    player_name: str,
+    actor_id: int | None,
+    report_code: str,
+    fight_id: int,
+    fight_start_ms: int,
+    avoidable_ids: set[int],
+    critical_interrupt_ids: set[int],
+    keystone_level: int,
+) -> list[dict] | None:
+    """Build the Level B timeline for one run.
+
+    Reuses the already-fetched deathTable (zero extra WCL calls) and adds
+    two filtered events-API queries for avoidable-damage hits and critical
+    interrupts. Returns a list sorted ascending by `t` (seconds into the
+    fight), capped at _TIMELINE_MAX_EVENTS. None for low-key runs or when
+    actor_id isn't resolvable — those runs' `/breakdown` page stays on
+    the placeholder.
+    """
+    if keystone_level < _TIMELINE_MIN_KEYSTONE:
+        return None
+    if actor_id is None:
+        return None
+
+    events: list[dict] = []
+
+    # ── Deaths — already in deathTable, zero extra call ─────────────────
+    # deathTable entries look like:
+    #   {name, timestamp, killingAbility: {guid, name}, ...}
+    # timestamp is ms since log start; we convert to seconds-into-fight.
+    for entry in death_table.get("data", {}).get("entries", []):
+        if (entry.get("name") or "").lower() != player_name.lower():
+            continue
+        ts = entry.get("timestamp")
+        ka = entry.get("killingAbility") or {}
+        if not isinstance(ts, (int, float)):
+            continue
+        events.append({
+            "t": round((ts - fight_start_ms) / 1000.0, 1),
+            "type": "death",
+            "ability_id": int(ka.get("guid") or 0),
+            "ability_name": ka.get("name") or "Unknown",
+            "amount": None,
+        })
+
+    # ── Avoidable damage events — filterExpression pushes predicates
+    #    server-side so we get ~50-200 events back, usually 1 page ──────
+    if avoidable_ids:
+        ids_csv = ",".join(str(i) for i in sorted(avoidable_ids))
+        filter_expr = (
+            f"target.id={actor_id} and ability.id IN ({ids_csv})"
+        )
+        try:
+            raw = wcl_client.get_player_events(
+                report_code, [fight_id],
+                data_type="DamageTaken",
+                filter_expression=filter_expr,
+            )
+        except Exception as e:
+            logger.debug("Timeline: damage events failed for %s/%d: %s",
+                         report_code, fight_id, e)
+            raw = []
+        # Take the top 8 hits by amount — a per-pull narrative doesn't
+        # need to list every tick of a DoT.
+        dmg_events: list[dict] = []
+        for ev in raw:
+            aid = ev.get("abilityGameID")
+            ts = ev.get("timestamp")
+            amt = int(ev.get("amount") or 0) + int(ev.get("absorbed") or 0)
+            if not isinstance(aid, int) or not isinstance(ts, (int, float)):
+                continue
+            dmg_events.append({
+                "t": round((ts - fight_start_ms) / 1000.0, 1),
+                "type": "avoidable_damage",
+                "ability_id": aid,
+                "ability_name": None,  # resolved below
+                "amount": amt,
+            })
+        dmg_events.sort(key=lambda e: e["amount"] or 0, reverse=True)
+        events.extend(dmg_events[:8])
+
+    # ── Critical interrupts — same filterExpression pattern ────────────
+    if critical_interrupt_ids:
+        ids_csv = ",".join(str(i) for i in sorted(critical_interrupt_ids))
+        # For interrupts, the kicked spell is in extraAbility, the kicker
+        # is source.
+        filter_expr = (
+            f"source.id={actor_id} and extraAbility.id IN ({ids_csv})"
+        )
+        try:
+            raw = wcl_client.get_player_events(
+                report_code, [fight_id],
+                data_type="Interrupts",
+                filter_expression=filter_expr,
+            )
+        except Exception as e:
+            logger.debug("Timeline: interrupt events failed for %s/%d: %s",
+                         report_code, fight_id, e)
+            raw = []
+        for ev in raw:
+            aid = ev.get("extraAbilityGameID")
+            ts = ev.get("timestamp")
+            if not isinstance(aid, int) or not isinstance(ts, (int, float)):
+                continue
+            events.append({
+                "t": round((ts - fight_start_ms) / 1000.0, 1),
+                "type": "critical_interrupt",
+                "ability_id": aid,
+                "ability_name": None,
+                "amount": None,
+            })
+
+    # ── Resolve ability names from report masterData (one shared call
+    #    per fight covers all three event types) ─────────────────────────
+    needed_ids = {ev["ability_id"] for ev in events if ev.get("ability_id")}
+    if needed_ids:
+        try:
+            md = wcl_client.get_report_master_data(report_code) or {}
+            name_by_id = {
+                int(a["gameID"]): a.get("name")
+                for a in (md.get("abilities") or [])
+                if a.get("gameID") is not None
+            }
+            for ev in events:
+                if ev.get("ability_name") is None:
+                    ev["ability_name"] = (
+                        name_by_id.get(ev["ability_id"]) or "Unknown"
+                    )
+        except Exception as e:
+            logger.debug("Timeline: masterData lookup failed for %s: %s",
+                         report_code, e)
+            for ev in events:
+                if ev.get("ability_name") is None:
+                    ev["ability_name"] = "Unknown"
+
+    # Sort by time, then apply priority-aware cap.
+    events.sort(key=lambda e: e["t"])
+    if len(events) <= _TIMELINE_MAX_EVENTS:
+        return events
+    # Over cap — keep all deaths + critical interrupts, fill remainder
+    # with top damage by amount.
+    deaths = [e for e in events if e["type"] == "death"]
+    crits = [e for e in events if e["type"] == "critical_interrupt"]
+    dmg = sorted(
+        (e for e in events if e["type"] == "avoidable_damage"),
+        key=lambda e: e["amount"] or 0,
+        reverse=True,
+    )
+    kept = deaths + crits
+    for e in dmg:
+        if len(kept) >= _TIMELINE_MAX_EVENTS:
+            break
+        kept.append(e)
+    kept.sort(key=lambda e: e["t"])
+    return kept
+
+
 def _get_avoidable_damage(damage_taken_table: dict, player_name: str, avoidable_ids: set[int]) -> float:
     """Calculate total avoidable damage taken by a player.
 
@@ -774,6 +944,21 @@ def ingest_player(
             # Track this new run so later fights in the same batch see it.
             fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
 
+            # Level B timeline — only built for ≥+8 keys (see
+            # _TIMELINE_MIN_KEYSTONE). Two filtered events-API calls; the
+            # helper falls back to None gracefully if either fails.
+            timeline = _build_timeline_events(
+                death_table=death_table,
+                player_name=name,
+                actor_id=actor_id,
+                report_code=report_code,
+                fight_id=fight_id,
+                fight_start_ms=fight.get("startTime", 0),
+                avoidable_ids=avoidable_ids,
+                critical_interrupt_ids=critical_interrupt_ids,
+                keystone_level=fight_keystone,
+            )
+
             run = DungeonRun(
                 player_id=player.id,
                 encounter_id=encounter_id,
@@ -804,6 +989,7 @@ def ingest_player(
                 critical_interrupts=crit_interrupts,
                 avoidable_deaths=avoidable_death_count,
                 party_comp=_extract_party_comp(player_details) or None,
+                timeline_events=timeline,
             )
             session.add(run)
             runs.append(run)

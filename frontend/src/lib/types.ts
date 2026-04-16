@@ -52,6 +52,15 @@ export interface RunResponse {
   critical_interrupts: number | null;
   avoidable_deaths: number | null;
   party_comp?: PartyMember[] | null;
+  timeline_events?: TimelineEvent[] | null;
+}
+
+export interface TimelineEvent {
+  t: number;                    // seconds into fight
+  type: "avoidable_damage" | "critical_interrupt" | "death";
+  ability_id: number;
+  ability_name: string;
+  amount: number | null;        // damage amount (for avoidable/death); null for interrupts
 }
 
 export interface PartyMember {

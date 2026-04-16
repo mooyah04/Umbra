@@ -183,6 +183,84 @@ class WCLClient:
     ) -> dict:
         return self.get_player_auras(report_code, fight_ids, source_id).get("buffsTable", {})
 
+    def get_player_events(
+        self,
+        report_code: str,
+        fight_ids: list[int],
+        data_type: str,
+        filter_expression: str | None = None,
+    ) -> list[dict]:
+        """Paginated event fetch with optional filterExpression.
+
+        Used by the per-run event-timeline ingest (Level B). WCL's
+        filterExpression pushes predicates server-side so we get back
+        only the events we care about — e.g. damage taken by this player
+        from a short list of avoidable ability IDs, rather than every
+        damage event in the fight. Typical result: 10-200 events per
+        fight instead of 5000+.
+
+        `data_type` is the WCL EventDataType enum (e.g. "DamageTaken",
+        "Interrupts", "Deaths"). `filter_expression` syntax:
+          "type='damage' and target.id=5 and ability.id IN (12345, 67890)"
+
+        Returns a list of event dicts. Paginates internally up to a hard
+        cap so a misconfigured filter can't blow through the rate limit.
+        """
+        if not fight_ids:
+            return []
+        filter_clause = (
+            ", filterExpression: $filter" if filter_expression is not None else ""
+        )
+        var_decl = (
+            ", $filter: String!" if filter_expression is not None else ""
+        )
+        query = """
+        query($code: String!, $fightIDs: [Int!]!, $startTime: Float!, $dataType: EventDataType!%s) {
+          reportData {
+            report(code: $code) {
+              events(dataType: $dataType, fightIDs: $fightIDs,
+                     startTime: $startTime, limit: 10000%s) {
+                data
+                nextPageTimestamp
+              }
+            }
+          }
+        }
+        """ % (var_decl, filter_clause)
+
+        events: list[dict] = []
+        start = 0.0
+        seen_pages = 0
+        while True:
+            variables: dict = {
+                "code": report_code,
+                "fightIDs": fight_ids,
+                "startTime": start,
+                "dataType": data_type,
+            }
+            if filter_expression is not None:
+                variables["filter"] = filter_expression
+            data = self.query(query, variables)
+            events_blob = (
+                data.get("reportData", {}).get("report", {}).get("events", {}) or {}
+            )
+            batch = events_blob.get("data") or []
+            if isinstance(batch, str):
+                import json as _json
+                try:
+                    batch = _json.loads(batch)
+                except Exception:
+                    batch = []
+            events.extend(batch)
+            nxt = events_blob.get("nextPageTimestamp")
+            seen_pages += 1
+            # Hard cap. Legitimate Level B filters usually return one
+            # page; anything beyond 5 pages is a filter misconfiguration.
+            if not nxt or seen_pages >= 5:
+                break
+            start = nxt
+        return events
+
     def get_encounter_percentiles(
         self,
         name: str,

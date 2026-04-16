@@ -156,6 +156,9 @@ class RunResponse(BaseModel):
     critical_interrupts: int | None = None
     avoidable_deaths: int | None = None
     party_comp: list[dict] | None = None
+    # Level B per-run event timeline (≤15 objects). None on runs older
+    # than Level B ingest, or below the keystone-level threshold.
+    timeline_events: list[dict] | None = None
 
 
 class RunListResponse(BaseModel):

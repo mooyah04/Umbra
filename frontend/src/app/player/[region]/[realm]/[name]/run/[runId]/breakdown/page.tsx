@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getRunDetail } from "@/lib/api";
 import { dungeonName } from "@/lib/dungeons";
+import { formatNumber } from "@/lib/utils";
+import type { TimelineEvent } from "@/lib/types";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string; runId: string }>;
@@ -31,6 +33,7 @@ export default async function RunBreakdownPage({ params }: Props) {
   }
 
   const wclUrl = `https://www.warcraftlogs.com/reports/${run.wcl_report_id}?fight=${run.fight_id}`;
+  const timeline = run.timeline_events ?? null;
 
   return (
     <main className="mt-24 px-6 max-w-4xl mx-auto pb-32 space-y-10">
@@ -79,32 +82,115 @@ export default async function RunBreakdownPage({ params }: Props) {
         </p>
       </section>
 
-      {/* Roadmap */}
-      <section className="space-y-4">
-        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
-          Coming soon
-        </p>
-        <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
-          What we&apos;re building here
-        </h2>
+      {/* Event timeline — shown when Level B data is populated */}
+      {timeline && timeline.length > 0 && (
+        <section className="space-y-4">
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary">
+            Event Timeline
+          </p>
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
+            The moments that mattered
+          </h2>
+          <p className="text-on-surface-variant text-sm">
+            Your top {timeline.length} most-impactful events in chronological order.
+            Every avoidable hit is shown by damage taken; every critical kick and
+            death is shown regardless of how loud it was.
+          </p>
+          <ol className="space-y-2 pt-2">
+            {timeline.map((ev, i) => (
+              <TimelineRow key={i} event={ev} />
+            ))}
+          </ol>
+        </section>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-          <RoadmapCard
-            tier="Level B"
-            title="Event Timeline"
-            description="Top 10-15 events ordered by time — when you ate big damage, when you kicked critical casts, when you died. Read-it-in-30-seconds format for the moments that actually mattered."
-            status="In design"
-          />
-          <RoadmapCard
-            tier="Level C"
-            title="AI Coach"
-            description="Spec-aware, dungeon-aware prose that tells you exactly what to work on for your next key. Not a score — a conversation."
-            status="After scoring is rock-solid"
-          />
-        </div>
-      </section>
+      {/* Roadmap — shown as a fallback when Level B data isn't populated
+          (low keystone, old run, or ingest hadn't stored timeline yet) */}
+      {(!timeline || timeline.length === 0) && (
+        <section className="space-y-4">
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
+            Coming soon
+          </p>
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
+            What we&apos;re building here
+          </h2>
+          <p className="text-on-surface-variant text-sm">
+            No event timeline available for this run yet — either it&apos;s
+            below the +8 threshold we track, or it was ingested before this
+            feature went live. Newer runs will populate automatically.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <RoadmapCard
+              tier="Level B"
+              title="Event Timeline"
+              description="Top 10-15 events ordered by time — when you ate big damage, when you kicked critical casts, when you died. Read-it-in-30-seconds format for the moments that actually mattered."
+              status="Populates on next re-ingest"
+            />
+            <RoadmapCard
+              tier="Level C"
+              title="AI Coach"
+              description="Spec-aware, dungeon-aware prose that tells you exactly what to work on for your next key. Not a score — a conversation."
+              status="After scoring is rock-solid"
+            />
+          </div>
+        </section>
+      )}
     </main>
   );
+}
+
+function TimelineRow({ event }: { event: TimelineEvent }) {
+  const time = formatTime(event.t);
+  const config = TYPE_CONFIG[event.type];
+
+  return (
+    <li
+      className="bg-surface-container-high rounded-lg px-4 py-3 border-l-4 flex items-center gap-4"
+      style={{ borderLeftColor: config.color }}
+    >
+      <span
+        className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant tabular-nums shrink-0 w-16"
+      >
+        {time}
+      </span>
+      <span
+        className="material-symbols-outlined text-xl shrink-0"
+        style={{ color: config.color }}
+        aria-hidden
+      >
+        {config.icon}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="font-[family-name:var(--font-body)] font-semibold text-on-surface text-sm truncate">
+          {config.label}
+        </p>
+        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant truncate">
+          {event.ability_name}
+        </p>
+      </div>
+      {event.amount !== null && event.amount > 0 && (
+        <span
+          className="font-[family-name:var(--font-label)] text-sm font-bold tabular-nums shrink-0"
+          style={{ color: config.color }}
+        >
+          {formatNumber(event.amount)}
+        </span>
+      )}
+    </li>
+  );
+}
+
+const TYPE_CONFIG: Record<TimelineEvent["type"], { icon: string; color: string; label: string }> = {
+  avoidable_damage: { icon: "bolt", color: "#fbbf24", label: "Avoidable damage" },
+  critical_interrupt: { icon: "check_circle", color: "#22d3ee", label: "Critical kick" },
+  death: { icon: "skull", color: "#f87171", label: "Death" },
+};
+
+function formatTime(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function RoadmapCard({

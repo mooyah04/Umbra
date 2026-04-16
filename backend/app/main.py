@@ -166,6 +166,7 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
         critical_interrupts=run.critical_interrupts,
         avoidable_deaths=run.avoidable_deaths,
         party_comp=run.party_comp,
+        timeline_events=run.timeline_events,
     )
 
 
