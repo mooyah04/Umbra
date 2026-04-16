@@ -77,12 +77,23 @@ class DungeonRun(Base):
     logged_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # Enrichment fields (nullable for backwards compat with existing rows)
-    # Level B per-run timeline. JSON array, up to ~15 events, each:
-    #   {"t": float_seconds, "type": "avoidable_damage|critical_interrupt|death",
-    #    "ability_id": int, "ability_name": str, "amount": int | None}
-    # Sorted ascending by t. Populated on ingest; null on runs that
-    # predate Level B (those stay supported via the /breakdown placeholder).
-    timeline_events: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Level B v2 — pull-by-pull breakdown. JSON array of pull objects:
+    #   [{
+    #     "i": int (1-based index),
+    #     "start_t": float (seconds into fight),
+    #     "end_t": float,
+    #     "label": str (e.g. "Selin Fireheart" or "Trash (4 mobs)"),
+    #     "verdict": "clean" | "took_hits" | "wipe",
+    #     "events": [
+    #       {"t": float, "type": "avoidable_damage|critical_interrupt|death",
+    #        "ability_id": int, "ability_name": str,
+    #        "amount": int | null (damage amount; null for interrupts)}
+    #     ]
+    #   }, ...]
+    # Populated on ingest for runs ≥+8 keystone; null for lower keys or
+    # when the WCL events fetch fails. Frontend /breakdown page renders
+    # each pull as its own section with aggregated event summaries.
+    pulls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     average_item_level: Mapped[float | None] = mapped_column(Float, nullable=True)
     keystone_affixes: Mapped[dict | None] = mapped_column(JSON, nullable=True)

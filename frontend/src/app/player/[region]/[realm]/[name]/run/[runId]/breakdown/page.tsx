@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getRunDetail } from "@/lib/api";
 import { dungeonName } from "@/lib/dungeons";
 import { formatNumber } from "@/lib/utils";
-import type { TimelineEvent } from "@/lib/types";
+import type { Pull, PullEvent, PullEventType, PullVerdict } from "@/lib/types";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string; runId: string }>;
@@ -33,7 +33,7 @@ export default async function RunBreakdownPage({ params }: Props) {
   }
 
   const wclUrl = `https://www.warcraftlogs.com/reports/${run.wcl_report_id}?fight=${run.fight_id}`;
-  const timeline = run.timeline_events ?? null;
+  const pulls = run.pulls ?? null;
 
   return (
     <main className="mt-24 px-6 max-w-4xl mx-auto pb-32 space-y-10">
@@ -82,30 +82,31 @@ export default async function RunBreakdownPage({ params }: Props) {
         </p>
       </section>
 
-      {/* Event timeline — shown when Level B data is populated */}
-      {timeline && timeline.length > 0 && (
+      {/* Pull-by-pull breakdown — the whole point of this page */}
+      {pulls && pulls.length > 0 && (
         <section className="space-y-4">
           <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary">
-            Event Timeline
+            Pull-by-Pull Breakdown
           </p>
           <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
-            The moments that mattered
+            What happened, pull by pull
           </h2>
           <p className="text-on-surface-variant text-sm">
-            Chronological recap of the {timeline.length} most-impactful
-            moments in this run.
+            {pulls.length} pulls tracked. Each one shows your kicks,
+            the damage you took, and whether you died — aggregated so
+            you can scan the whole dungeon in under a minute.
           </p>
-          <ol className="space-y-1 pt-2 bg-surface-container-low rounded-xl p-5 md:p-6">
-            {timeline.map((ev, i) => (
-              <TimelineSentence key={i} event={ev} />
+          <ol className="space-y-3 pt-2">
+            {pulls.map((p) => (
+              <PullCard key={p.i} pull={p} />
             ))}
           </ol>
         </section>
       )}
 
       {/* Roadmap — shown as a fallback when Level B data isn't populated
-          (low keystone, old run, or ingest hadn't stored timeline yet) */}
-      {(!timeline || timeline.length === 0) && (
+          (low keystone, old run, or ingest hadn't stored pulls yet) */}
+      {(!pulls || pulls.length === 0) && (
         <section className="space-y-4">
           <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
             Coming soon
@@ -139,56 +140,171 @@ export default async function RunBreakdownPage({ params }: Props) {
 }
 
 /**
- * One event → one plain-English sentence with a timestamp prefix.
- * Rendered as a flowing list of lines, not data rows, so the page
- * reads as a recap rather than a spreadsheet.
+ * One pull → one self-contained card with a header, verdict pill, and
+ * aggregated per-ability event summaries. Rendering is dense so players
+ * can scan the whole dungeon in ~30 seconds.
  */
-function TimelineSentence({ event }: { event: TimelineEvent }) {
-  const time = formatTime(event.t);
-  const color = TYPE_COLOR[event.type];
-  const ability = event.ability_name || "an unknown ability";
-  const amount = event.amount && event.amount > 0 ? formatNumber(event.amount) : null;
+function PullCard({ pull }: { pull: Pull }) {
+  const duration = pull.end_t - pull.start_t;
+  const verdict = VERDICT_CONFIG[pull.verdict];
 
-  let sentence: string;
-  switch (event.type) {
-    case "death":
-      sentence = amount
-        ? `Died to ${ability} — ${amount} damage.`
-        : `Died to ${ability}.`;
-      break;
-    case "avoidable_damage":
-      sentence = amount
-        ? `Took ${amount} from ${ability} — avoidable.`
-        : `Took avoidable damage from ${ability}.`;
-      break;
-    case "critical_interrupt":
-      sentence = `Kicked ${ability}.`;
-      break;
-    default:
-      sentence = ability;
-  }
+  // Group events by (type, ability_id) so the card reads like prose
+  // summaries instead of a raw log. One line per unique ability per type.
+  const grouped = groupEvents(pull.events);
 
   return (
-    <li className="flex gap-4 py-1.5 leading-relaxed">
-      <span
-        className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant/70 tabular-nums shrink-0 w-14 pt-0.5"
-      >
-        {time}
-      </span>
-      <span
-        className="font-[family-name:var(--font-body)] text-on-surface"
-        style={{ borderLeft: `2px solid ${color}`, paddingLeft: "0.75rem" }}
-      >
-        {sentence}
-      </span>
+    <li
+      className="bg-surface-container-low rounded-xl overflow-hidden border-l-4"
+      style={{ borderLeftColor: verdict.color }}
+    >
+      {/* Header */}
+      <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap border-b border-outline-variant/10">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest text-on-surface-variant tabular-nums">
+            Pull {String(pull.i).padStart(2, "0")}
+          </span>
+          <span className="font-[family-name:var(--font-body)] font-semibold text-on-surface truncate">
+            {pull.label}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs font-[family-name:var(--font-label)] uppercase tracking-widest">
+          <span className="text-on-surface-variant/70 tabular-nums">
+            {formatTime(pull.start_t)}–{formatTime(pull.end_t)}
+            {" "}
+            <span className="opacity-60">({Math.round(duration)}s)</span>
+          </span>
+          <span
+            className="px-2.5 py-1 rounded font-bold"
+            style={{ backgroundColor: `${verdict.color}20`, color: verdict.color }}
+          >
+            {verdict.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-5 py-3 space-y-1">
+        {grouped.length === 0 ? (
+          <p className="text-xs text-on-surface-variant/60 italic">
+            Nothing notable happened here.
+          </p>
+        ) : (
+          grouped.map((g, i) => <EventSummaryLine key={i} summary={g} />)
+        )}
+      </div>
     </li>
   );
 }
 
-const TYPE_COLOR: Record<TimelineEvent["type"], string> = {
+interface EventSummary {
+  type: PullEventType;
+  label: string;      // e.g. "Shadow Bolt", "Runic Glaive"
+  count: number;
+  total: number | null;  // total damage (sum); null for interrupts
+}
+
+/**
+ * Group a pull's events by (type, ability). Deaths stay as individual
+ * rows (rare enough to list each, and losing the timestamp would lose
+ * too much). Damage and interrupts collapse into per-ability summaries.
+ */
+function groupEvents(events: PullEvent[]): EventSummary[] {
+  const out: EventSummary[] = [];
+
+  // Damage: one row per unique ability, sorted by total damage desc
+  const dmgMap = new Map<number, EventSummary>();
+  for (const ev of events) {
+    if (ev.type !== "avoidable_damage") continue;
+    const existing = dmgMap.get(ev.ability_id);
+    if (existing) {
+      existing.count += 1;
+      existing.total = (existing.total ?? 0) + (ev.amount ?? 0);
+    } else {
+      dmgMap.set(ev.ability_id, {
+        type: "avoidable_damage",
+        label: ev.ability_name,
+        count: 1,
+        total: ev.amount ?? 0,
+      });
+    }
+  }
+  const dmgSorted = [...dmgMap.values()].sort(
+    (a, b) => (b.total ?? 0) - (a.total ?? 0),
+  );
+
+  // Interrupts: one row per unique kicked ability
+  const kickMap = new Map<number, EventSummary>();
+  for (const ev of events) {
+    if (ev.type !== "critical_interrupt") continue;
+    const existing = kickMap.get(ev.ability_id);
+    if (existing) existing.count += 1;
+    else kickMap.set(ev.ability_id, {
+      type: "critical_interrupt",
+      label: ev.ability_name,
+      count: 1,
+      total: null,
+    });
+  }
+  const kickSorted = [...kickMap.values()].sort((a, b) => b.count - a.count);
+
+  // Deaths: one row per death (keep each separate)
+  const deaths: EventSummary[] = events
+    .filter((e) => e.type === "death")
+    .map((ev) => ({
+      type: "death" as const,
+      label: ev.ability_name,
+      count: 1,
+      total: ev.amount,
+    }));
+
+  // Priority order: deaths first (most important), then damage (usually
+  // larger impact than misses), then kicks (positive moments).
+  out.push(...deaths, ...dmgSorted, ...kickSorted);
+  return out;
+}
+
+function EventSummaryLine({ summary }: { summary: EventSummary }) {
+  const color = EVENT_COLOR[summary.type];
+  const sentence = buildSentence(summary);
+
+  return (
+    <p className="text-sm font-[family-name:var(--font-body)] text-on-surface/90 leading-relaxed flex gap-2.5 items-start">
+      <span
+        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      {sentence}
+    </p>
+  );
+}
+
+function buildSentence(s: EventSummary): string {
+  switch (s.type) {
+    case "death":
+      return s.total
+        ? `Died to ${s.label} — ${formatNumber(s.total)} damage.`
+        : `Died to ${s.label}.`;
+    case "avoidable_damage":
+      return s.count === 1
+        ? `Took ${formatNumber(s.total ?? 0)} from ${s.label}.`
+        : `Took ${s.count} hits from ${s.label} (${formatNumber(s.total ?? 0)} total).`;
+    case "critical_interrupt":
+      return s.count === 1
+        ? `Kicked ${s.label}.`
+        : `Kicked ${s.label} ×${s.count}.`;
+  }
+}
+
+const EVENT_COLOR: Record<PullEventType, string> = {
   avoidable_damage: "#fbbf24",
   critical_interrupt: "#22d3ee",
   death: "#f87171",
+};
+
+const VERDICT_CONFIG: Record<PullVerdict, { color: string; label: string }> = {
+  clean: { color: "#34d399", label: "Clean" },
+  took_hits: { color: "#fbbf24", label: "Took Hits" },
+  wipe: { color: "#f87171", label: "Wipe" },
 };
 
 function formatTime(seconds: number): string {

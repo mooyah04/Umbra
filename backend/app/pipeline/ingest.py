@@ -286,20 +286,22 @@ def _get_cooldown_usage(
     return sum(cd_scores) / len(cd_scores) if cd_scores else 100
 
 
-# Minimum keystone level at which we build a per-run event timeline. Below
-# this, Level B adds WCL budget cost without much payoff — +5 keys are
-# practice pulls and the timeline wouldn't be actionable. Bumpable via
-# settings if we want broader coverage later.
-_TIMELINE_MIN_KEYSTONE = 8
-# Hard cap on events we keep per run. Keeps the JSON blob small (1-2 KB)
-# and rendering fast. Priority order when trimming: deaths > critical
-# interrupts > biggest avoidable damage hits.
-_TIMELINE_MAX_EVENTS = 15
+# Minimum keystone level at which we build a per-run pull breakdown.
+# Below this, ingest cost isn't worth it — +5 keys aren't interesting
+# and the breakdown wouldn't be actionable.
+_BREAKDOWN_MIN_KEYSTONE = 8
+# Enemy-death-cluster gap (seconds). Two consecutive enemy deaths within
+# this window are treated as the same pull. Tuned for M+ where packs
+# typically die within 5-15s of each other.
+_PULL_GAP_SEC = 15.0
+# Seconds before a pull's first enemy death to treat as the pull's start
+# (engagement → first kill). Events (damage taken, kicks) landing in
+# this lead-in window get attributed to the upcoming pull.
+_PULL_LEAD_IN_SEC = 10.0
 
 
-def _build_timeline_events(
+def _build_pulls(
     *,
-    player_name: str,  # unused but kept to match call-site ergonomics
     actor_id: int | None,
     report_code: str,
     fight_id: int,
@@ -308,77 +310,125 @@ def _build_timeline_events(
     critical_interrupt_ids: set[int],
     keystone_level: int,
 ) -> list[dict] | None:
-    """Build the Level B timeline for one run.
+    """Build the Level B v2 pull-by-pull breakdown for one run.
 
-    Three scoped events-API calls, each narrowed by WCL's first-class
-    sourceID/targetID query params (not filterExpression, which we found
-    to be unreliable). Ability-ID filtering happens Python-side on the
-    already-narrow result set. Returns a list sorted ascending by `t`,
-    capped at _TIMELINE_MAX_EVENTS. None for low-key runs or when
-    actor_id isn't resolvable.
+    Fetches all deaths + damage-taken + interrupt events, clusters enemy
+    deaths into pulls, and attaches per-player events to whichever pull's
+    time range they fall within. Each pull carries a label
+    ("Selin Fireheart" or "Trash (4 mobs)"), a verdict (clean, took_hits,
+    wipe), and its sorted events.
 
-    Why events-API for deaths instead of the deathTable we already
-    fetch: the table's `killingAbility` field is inconsistently
-    populated (often empty, giving us "Unknown" names). The events API
-    has `abilityGameID` as a first-class field on each death event,
-    always populated.
+    Returns None for sub-threshold keys or when actor_id isn't resolvable.
+    WCL fetch failures degrade to empty lists in the affected sections
+    rather than tanking the whole ingest.
     """
-    if keystone_level < _TIMELINE_MIN_KEYSTONE:
+    if keystone_level < _BREAKDOWN_MIN_KEYSTONE:
         return None
     if actor_id is None:
         return None
 
-    events: list[dict] = []
-    del player_name  # parameter kept for caller symmetry; not used here
-
-    # ── Deaths ──────────────────────────────────────────────────────────
-    # WCL's Deaths dataType ignores the targetID query-param filter
-    # (verified empirically: passing target_id=player still returns
-    # every party member's deaths). Fetch unfiltered and filter
-    # Python-side by targetID. Also note: the `killingAbilityGameID`
-    # field on the event is the one with real spell IDs;
-    # `abilityGameID` is always 0 on death events.
+    # ── masterData: actor names + ability names (one fetch, shared) ─────
+    actor_name_by_id: dict[int, str] = {}
+    actor_type_by_id: dict[int, str] = {}
+    ability_name_by_id: dict[int, str] = {}
     try:
-        raw = wcl_client.get_player_events(
+        md = wcl_client.get_report_master_data(report_code) or {}
+        for a in (md.get("actors") or []):
+            aid = a.get("id")
+            if isinstance(aid, int):
+                actor_name_by_id[aid] = a.get("name") or "Unknown"
+                actor_type_by_id[aid] = a.get("type") or ""
+        for ab in (md.get("abilities") or []):
+            gid = ab.get("gameID")
+            if isinstance(gid, int):
+                ability_name_by_id[gid] = ab.get("name") or "Unknown"
+    except Exception as e:
+        logger.debug("Pulls: masterData lookup failed for %s: %s",
+                     report_code, e)
+
+    # ── Deaths — used both for pull clustering (enemy) and timeline
+    #    (player's own deaths).
+    try:
+        death_events = wcl_client.get_player_events(
             report_code, [fight_id], data_type="Deaths",
         )
     except Exception as e:
-        logger.debug("Timeline: death events failed for %s/%d: %s",
+        logger.debug("Pulls: death events failed for %s/%d: %s",
                      report_code, fight_id, e)
-        raw = []
-    for ev in raw:
-        if ev.get("targetID") != actor_id:
-            continue
+        death_events = []
+
+    player_deaths: list[dict] = []
+    enemy_deaths: list[dict] = []
+    for ev in death_events:
         ts = ev.get("timestamp")
-        # Prefer killingAbilityGameID (the actual killing blow); fall back
-        # to abilityGameID (often 0 on deaths) which renders as "Unknown".
-        aid = ev.get("killingAbilityGameID") or ev.get("abilityGameID") or 0
+        target_id = ev.get("targetID")
         if not isinstance(ts, (int, float)):
             continue
-        events.append({
-            "t": round((ts - fight_start_ms) / 1000.0, 1),
-            "type": "death",
-            "ability_id": int(aid),
-            "ability_name": None,
-            "amount": int(ev.get("amount") or 0) or None,
+        t_sec = (ts - fight_start_ms) / 1000.0
+        actor_type = actor_type_by_id.get(target_id, "")
+        if target_id == actor_id:
+            aid = ev.get("killingAbilityGameID") or ev.get("abilityGameID") or 0
+            player_deaths.append({
+                "t": round(t_sec, 1),
+                "ability_id": int(aid),
+                "amount": int(ev.get("amount") or 0) or None,
+            })
+        elif actor_type in ("NPC", "Boss"):
+            enemy_deaths.append({
+                "t": t_sec,
+                "name": actor_name_by_id.get(target_id, "Unknown"),
+            })
+        # Friendly non-self deaths (other party members) are ignored —
+        # they clutter the breakdown without helping clarify pulls.
+
+    # ── Cluster enemy deaths into pulls by time proximity ──────────────
+    enemy_deaths.sort(key=lambda d: d["t"])
+    pull_clusters: list[list[dict]] = []
+    for d in enemy_deaths:
+        if pull_clusters and d["t"] - pull_clusters[-1][-1]["t"] <= _PULL_GAP_SEC:
+            pull_clusters[-1].append(d)
+        else:
+            pull_clusters.append([d])
+
+    pulls: list[dict] = []
+    for i, cluster in enumerate(pull_clusters, start=1):
+        start_t = max(0.0, cluster[0]["t"] - _PULL_LEAD_IN_SEC)
+        end_t = cluster[-1]["t"]
+        name_counts: dict[str, int] = {}
+        for d in cluster:
+            name_counts[d["name"]] = name_counts.get(d["name"], 0) + 1
+        # Single named mob that died once = likely a boss, use its name.
+        # Otherwise aggregate as "Trash (N mobs)".
+        if len(name_counts) == 1 and sum(name_counts.values()) == 1:
+            label = next(iter(name_counts))
+        else:
+            total_mobs = sum(name_counts.values())
+            label = f"Trash ({total_mobs} mobs)"
+        pulls.append({
+            "i": i,
+            "start_t": round(start_t, 1),
+            "end_t": round(end_t, 1),
+            "label": label,
+            "verdict": "clean",
+            "events": [],
         })
 
-    # ── Avoidable damage ────────────────────────────────────────────────
-    # WCL's targetID filter on DamageTaken strictly requires source==target
-    # (verified empirically: passing target_id=player returned only self-
-    # damage stagger ticks, not hits taken from enemies). So we fetch
-    # unfiltered and narrow Python-side. Abilities-of-interest filter is
-    # also applied here, so the net in-memory footprint stays small.
+    def _assign_to_pull(t_sec: float) -> dict | None:
+        for p in pulls:
+            if p["start_t"] <= t_sec <= p["end_t"]:
+                return p
+        return None
+
+    # ── Avoidable damage events (all of them, not top-N) ────────────────
     if avoidable_ids:
         try:
             raw = wcl_client.get_player_events(
                 report_code, [fight_id], data_type="DamageTaken",
             )
         except Exception as e:
-            logger.debug("Timeline: damage events failed for %s/%d: %s",
+            logger.debug("Pulls: damage events failed for %s/%d: %s",
                          report_code, fight_id, e)
             raw = []
-        dmg_events: list[dict] = []
         for ev in raw:
             if ev.get("type") not in ("damage", "calculateddamage"):
                 continue
@@ -388,21 +438,22 @@ def _build_timeline_events(
             if not isinstance(aid, int) or aid not in avoidable_ids:
                 continue
             ts = ev.get("timestamp")
-            amt = int(ev.get("amount") or 0) + int(ev.get("absorbed") or 0)
             if not isinstance(ts, (int, float)):
                 continue
-            dmg_events.append({
-                "t": round((ts - fight_start_ms) / 1000.0, 1),
+            t_sec = (ts - fight_start_ms) / 1000.0
+            pull = _assign_to_pull(t_sec)
+            if pull is None:
+                continue
+            amt = int(ev.get("amount") or 0) + int(ev.get("absorbed") or 0)
+            pull["events"].append({
+                "t": round(t_sec, 1),
                 "type": "avoidable_damage",
                 "ability_id": aid,
-                "ability_name": None,
+                "ability_name": ability_name_by_id.get(aid, "Unknown"),
                 "amount": amt,
             })
-        dmg_events.sort(key=lambda e: e["amount"] or 0, reverse=True)
-        events.extend(dmg_events[:8])
 
-    # ── Critical interrupts — fetch all interrupts cast BY the player,
-    #    then filter to critical-spell IDs Python-side ───────────────────
+    # ── Critical interrupts by this player ──────────────────────────────
     if critical_interrupt_ids:
         try:
             raw = wcl_client.get_player_events(
@@ -411,64 +462,53 @@ def _build_timeline_events(
                 source_id=actor_id,
             )
         except Exception as e:
-            logger.debug("Timeline: interrupt events failed for %s/%d: %s",
+            logger.debug("Pulls: interrupt events failed for %s/%d: %s",
                          report_code, fight_id, e)
             raw = []
         for ev in raw:
-            # On Interrupts events the kicked spell is extraAbilityGameID;
-            # abilityGameID is the kick spell (Pummel, Counterspell, etc).
             kicked = ev.get("extraAbilityGameID")
             if not isinstance(kicked, int) or kicked not in critical_interrupt_ids:
                 continue
             ts = ev.get("timestamp")
             if not isinstance(ts, (int, float)):
                 continue
-            events.append({
-                "t": round((ts - fight_start_ms) / 1000.0, 1),
+            t_sec = (ts - fight_start_ms) / 1000.0
+            pull = _assign_to_pull(t_sec)
+            if pull is None:
+                continue
+            pull["events"].append({
+                "t": round(t_sec, 1),
                 "type": "critical_interrupt",
                 "ability_id": kicked,
-                "ability_name": None,
+                "ability_name": ability_name_by_id.get(kicked, "Unknown"),
                 "amount": None,
             })
 
-    # ── Resolve ability names (one shared masterData fetch) ────────────
-    needed_ids = {ev["ability_id"] for ev in events if ev.get("ability_id")}
-    if needed_ids:
-        try:
-            md = wcl_client.get_report_master_data(report_code) or {}
-            name_by_id = {
-                int(a["gameID"]): a.get("name")
-                for a in (md.get("abilities") or [])
-                if a.get("gameID") is not None
-            }
-            for ev in events:
-                if ev.get("ability_name") is None:
-                    ev["ability_name"] = name_by_id.get(ev["ability_id"]) or "Unknown"
-        except Exception as e:
-            logger.debug("Timeline: masterData lookup failed for %s: %s",
-                         report_code, e)
-            for ev in events:
-                if ev.get("ability_name") is None:
-                    ev["ability_name"] = "Unknown"
+    # ── Player deaths → their containing pull ──────────────────────────
+    for d in player_deaths:
+        pull = _assign_to_pull(d["t"])
+        if pull is None:
+            continue
+        pull["events"].append({
+            "t": d["t"],
+            "type": "death",
+            "ability_id": d["ability_id"],
+            "ability_name": ability_name_by_id.get(d["ability_id"], "Unknown"),
+            "amount": d["amount"],
+        })
 
-    # Sort by time, then apply priority-aware cap.
-    events.sort(key=lambda e: e["t"])
-    if len(events) <= _TIMELINE_MAX_EVENTS:
-        return events
-    deaths = [e for e in events if e["type"] == "death"]
-    crits = [e for e in events if e["type"] == "critical_interrupt"]
-    dmg = sorted(
-        (e for e in events if e["type"] == "avoidable_damage"),
-        key=lambda e: e["amount"] or 0,
-        reverse=True,
-    )
-    kept = deaths + crits
-    for e in dmg:
-        if len(kept) >= _TIMELINE_MAX_EVENTS:
-            break
-        kept.append(e)
-    kept.sort(key=lambda e: e["t"])
-    return kept
+    # ── Sort events per pull + compute verdict ──────────────────────────
+    for p in pulls:
+        p["events"].sort(key=lambda e: e["t"])
+        has_death = any(e["type"] == "death" for e in p["events"])
+        has_dmg = any(e["type"] == "avoidable_damage" for e in p["events"])
+        if has_death:
+            p["verdict"] = "wipe"
+        elif has_dmg:
+            p["verdict"] = "took_hits"
+        # else stays "clean" from initialization
+
+    return pulls
 
 
 def _get_avoidable_damage(damage_taken_table: dict, player_name: str, avoidable_ids: set[int]) -> float:
@@ -959,11 +999,13 @@ def ingest_player(
             # Track this new run so later fights in the same batch see it.
             fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
 
-            # Level B timeline — only built for ≥+8 keys (see
-            # _TIMELINE_MIN_KEYSTONE). Three narrowed events-API calls;
-            # the helper falls back to None gracefully if any fails.
-            timeline = _build_timeline_events(
-                player_name=name,
+            # Level B v2 — pull-by-pull breakdown. Only built for ≥+8
+            # keys (see _BREAKDOWN_MIN_KEYSTONE). The helper does four
+            # narrowed events-API calls (deaths, damage-taken, interrupts,
+            # plus one masterData fetch) and returns a list of pull
+            # objects, each with events sorted inside. Degrades to None
+            # if actor_id isn't resolvable or all fetches error.
+            pulls = _build_pulls(
                 actor_id=actor_id,
                 report_code=report_code,
                 fight_id=fight_id,
@@ -1003,7 +1045,7 @@ def ingest_player(
                 critical_interrupts=crit_interrupts,
                 avoidable_deaths=avoidable_death_count,
                 party_comp=_extract_party_comp(player_details) or None,
-                timeline_events=timeline,
+                pulls=pulls,
             )
             session.add(run)
             runs.append(run)

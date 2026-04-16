@@ -52,15 +52,27 @@ export interface RunResponse {
   critical_interrupts: number | null;
   avoidable_deaths: number | null;
   party_comp?: PartyMember[] | null;
-  timeline_events?: TimelineEvent[] | null;
+  pulls?: Pull[] | null;
 }
 
-export interface TimelineEvent {
+export type PullEventType = "avoidable_damage" | "critical_interrupt" | "death";
+export type PullVerdict = "clean" | "took_hits" | "wipe";
+
+export interface PullEvent {
   t: number;                    // seconds into fight
-  type: "avoidable_damage" | "critical_interrupt" | "death";
+  type: PullEventType;
   ability_id: number;
   ability_name: string;
-  amount: number | null;        // damage amount (for avoidable/death); null for interrupts
+  amount: number | null;        // damage amount; null for interrupts
+}
+
+export interface Pull {
+  i: number;                    // 1-based pull index
+  start_t: number;              // seconds into fight
+  end_t: number;
+  label: string;                // "Selin Fireheart" or "Trash (4 mobs)"
+  verdict: PullVerdict;
+  events: PullEvent[];
 }
 
 export interface PartyMember {

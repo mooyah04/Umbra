@@ -156,9 +156,10 @@ class RunResponse(BaseModel):
     critical_interrupts: int | None = None
     avoidable_deaths: int | None = None
     party_comp: list[dict] | None = None
-    # Level B per-run event timeline (≤15 objects). None on runs older
-    # than Level B ingest, or below the keystone-level threshold.
-    timeline_events: list[dict] | None = None
+    # Level B v2 — pull-by-pull breakdown. List of pull objects with
+    # nested events. None on runs below the keystone-level threshold
+    # (+8) or ingested before Level B v2 shipped.
+    pulls: list[dict] | None = None
 
 
 class RunListResponse(BaseModel):
