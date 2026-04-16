@@ -208,6 +208,10 @@ class PlayerProfileResponse(BaseModel):
     render_url: str | None = None
     # Sorted: graded tiles descending by composite, empty tiles last.
     per_dungeon: list[PerDungeonGrade] = []
+    # True when the row is a stub we haven't finished ingesting yet.
+    # Frontend renders an "analyzing…" state and the scheduler will
+    # warm the row on its next sweep.
+    is_indexing: bool = False
 
 
 class HistoryPoint(BaseModel):

@@ -1,6 +1,8 @@
 """Umbra Backend — FastAPI application."""
 
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime, timedelta
 
 import hashlib
@@ -14,7 +16,7 @@ from sqlalchemy import Float, Integer, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import settings
-from app.db import engine, get_session
+from app.db import SessionLocal, engine, get_session
 from app.export.lua_writer import generate_lua
 from app.models import AddonDownload, Base, BugReport, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
@@ -134,6 +136,56 @@ def _find_player(session: Session, region: str, realm: str, name: str) -> Player
         if _realm_key(p.realm) == target:
             return p
     return None
+
+
+# Background ingest pool for cold-start profile hits. Small: the point is
+# to let `/all` return promptly — long ingests just keep running past the
+# edge timeout and we pick up the result on the next page refresh.
+_bg_ingest_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="bg-ingest")
+# Coalesce concurrent requests for the same cold player so a single click
+# burst doesn't spawn N identical WCL ingest jobs.
+_bg_ingest_inflight: set[tuple[str, str, str]] = set()
+_bg_ingest_lock = threading.Lock()
+
+# Upper bound on how long `/all` will wait for a synchronous ingest before
+# falling back to the indexing stub response. Must sit well under Railway's
+# edge timeout (~30s) so the request completes even on slow WCL nights.
+_INLINE_INGEST_TIMEOUT_SECONDS = 10.0
+
+
+def _ingest_player_in_own_session(name: str, realm: str, region: str) -> None:
+    """Run ingest_player with a fresh session. For background threads that
+    can't safely reuse the request-scoped session."""
+    key = (region.upper(), realm, name.lower())
+    try:
+        with SessionLocal() as session:
+            try:
+                ingest_player(session, name, realm, region)
+            except Exception as e:
+                logger.warning("bg-ingest failed for %s-%s (%s): %s",
+                               name, realm, region, e)
+    finally:
+        with _bg_ingest_lock:
+            _bg_ingest_inflight.discard(key)
+
+
+def _ingest_player_inline_wrapper(name: str, realm: str, region: str):
+    """Variant of `_ingest_player_in_own_session` that surfaces the result.
+    Used by `/all` for a bounded inline ingest — if the wait times out the
+    thread keeps running and the result is discarded by the caller."""
+    with SessionLocal() as session:
+        return ingest_player(session, name, realm, region)
+
+
+def _kick_background_ingest(name: str, realm: str, region: str) -> None:
+    """Fire-and-forget ingest. De-duped so concurrent profile hits for the
+    same cold player don't queue redundant jobs."""
+    key = (region.upper(), realm, name.lower())
+    with _bg_ingest_lock:
+        if key in _bg_ingest_inflight:
+            return
+        _bg_ingest_inflight.add(key)
+    _bg_ingest_pool.submit(_ingest_player_in_own_session, name, realm, region)
 
 
 def _run_to_response(run: DungeonRun) -> RunResponse:
@@ -2114,16 +2166,33 @@ def get_player_profile(
     """
     name, realm, region = _canonical_identity(name, realm, region)
     player = _find_player(session, region, realm, name)
+    is_indexing = False
     if not player:
-        # Try a live ingest before giving up.
+        # Fast path: try a bounded inline ingest first so self-lookups (which
+        # often land cold) still get scored within the request.
+        # Slow path: if the ingest doesn't finish in time we hand off to a
+        # background thread and serve an "indexing" stub. The next page
+        # refresh picks up whatever landed. Avoids the edge-timeout 504 that
+        # makes clicks on cold party members look like they do nothing.
+        fut = _bg_ingest_pool.submit(
+            _ingest_player_inline_wrapper, name, realm, region
+        )
         try:
-            result = ingest_player(session, name, realm, region)
+            result = fut.result(timeout=_INLINE_INGEST_TIMEOUT_SECONDS)
+        except FutureTimeout:
+            # Thread keeps running; we don't cancel it. Ensure it's tracked
+            # in the inflight set so a second click doesn't double-fire.
+            key = (region.upper(), realm, name.lower())
+            with _bg_ingest_lock:
+                _bg_ingest_inflight.add(key)
+            result = None
+            is_indexing = True
         except Exception as e:
-            logger.warning("Auto-ingest failed for %s-%s (%s): %s",
+            logger.warning("Inline ingest raised for %s-%s (%s): %s",
                            name, realm, region, e)
             result = None
 
-        if result is None or result.player is None:
+        if not is_indexing and (result is None or result.player is None):
             reason = getattr(result, "reason", None) if result else None
             raise HTTPException(
                 status_code=404,
@@ -2138,10 +2207,23 @@ def get_player_profile(
                 },
             )
         player = _find_player(session, region, realm, name)
+        if is_indexing and not player:
+            # Ingest is still running and hasn't persisted the Player row
+            # yet. Return a synthesized indexing response so the frontend
+            # can render an "analyzing…" state without a 404.
+            return PlayerProfileResponse(
+                name=name,
+                realm=realm,
+                region=region.upper(),
+                class_id=0,
+                scores=[],
+                recent_runs=[],
+                timed_pct=0.0,
+                total_runs=0,
+                per_dungeon=[],
+                is_indexing=True,
+            )
         if not player:
-            # Ingest returned a player but our lookup can't find it —
-            # should never happen, but surface it as a generic 500-ish
-            # 404 rather than silently returning nothing.
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -2254,6 +2336,7 @@ def get_player_profile(
         inset_url=player.inset_url,
         render_url=player.render_url,
         per_dungeon=per_dungeon,
+        is_indexing=is_indexing,
     )
 
 

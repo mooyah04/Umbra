@@ -183,6 +183,36 @@ export default async function PlayerProfilePage({ params }: Props) {
     );
   }
 
+  if (profile.is_indexing) {
+    return (
+      <div className="pt-28 pb-32 px-6 max-w-3xl mx-auto text-center">
+        <span className="material-symbols-outlined text-primary text-6xl mb-6 opacity-40 animate-pulse">
+          hourglass_top
+        </span>
+        <h2 className="font-[family-name:var(--font-headline)] text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
+          ANALYZING THIS PLAYER
+        </h2>
+        <p className="text-on-surface-variant mb-2 text-lg">
+          {decodeURIComponent(name)} &middot;{" "}
+          {decodeURIComponent(realm)}-{region.toUpperCase()}
+        </p>
+        <p className="text-on-surface-variant mb-8 max-w-xl mx-auto leading-relaxed">
+          We&apos;re fetching their logs from Warcraft Logs right now. This
+          usually takes 20-60 seconds on first lookup. Refresh the page in a
+          minute.
+        </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Link
+            href="/"
+            className="bg-surface-container-high text-on-surface font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:bg-surface-bright transition-colors"
+          >
+            Return to Search
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const primary: RoleScore | undefined =
     profile.scores.find((s) => s.primary_role) ?? profile.scores[0];
   const playerPath = `/player/${region}/${realm}/${name}`;

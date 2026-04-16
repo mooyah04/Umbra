@@ -121,6 +121,7 @@ export interface PlayerProfileResponse {
   inset_url?: string | null;
   render_url?: string | null;
   per_dungeon?: PerDungeonGrade[];
+  is_indexing?: boolean;
 }
 
 export interface HistoryPoint {
