@@ -1,0 +1,68 @@
+name: Refresh addon data
+
+# Regenerates Umbra/UmbraData.lua (and the public zips) from the live API
+# every 6 hours so the addon download always contains recent scoring data.
+# The addon itself has no network — users see whatever data was bundled in
+# their installed zip, so the zip needs to stay fresh on our side.
+
+on:
+  schedule:
+    # Every 6 hours at :05 past the hour (offset from top-of-hour cron spikes).
+    - cron: "5 */6 * * *"
+  workflow_dispatch:  # allow manual trigger from the Actions tab
+
+permissions:
+  contents: write  # needed to commit + push the refreshed files
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Default fetch-depth=1 works; just need to push on top of master.
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch fresh UmbraData.lua from production
+        run: |
+          set -eo pipefail
+          mkdir -p Umbra Umbra-dev
+          # Region filter = EU for now (pre-public focus). Drop the query
+          # param when we go global and want all regions in one lua file.
+          curl --fail --silent --show-error \
+            --output Umbra/UmbraData.lua \
+            "https://api.wowumbra.gg/api/export/lua?region=EU"
+          # Sanity-check: must start with the Umbra_Database table declaration.
+          head -1 Umbra/UmbraData.lua | grep -q "Umbra_Database" \
+            || { echo "lua fetch returned unexpected content"; exit 1; }
+          # Copy to dev track — same content, separate zip.
+          cp Umbra/UmbraData.lua Umbra-dev/UmbraData.lua
+          echo "Fetched $(wc -c < Umbra/UmbraData.lua) bytes"
+
+      - name: Rebuild addon zips
+        run: python scripts/build-addon-zip.py
+
+      - name: Commit + push if data changed
+        run: |
+          set -eo pipefail
+          git config user.name "umbra-data-bot"
+          git config user.email "umbra-data-bot@users.noreply.github.com"
+          git add Umbra/UmbraData.lua Umbra-dev/UmbraData.lua \
+                  frontend/public/Umbra.zip frontend/public/Umbra-dev.zip
+          if git diff --cached --quiet; then
+            echo "No changes to commit — data hasn't moved since last run."
+            exit 0
+          fi
+          git commit -m "Addon data refresh (automated)
+
+          Regenerated UmbraData.lua from production (region=EU) and
+          rebuilt both addon zips. Ingested runs since the last refresh
+          are now reflected in the downloadable addon.
+          "
+          git push origin HEAD:master
