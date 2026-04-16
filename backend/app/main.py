@@ -806,6 +806,28 @@ def sample_dungeon_mechanics(
     }
 
 
+@app.get("/api/debug/wcl-interrupts", dependencies=[Depends(require_api_key)])
+def debug_wcl_interrupts(code: str, fight_id: int):
+    """Return the raw interruptTable payload for one specific fight so we
+    can see the shape WCL returns. Used to debug sample-dungeon-interrupts."""
+    from app.wcl.client import wcl_client
+    query = """
+    query($code: String!, $fightIDs: [Int!]!) {
+      reportData {
+        report(code: $code) {
+          interruptTable: table(fightIDs: $fightIDs, dataType: Interrupts)
+        }
+      }
+    }
+    """
+    data = wcl_client.query(query, {"code": code, "fightIDs": [fight_id]})
+    return {
+        "code": code,
+        "fight_id": fight_id,
+        "raw": data.get("reportData", {}).get("report", {}).get("interruptTable"),
+    }
+
+
 @app.get("/api/admin/sample-dungeon-interrupts", dependencies=[Depends(require_api_key)])
 def sample_dungeon_interrupts(
     encounter_id: int,
