@@ -360,6 +360,50 @@ class WCLClient:
         }
 
 
+    def get_fight_dungeon_pulls(
+        self, report_code: str, fight_id: int
+    ) -> list[dict]:
+        """Return WCL's authoritative pull breakdown for a single M+ fight.
+
+        WCL pre-computes pull boundaries for every M+ fight, including
+        the most-notable enemy's name, the time range, a kill flag, and
+        the list of enemy NPCs with their instance ranges. This is the
+        source of truth for Level B v2's pull breakdown — far better
+        than clustering death events ourselves.
+
+        Returns [] for non-M+ fights or on query failure.
+        """
+        query = """
+        query($code: String!, $fightIDs: [Int!]!) {
+          reportData {
+            report(code: $code) {
+              fights(fightIDs: $fightIDs) {
+                dungeonPulls {
+                  id
+                  name
+                  startTime
+                  endTime
+                  kill
+                  enemyNPCs { id gameID minimumInstanceID maximumInstanceID }
+                }
+              }
+            }
+          }
+        }
+        """
+        try:
+            data = self.query(query, {"code": report_code, "fightIDs": [fight_id]})
+        except Exception as e:
+            logger.warning("get_fight_dungeon_pulls failed for %s/%d: %s",
+                           report_code, fight_id, e)
+            return []
+        fights = (
+            data.get("reportData", {}).get("report", {}).get("fights") or []
+        )
+        if not fights:
+            return []
+        return fights[0].get("dungeonPulls") or []
+
     def get_report_master_data(self, report_code: str) -> dict:
         """Return the report's masterData with actors + abilities.
 

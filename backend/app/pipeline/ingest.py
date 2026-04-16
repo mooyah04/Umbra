@@ -290,14 +290,6 @@ def _get_cooldown_usage(
 # Below this, ingest cost isn't worth it — +5 keys aren't interesting
 # and the breakdown wouldn't be actionable.
 _BREAKDOWN_MIN_KEYSTONE = 8
-# Enemy-death-cluster gap (seconds). Two consecutive enemy deaths within
-# this window are treated as the same pull. Tuned for M+ where packs
-# typically die within 5-15s of each other.
-_PULL_GAP_SEC = 15.0
-# Seconds before a pull's first enemy death to treat as the pull's start
-# (engagement → first kill). Events (damage taken, kicks) landing in
-# this lead-in window get attributed to the upcoming pull.
-_PULL_LEAD_IN_SEC = 10.0
 
 
 def _build_pulls(
@@ -312,32 +304,25 @@ def _build_pulls(
 ) -> list[dict] | None:
     """Build the Level B v2 pull-by-pull breakdown for one run.
 
-    Fetches all deaths + damage-taken + interrupt events, clusters enemy
-    deaths into pulls, and attaches per-player events to whichever pull's
-    time range they fall within. Each pull carries a label
-    ("Selin Fireheart" or "Trash (4 mobs)"), a verdict (clean, took_hits,
-    wipe), and its sorted events.
+    Uses WCL's authoritative `fight.dungeonPulls` as the source of truth
+    for pull boundaries + names, then attaches per-player events
+    (damage taken, critical interrupts, deaths) to whichever pull's
+    time range contains each event. Per-pull verdict (clean / took_hits
+    / wipe) derived from the attached events.
 
     Returns None for sub-threshold keys or when actor_id isn't resolvable.
-    WCL fetch failures degrade to empty lists in the affected sections
-    rather than tanking the whole ingest.
+    WCL fetch failures degrade gracefully — returning [] rather than
+    tanking the whole ingest.
     """
     if keystone_level < _BREAKDOWN_MIN_KEYSTONE:
         return None
     if actor_id is None:
         return None
 
-    # ── masterData: actor names + ability names (one fetch, shared) ─────
-    actor_name_by_id: dict[int, str] = {}
-    actor_type_by_id: dict[int, str] = {}
+    # ── masterData for ability-name lookup on events ────────────────────
     ability_name_by_id: dict[int, str] = {}
     try:
         md = wcl_client.get_report_master_data(report_code) or {}
-        for a in (md.get("actors") or []):
-            aid = a.get("id")
-            if isinstance(aid, int):
-                actor_name_by_id[aid] = a.get("name") or "Unknown"
-                actor_type_by_id[aid] = a.get("type") or ""
         for ab in (md.get("abilities") or []):
             gid = ab.get("gameID")
             if isinstance(gid, int):
@@ -346,8 +331,49 @@ def _build_pulls(
         logger.debug("Pulls: masterData lookup failed for %s: %s",
                      report_code, e)
 
-    # ── Deaths — used both for pull clustering (enemy) and timeline
-    #    (player's own deaths).
+    # ── WCL's authoritative pull data ───────────────────────────────────
+    # Each entry: {id, name, startTime, endTime, kill, enemyNPCs[]}
+    # startTime/endTime are absolute log timestamps (ms).
+    wcl_pulls = wcl_client.get_fight_dungeon_pulls(report_code, fight_id)
+    if not wcl_pulls:
+        return []
+
+    pulls: list[dict] = []
+    for i, wp in enumerate(wcl_pulls, start=1):
+        start_ts = wp.get("startTime")
+        end_ts = wp.get("endTime")
+        if not isinstance(start_ts, (int, float)) or not isinstance(end_ts, (int, float)):
+            continue
+        start_t = (start_ts - fight_start_ms) / 1000.0
+        end_t = (end_ts - fight_start_ms) / 1000.0
+        # Mob count from enemyNPCs[].{min,max}InstanceID ranges.
+        total_mobs = 0
+        for npc in (wp.get("enemyNPCs") or []):
+            lo = npc.get("minimumInstanceID") or 0
+            hi = npc.get("maximumInstanceID") or 0
+            total_mobs += max(0, hi - lo + 1)
+        # Label: kill=True marks a boss pull. Use WCL's name directly
+        # (it's the notable enemy's name, e.g. "Arcanotron Custos").
+        # Non-boss pulls read as generic "Trash (N mobs)" per our
+        # editorial choice, even though WCL supplies a name for them.
+        if wp.get("kill"):
+            label = wp.get("name") or "Boss"
+        else:
+            label = f"Trash ({total_mobs} mobs)" if total_mobs > 0 else "Trash"
+        pulls.append({
+            "i": i,
+            "start_t": round(start_t, 1),
+            "end_t": round(end_t, 1),
+            "label": label,
+            "verdict": "clean",
+            "events": [],
+        })
+
+    if not pulls:
+        return []
+
+    # Player deaths still come from the Deaths events API (for timestamps).
+    player_deaths: list[dict] = []
     try:
         death_events = wcl_client.get_player_events(
             report_code, [fight_id], data_type="Deaths",
@@ -356,61 +382,17 @@ def _build_pulls(
         logger.debug("Pulls: death events failed for %s/%d: %s",
                      report_code, fight_id, e)
         death_events = []
-
-    player_deaths: list[dict] = []
-    enemy_deaths: list[dict] = []
     for ev in death_events:
         ts = ev.get("timestamp")
         target_id = ev.get("targetID")
-        if not isinstance(ts, (int, float)):
+        if not isinstance(ts, (int, float)) or target_id != actor_id:
             continue
+        aid = ev.get("killingAbilityGameID") or ev.get("abilityGameID") or 0
         t_sec = (ts - fight_start_ms) / 1000.0
-        actor_type = actor_type_by_id.get(target_id, "")
-        if target_id == actor_id:
-            aid = ev.get("killingAbilityGameID") or ev.get("abilityGameID") or 0
-            player_deaths.append({
-                "t": round(t_sec, 1),
-                "ability_id": int(aid),
-                "amount": int(ev.get("amount") or 0) or None,
-            })
-        elif actor_type in ("NPC", "Boss"):
-            enemy_deaths.append({
-                "t": t_sec,
-                "name": actor_name_by_id.get(target_id, "Unknown"),
-            })
-        # Friendly non-self deaths (other party members) are ignored —
-        # they clutter the breakdown without helping clarify pulls.
-
-    # ── Cluster enemy deaths into pulls by time proximity ──────────────
-    enemy_deaths.sort(key=lambda d: d["t"])
-    pull_clusters: list[list[dict]] = []
-    for d in enemy_deaths:
-        if pull_clusters and d["t"] - pull_clusters[-1][-1]["t"] <= _PULL_GAP_SEC:
-            pull_clusters[-1].append(d)
-        else:
-            pull_clusters.append([d])
-
-    pulls: list[dict] = []
-    for i, cluster in enumerate(pull_clusters, start=1):
-        start_t = max(0.0, cluster[0]["t"] - _PULL_LEAD_IN_SEC)
-        end_t = cluster[-1]["t"]
-        name_counts: dict[str, int] = {}
-        for d in cluster:
-            name_counts[d["name"]] = name_counts.get(d["name"], 0) + 1
-        # Single named mob that died once = likely a boss, use its name.
-        # Otherwise aggregate as "Trash (N mobs)".
-        if len(name_counts) == 1 and sum(name_counts.values()) == 1:
-            label = next(iter(name_counts))
-        else:
-            total_mobs = sum(name_counts.values())
-            label = f"Trash ({total_mobs} mobs)"
-        pulls.append({
-            "i": i,
-            "start_t": round(start_t, 1),
-            "end_t": round(end_t, 1),
-            "label": label,
-            "verdict": "clean",
-            "events": [],
+        player_deaths.append({
+            "t": round(t_sec, 1),
+            "ability_id": int(aid),
+            "amount": int(ev.get("amount") or 0) or None,
         })
 
     def _assign_to_pull(t_sec: float) -> dict | None:
