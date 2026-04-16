@@ -7,7 +7,11 @@ import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
 import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import type { PlayerSearchResult } from "@/lib/types";
 
-export const revalidate = 60;
+// Short page-level ISR so the homepage's stats + carousel + leaderboard
+// teaser don't serve multi-minute-old content on the first visit after
+// a cache-miss. Individual `getTopPlayers` / `getStatsSummary` / etc
+// calls also have their own revalidate windows in lib/api.ts.
+export const revalidate = 15;
 
 export default async function Home() {
   // Parallel fetch so homepage renders in a single RTT to the API.

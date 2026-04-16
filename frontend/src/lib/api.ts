@@ -31,11 +31,16 @@ export interface ApiErrorDetail {
   message?: string;
 }
 
-async function fetchApi<T>(path: string): Promise<T> {
-  // Auto-ingest paths can take 20-40s (WCL calls + scoring) so the
-  // player-profile fetch needs a relaxed revalidate window + generous
-  // timeout. Other paths are cheap and benefit from the 60s cache.
-  const res = await fetch(`${API_URL}${path}`, { next: { revalidate: 60 } });
+async function fetchApi<T>(path: string, revalidateSec = 60): Promise<T> {
+  // Per-endpoint cache freshness. Server components use Next's ISR —
+  // a response is served from cache for `revalidateSec` seconds, then
+  // stale-served once + regenerated in the background. Keep live-ish
+  // surfaces (stats, leaderboard, recently-graded) short so visitors
+  // don't see multi-minute-old numbers. Individual player/run pages
+  // barely change within 60s and stay on the default.
+  const res = await fetch(`${API_URL}${path}`, {
+    next: { revalidate: revalidateSec },
+  });
   if (!res.ok) {
     let detail: ApiErrorDetail | string | undefined;
     let message = `API error ${res.status}`;
@@ -75,7 +80,9 @@ export async function getTopPlayers(
   const params = new URLSearchParams({ limit: String(limit) });
   if (role) params.set("role", role);
   if (region) params.set("region", region);
-  return fetchApi(`/api/players/top?${params}`);
+  // 30s — homepage's "Recently Graded" should feel live without
+  // re-fetching on every page view.
+  return fetchApi(`/api/players/top?${params}`, 30);
 }
 
 export async function getLeaderboard(opts: {
@@ -88,7 +95,8 @@ export async function getLeaderboard(opts: {
   if (opts.role) params.set("role", opts.role);
   if (opts.region) params.set("region", opts.region);
   if (opts.classId) params.set("class_id", String(opts.classId));
-  return fetchApi(`/api/players/leaderboard?${params}`);
+  // 20s — leaderboard shifts as scores recompute during sweep ticks.
+  return fetchApi(`/api/players/leaderboard?${params}`, 20);
 }
 
 export interface StatsSummary {
@@ -99,7 +107,9 @@ export interface StatsSummary {
 }
 
 export async function getStatsSummary(): Promise<StatsSummary> {
-  return fetchApi<StatsSummary>(`/api/stats/summary`);
+  // 15s — homepage banner numbers. Short freshness is cheap (endpoint
+  // is a few counts) and makes the site feel alive.
+  return fetchApi<StatsSummary>(`/api/stats/summary`, 15);
 }
 
 export async function getPlayerProfile(

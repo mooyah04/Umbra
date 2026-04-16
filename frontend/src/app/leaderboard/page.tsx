@@ -14,6 +14,11 @@ import type { PlayerSearchResult } from "@/lib/types";
  * row handles class + region.
  */
 
+// Short ISR window — scores shift as the ingest sweep re-scores players,
+// and seeing stale placements after visible backfill activity is
+// confusing. The underlying getLeaderboard fetch also uses 20s.
+export const revalidate = 20;
+
 const ROLE_TABS: Array<{ key: string; label: string }> = [
   { key: "all", label: "All Roles" },
   { key: "tank", label: "Tank" },
