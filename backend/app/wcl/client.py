@@ -1,91 +1,184 @@
-import time
+import itertools
 import logging
 import threading
+import time
 
 import httpx
+
 from app.config import settings
-from app.wcl.auth import wcl_auth
+from app.wcl.auth import WCLCredential, wcl_auth
 
 logger = logging.getLogger(__name__)
 
 
-# Global semaphore capping concurrent WCL requests. Parallel ingest workers
-# can burst over WCL's rate limit faster than 429 backoff recovers; this
-# smooths the spike so fewer requests ever need to retry.
-#
-# Sized for Platinum tier (~18k calls/hour = 5/sec sustained). Four in-flight
-# gives headroom for latency variance without walking into rate-limit ceilings.
-# Bumpable via settings if we change WCL tier.
-_WCL_MAX_IN_FLIGHT = 4
-_wcl_semaphore = threading.Semaphore(_WCL_MAX_IN_FLIGHT)
+# Per-client concurrency cap. Each Platinum client gets its own 18k/hr
+# budget, so per-client in-flight matters more than a global ceiling.
+# 4 gives headroom for latency variance without walking into the rate
+# limit on a single client.
+_WCL_MAX_IN_FLIGHT_PER_CLIENT = 4
 
 # Hard cap on Retry-After. WCL has been observed returning huge values
-# (e.g. 2800s = 47 min — quota-reset windows) which hang user-facing
-# requests until the edge timeouts. Anything longer than this raises
-# WCLRateLimitedError so callers can decide: fail fast (user requests)
-# or reschedule for later (scheduler).
+# (e.g. 2800s = 47 min — quota-reset windows). Anything longer than this
+# puts the client into cooldown; the router tries the next healthy client
+# before raising WCLRateLimitedError.
 _RETRY_AFTER_MAX_SECONDS = 20
 
 
+class _ClientState:
+    """Per-credential runtime state: semaphore + cooldown-until timestamp.
+    Created lazily the first time a credential is used."""
+    __slots__ = ("semaphore", "cooldown_until")
+
+    def __init__(self) -> None:
+        self.semaphore = threading.Semaphore(_WCL_MAX_IN_FLIGHT_PER_CLIENT)
+        self.cooldown_until = 0.0  # unix ts; 0 = healthy
+
+
+_state_by_id: dict[str, _ClientState] = {}
+_state_lock = threading.Lock()
+# Cycle credentials so successive requests hit different clients. Sized
+# to the credential pool at first use; reset if the pool changes (tests).
+_rotation: itertools.cycle | None = None
+_rotation_pool_size: int = 0
+
+
+def _state_for(cred: WCLCredential) -> _ClientState:
+    with _state_lock:
+        st = _state_by_id.get(cred.client_id)
+        if st is None:
+            st = _ClientState()
+            _state_by_id[cred.client_id] = st
+        return st
+
+
+def _healthy_first(creds: list[WCLCredential]) -> list[WCLCredential]:
+    """Return credentials ordered so healthy ones come first, starting
+    the round-robin from a rotating offset. Cooling clients get tried
+    last as a fallback before we give up."""
+    global _rotation, _rotation_pool_size
+    if not creds:
+        return []
+    with _state_lock:
+        if _rotation is None or _rotation_pool_size != len(creds):
+            _rotation = itertools.cycle(range(len(creds)))
+            _rotation_pool_size = len(creds)
+        offset = next(_rotation)
+    rotated = creds[offset:] + creds[:offset]
+    now = time.time()
+    healthy = [c for c in rotated if _state_for(c).cooldown_until <= now]
+    cooling = [c for c in rotated if _state_for(c).cooldown_until > now]
+    return healthy + cooling
+
+
+def _min_cooldown_remaining(creds: list[WCLCredential]) -> int:
+    now = time.time()
+    cds = [
+        max(0, _state_for(c).cooldown_until - now)
+        for c in creds
+    ]
+    return int(min(cds)) if cds else 0
+
+
+def _client_label(cred: WCLCredential) -> str:
+    """Short identifier for log lines; we never want to log the full
+    client_id or secret."""
+    return cred.client_id[:6] + "…" if cred.client_id else "<unset>"
+
+
 class WCLClient:
-    """Sync GraphQL client for Warcraft Logs API v2 with retry on rate limit."""
+    """Sync GraphQL client for Warcraft Logs API v2.
+
+    When multiple client credentials are configured, queries rotate
+    across them so the 18k-points/hr Platinum budget scales linearly
+    with the number of clients. Per-client 429s put just that client
+    into cooldown — other clients keep serving.
+    """
 
     def query(self, graphql: str, variables: dict | None = None) -> dict:
-        token = wcl_auth.get_token()
-        max_retries = 5
+        creds = wcl_auth.credentials()
+        if not creds:
+            raise RuntimeError(
+                "WCL credentials not configured. Set WCL_CLIENT_ID + "
+                "WCL_CLIENT_SECRET (single) or WCL_CLIENT_IDS + "
+                "WCL_CLIENT_SECRETS (multi)."
+            )
 
-        # Gate concurrent in-flight requests across all caller threads.
-        # The acquire blocks (no timeout) — if the app really wants to
-        # make N>max calls in parallel, it just queues them up here.
-        with _wcl_semaphore:
-            for attempt in range(max_retries):
+        max_retries_per_client = 2
+        attempts_remaining = max_retries_per_client * len(creds)
+        last_resp: httpx.Response | None = None
+        ordered = _healthy_first(creds)
+
+        while attempts_remaining > 0:
+            attempts_remaining -= 1
+            # Pick the first healthy client (or the coolest one as a
+            # last resort). Ordering is recomputed each attempt so a
+            # freshly-cooled client becomes visible to later retries.
+            now = time.time()
+            cred = next(
+                (c for c in ordered if _state_for(c).cooldown_until <= now),
+                None,
+            )
+            if cred is None:
+                # All clients cooling. Don't block the request thread;
+                # raise with the shortest remaining cooldown so user-
+                # facing callers can surface it immediately.
+                raise WCLRateLimitedError(_min_cooldown_remaining(creds))
+
+            state = _state_for(cred)
+            token = wcl_auth.get_token_for(cred)
+
+            with state.semaphore:
                 with httpx.Client() as client:
-                    resp = client.post(
+                    last_resp = client.post(
                         settings.wcl_api_url,
                         json={"query": graphql, "variables": variables or {}},
                         headers={"Authorization": f"Bearer {token}"},
                         timeout=30.0,
                     )
 
-                if resp.status_code == 429:
-                    # Respect WCL's Retry-After when it's sane; otherwise
-                    # use exponential-ish backoff. If WCL asks for a long
-                    # wait (daily-quota reset window) don't block the
-                    # request thread — raise so the caller handles it.
-                    retry_after_header = resp.headers.get("Retry-After")
-                    try:
-                        advised = int(retry_after_header) if retry_after_header else None
-                    except ValueError:
-                        advised = None
+            if last_resp.status_code == 429:
+                retry_after_header = last_resp.headers.get("Retry-After")
+                try:
+                    advised = int(retry_after_header) if retry_after_header else None
+                except ValueError:
+                    advised = None
 
-                    if advised is not None and advised > _RETRY_AFTER_MAX_SECONDS:
-                        logger.warning(
-                            "WCL rate limited, Retry-After=%ds exceeds cap=%ds — "
-                            "failing fast (attempt %d/%d)",
-                            advised, _RETRY_AFTER_MAX_SECONDS,
-                            attempt + 1, max_retries,
-                        )
-                        raise WCLRateLimitedError(advised)
-
-                    wait = advised if advised is not None else 15 * (attempt + 1)
+                if advised is not None and advised > _RETRY_AFTER_MAX_SECONDS:
+                    # Park this client; try the next one (if any).
+                    state.cooldown_until = time.time() + advised
                     logger.warning(
-                        "WCL rate limited, waiting %ds (attempt %d/%d)",
-                        wait, attempt + 1, max_retries,
+                        "WCL 429 on client %s, Retry-After=%ds — "
+                        "cooling down, trying next client (remaining=%d)",
+                        _client_label(cred), advised, attempts_remaining,
                     )
-                    time.sleep(wait)
+                    # Refresh ordering so the newly-cooling client drops
+                    # out of the healthy pool for subsequent attempts.
+                    ordered = _healthy_first(creds)
                     continue
 
-                resp.raise_for_status()
-                data = resp.json()
+                # Short backoff — a few seconds, same client is fine.
+                wait = advised if advised is not None else 5
+                logger.warning(
+                    "WCL 429 on client %s, waiting %ds (remaining=%d)",
+                    _client_label(cred), wait, attempts_remaining,
+                )
+                time.sleep(wait)
+                continue
 
-                if "errors" in data:
-                    raise WCLQueryError(data["errors"])
-                return data["data"]
+            last_resp.raise_for_status()
+            data = last_resp.json()
+            if "errors" in data:
+                raise WCLQueryError(data["errors"])
+            return data["data"]
 
-            # All retries exhausted. Surface the last response's error so
-            # the caller sees "429" (not a generic None) in their logs.
-            resp.raise_for_status()
-            return {}
+        # Exhausted retries across clients. If the last response was a
+        # 429, surface it as WCLRateLimitedError so user endpoints can
+        # distinguish from generic HTTP errors.
+        if last_resp is not None and last_resp.status_code == 429:
+            raise WCLRateLimitedError(_min_cooldown_remaining(creds))
+        if last_resp is not None:
+            last_resp.raise_for_status()
+        return {}
 
     def get_character_with_reports(
         self, name: str, server_slug: str, server_region: str, limit: int = 10

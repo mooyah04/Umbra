@@ -22,6 +22,13 @@ def _normalize_database_url(url: str) -> str:
 class Settings(BaseSettings):
     wcl_client_id: str = ""
     wcl_client_secret: str = ""
+    # Multi-client pool (optional). Comma-separated lists paired by index:
+    # WCL_CLIENT_IDS="id1,id2,id3" / WCL_CLIENT_SECRETS="s1,s2,s3". When
+    # set, these override the singular pair above so the ingest can spread
+    # across multiple 18k-points/hr Platinum buckets. Empty = single-key
+    # mode (the singular fields are used instead).
+    wcl_client_ids: str = ""
+    wcl_client_secrets: str = ""
     database_url: str = "postgresql+psycopg://postgres:umbra@localhost:5432/umbra"
 
     @field_validator("database_url", mode="after")
