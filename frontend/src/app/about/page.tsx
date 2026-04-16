@@ -380,8 +380,8 @@ const WHAT_WE_PROVIDE = [
   },
   {
     icon: "refresh",
-    title: "Always-fresh data, no manual refresh",
-    body: "Run a key, upload to Warcraft Logs (the addon can auto-toggle combat logging), and we re-ingest you within minutes. No button to push, no week-old stale ratings.",
+    title: "Fresh data without a manual refresh",
+    body: "Run a key, upload to Warcraft Logs (the addon can auto-toggle combat logging), and we re-ingest your character on the next scheduled sweep — usually within a few hours of upload. Looking yourself up on the site triggers an immediate ingest if you want it sooner.",
   },
 ];
 

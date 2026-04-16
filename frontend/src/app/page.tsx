@@ -62,33 +62,45 @@ export default async function Home() {
         </p>
       </section>
 
-      {/* ── Stats strip ── */}
+      {/* ── Stats strip ─ 3 role counts on row 1, 2 totals centered on
+           row 2. Shape picked so the three roles read as one unit and
+           the totals sit underneath as context rather than competing. */}
       {stats && (
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-          <StatTile
-            label="Total Characters"
-            value={stats.total_players.toLocaleString()}
-            icon="group"
-            color="primary"
-          />
-          <StatTile
-            label="Runs Parsed"
-            value={stats.total_runs.toLocaleString()}
-            icon="fort"
-            color="secondary"
-          />
-          <StatTile
-            label="Tanks Graded"
-            value={(stats.role_counts.tank ?? 0).toString()}
-            icon="shield"
-            color="tertiary"
-          />
-          <StatTile
-            label="Healers Graded"
-            value={(stats.role_counts.healer ?? 0).toString()}
-            icon="healing"
-            color="primary"
-          />
+        <section className="mb-16 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatTile
+              label="Tanks Graded"
+              value={(stats.role_counts.tank ?? 0).toString()}
+              icon="shield"
+              color="tertiary"
+            />
+            <StatTile
+              label="Healers Graded"
+              value={(stats.role_counts.healer ?? 0).toString()}
+              icon="healing"
+              color="primary"
+            />
+            <StatTile
+              label="DPS Graded"
+              value={(stats.role_counts.dps ?? 0).toString()}
+              icon="swords"
+              color="secondary"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            <StatTile
+              label="Total Characters"
+              value={stats.total_players.toLocaleString()}
+              icon="group"
+              color="primary"
+            />
+            <StatTile
+              label="Runs Parsed"
+              value={stats.total_runs.toLocaleString()}
+              icon="fort"
+              color="secondary"
+            />
+          </div>
         </section>
       )}
 
@@ -298,6 +310,12 @@ export default async function Home() {
           >
             Download Addon
           </a>
+          <Link
+            href="/changelog"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Changelog
+          </Link>
           <Link
             href="/bug-report"
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
