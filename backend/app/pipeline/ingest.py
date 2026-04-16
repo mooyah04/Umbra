@@ -788,6 +788,12 @@ def ingest_player(
     # matches the wrong entity; the per-fight 'type' is authoritative.
     observed_class_names: list[str] = []
 
+    # Dedup efficiency counters — skipped fights mean WCL queries avoided.
+    # Log at the end so we can see how much budget the stale-probe saved.
+    skipped_exact = 0
+    skipped_fuzzy = 0
+    fetched_fights = 0
+
     logger.info("Processing %d reports for %s-%s", len(reports), name, realm)
     for report in reports:
         report_code = report["code"]
@@ -812,6 +818,38 @@ def ingest_player(
         for fight in fights:
             fight_id = fight["id"]
 
+            # Early dedup — if we've already ingested this fight (either by
+            # exact (report_code, fight_id) match, or by the fuzzy cross-log
+            # rule), skip before we pay for the ~8-query playerDetails +
+            # tables fetch. Scheduler re-sweeps dominate our WCL budget and
+            # most of their fights hit one of these checks, so hoisting the
+            # skip here is the single biggest query-spend reduction.
+            fight_encounter_id = fight.get("encounterID", 0)
+            fight_keystone_level = fight.get("keystoneLevel", 0)
+            fight_abs_start_ms_dedup = (
+                report.get("startTime", 0) + fight.get("startTime", 0)
+            )
+            fight_logged_at_dedup = datetime.fromtimestamp(fight_abs_start_ms_dedup / 1000)
+            if (report_code, fight_id) in exact_runs:
+                skipped_exact += 1
+                continue
+            is_fuzzy_dup = False
+            for e_encounter, e_keystone, e_logged_at in fuzzy_runs:
+                if (e_encounter == fight_encounter_id
+                        and e_keystone == fight_keystone_level
+                        and abs((e_logged_at - fight_logged_at_dedup).total_seconds()) < 120):
+                    is_fuzzy_dup = True
+                    break
+            if is_fuzzy_dup:
+                skipped_fuzzy += 1
+                logger.debug(
+                    "Skipping cross-log duplicate for %s: encounter=%d +%d at %s",
+                    name, fight_encounter_id, fight_keystone_level,
+                    fight_logged_at_dedup,
+                )
+                continue
+
+            fetched_fights += 1
             try:
                 report_data = wcl_client.get_report_player_data(report_code, [fight_id])
             except WCLQueryError as e:
@@ -947,36 +985,12 @@ def ingest_player(
             keystone_time = fight.get("keystoneTime", 0)
             key_timed = key_completed and keystone_time > 0 and duration_ms <= keystone_time
 
-            # Fight's absolute wall-clock start time. report.startTime is
-            # when the log began; fight.startTime is the ms offset within
-            # the log. Adding them gives a timestamp comparable across
-            # different logs of the same key.
-            fight_abs_start_ms = report.get("startTime", 0) + fight.get("startTime", 0)
-            fight_logged_at = datetime.fromtimestamp(fight_abs_start_ms / 1000)
-            fight_keystone = fight.get("keystoneLevel", 0)
-
-            # Exact dedup — same (report_code, fight_id). Hit when we
-            # re-ingest the same player's own upload.
-            if (report_code, fight_id) in exact_runs:
-                continue
-
-            # Fuzzy dedup — same encounter + keystone level + start time
-            # within 2 minutes. Catches the case where 2+ party members
-            # uploaded their own logs of the same key; WCL exposes all of
-            # them to each participant via recentReports.
-            is_fuzzy_dup = False
-            for e_encounter, e_keystone, e_logged_at in fuzzy_runs:
-                if (e_encounter == encounter_id
-                        and e_keystone == fight_keystone
-                        and abs((e_logged_at - fight_logged_at).total_seconds()) < 120):
-                    is_fuzzy_dup = True
-                    break
-            if is_fuzzy_dup:
-                logger.debug(
-                    "Skipping cross-log duplicate for %s: encounter=%d +%d at %s",
-                    name, encounter_id, fight_keystone, fight_logged_at,
-                )
-                continue
+            # Dedup was resolved above, before the expensive fetch.
+            # Re-use the values computed there so later DB insertion is
+            # consistent with the dedup decision.
+            fight_abs_start_ms = fight_abs_start_ms_dedup
+            fight_logged_at = fight_logged_at_dedup
+            fight_keystone = fight_keystone_level
 
             # Track this new run so later fights in the same batch see it.
             fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
@@ -1050,6 +1064,13 @@ def ingest_player(
         # Stop if we have enough runs
         if len(runs) >= settings.max_runs_to_analyze:
             break
+
+    if skipped_exact or skipped_fuzzy or fetched_fights:
+        logger.info(
+            "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d (WCL queries saved ~%d)",
+            name, realm, fetched_fights, skipped_exact, skipped_fuzzy,
+            (skipped_exact + skipped_fuzzy) * 2,  # rough: playerDetails+auras per skipped fight
+        )
 
     # 4. Fetch zone rankings for DPS percentile (available even for archived reports)
     #    Two comparisons: overall (vs all of spec) and by ilvl bracket
