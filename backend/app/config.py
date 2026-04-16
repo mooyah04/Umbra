@@ -78,6 +78,12 @@ class Settings(BaseSettings):
     # while leaving other regions' stubs in the queue untouched. Useful when
     # pre-public we only care about one region's data being fresh.
     scheduler_region_filter: str = ""
+    # Parallel workers per sweep. Each ingest is network-bound (WCL HTTP)
+    # so threading parallelizes the waits — 5 workers cuts sweep wall-clock
+    # ~5× without raising the per-request WCL call count. Each worker
+    # opens its own SessionLocal, so concurrent DB writes stay safe.
+    # Keep ≤10 to avoid exhausting the DB pool (default pool is 5 + 10 overflow).
+    scheduler_workers: int = 5
 
     # Leaderboard discovery. Polls Blizzard's mythic-keystone leaderboards
     # per connected realm per active-season dungeon, creating stub Player

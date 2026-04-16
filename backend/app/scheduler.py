@@ -4,14 +4,16 @@ Runs in a daemon thread started from the FastAPI lifespan. Every
 `scheduler_interval_seconds`, wakes up, picks the N stalest players
 (by `last_ingested_at`), and re-ingests each via `ingest_player`.
 
-Threaded (not asyncio) to match the app's sync SQLAlchemy Session model.
-Each sweep uses its own Session scope — we never hold a session across
-iterations. Exceptions are logged and swallowed so one bad player can't
-kill the scheduler loop.
+Ingests are dispatched to a thread pool so the wall-clock time per
+sweep is roughly max(per-player-ingest-duration) instead of the sum.
+Each worker opens its own Session — SQLAlchemy Sessions aren't
+thread-safe, so sharing would be a bug. Exceptions are logged and
+swallowed so one bad player can't kill the sweep.
 """
 import logging
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 
 from sqlalchemy import or_, select
@@ -62,6 +64,25 @@ def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str,
         return [(n, r, rg) for n, r, rg in session.execute(stmt)]
 
 
+def _ingest_one(name: str, realm: str, region: str) -> None:
+    """Re-ingest a single player in a fresh Session. Runs inside a worker
+    thread so multiple players ingest concurrently during a sweep."""
+    try:
+        with SessionLocal() as session:
+            result = ingest_player(session, name, realm, region)
+            logger.info(
+                "scheduler: refreshed %s-%s-%s (runs=%d, reason=%s)",
+                name, realm, region,
+                len(result.player.runs) if result.player else 0,
+                result.reason,
+            )
+    except Exception as e:
+        logger.warning(
+            "scheduler: ingest failed for %s-%s-%s: %s",
+            name, realm, region, e,
+        )
+
+
 def _sweep_once() -> None:
     players = _pick_stale_players(
         limit=settings.scheduler_batch_size,
@@ -70,22 +91,34 @@ def _sweep_once() -> None:
     if not players:
         logger.debug("scheduler: nothing stale to refresh")
         return
-    logger.info("scheduler: refreshing %d stale player(s)", len(players))
-    for name, realm, region in players:
-        try:
-            with SessionLocal() as session:
-                result = ingest_player(session, name, realm, region)
-                logger.info(
-                    "scheduler: refreshed %s-%s-%s (runs=%d, reason=%s)",
-                    name, realm, region,
-                    len(result.player.runs) if result.player else 0,
-                    result.reason,
-                )
-        except Exception as e:
-            logger.warning(
-                "scheduler: ingest failed for %s-%s-%s: %s",
-                name, realm, region, e,
-            )
+    workers = max(1, settings.scheduler_workers)
+    start = time.monotonic()
+    logger.info(
+        "scheduler: refreshing %d stale player(s) across %d workers",
+        len(players), workers,
+    )
+    with ThreadPoolExecutor(
+        max_workers=workers, thread_name_prefix="umbra-ingest"
+    ) as pool:
+        futures = [
+            pool.submit(_ingest_one, name, realm, region)
+            for name, realm, region in players
+        ]
+        # Drain futures so the sweep doesn't return before all ingests
+        # complete — the next tick should see the new last_ingested_at
+        # timestamps and pick different stale rows.
+        for f in as_completed(futures):
+            # Exceptions are swallowed inside _ingest_one, but pool can
+            # still raise on thread-pool-level errors. Log + continue.
+            try:
+                f.result()
+            except Exception as e:
+                logger.exception("scheduler: worker raised: %s", e)
+    elapsed = time.monotonic() - start
+    logger.info(
+        "scheduler: sweep complete — %d players in %.1fs (%.1fs/player avg)",
+        len(players), elapsed, elapsed / max(1, len(players)),
+    )
 
 
 def _loop() -> None:

@@ -1766,6 +1766,7 @@ def scheduler_status(session: Session = Depends(get_session)):
         "enabled": settings.scheduler_enabled,
         "interval_seconds": settings.scheduler_interval_seconds,
         "batch_size": settings.scheduler_batch_size,
+        "workers": settings.scheduler_workers,
         "stale_after_seconds": settings.scheduler_stale_after_seconds,
         "region_filter": _sched._region_filter_list() or "(all regions)",
         "thread_alive": bool(_sched._thread and _sched._thread.is_alive()),
