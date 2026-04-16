@@ -361,12 +361,16 @@ class WCLClient:
 
 
     def get_report_master_data(self, report_code: str) -> dict:
-        """Return the report's masterData with actor list.
+        """Return the report's masterData with actors + abilities.
 
-        Each actor entry has {id, name, type, subType, server}. type
-        distinguishes Player / NPC / Boss / Pet — needed to filter
-        damage events to only those caused by enemies (not friendly
-        Aug Evoker buffs or party AoEs that pollute the table view).
+        Actors: {id, name, type, subType} — type distinguishes Player /
+        NPC / Boss / Pet, needed to filter damage events to only those
+        caused by enemies.
+
+        Abilities: {gameID, name} — used by Level B timeline + damage
+        sampler to resolve `abilityGameID` on event payloads back to
+        human-readable names. Adding abilities to this query is free
+        (same GraphQL round-trip) and callers ignore what they don't use.
         """
         query = """
         query($code: String!) {
@@ -374,6 +378,7 @@ class WCLClient:
             report(code: $code) {
               masterData {
                 actors { id name type subType }
+                abilities { gameID name }
               }
             }
           }
