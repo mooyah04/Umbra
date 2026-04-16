@@ -1402,6 +1402,134 @@ def debug_wcl_report(code: str):
     return result
 
 
+@app.get("/api/admin/discover-players", dependencies=[Depends(require_api_key)])
+def discover_players(
+    region: str = Query(..., pattern="^(US|EU|KR|TW|CN)$"),
+    realm_limit: int = Query(default=3, ge=1, le=50),
+    dungeon_limit: int = Query(default=2, ge=1, le=8),
+):
+    """Dry-run cold-start discovery.
+
+    Pulls Blizzard's mythic-keystone leaderboards for the first
+    `realm_limit` connected realms × first `dungeon_limit` of our active
+    Midnight S1 dungeons in the given region, extracts unique (name,
+    realm, class, spec) tuples, and returns a sample + counts. Makes NO
+    database writes — use this to validate the pipeline before wiring
+    it into the scheduler.
+
+    Blizzard's leaderboard response gives us specialization.id; we map
+    that locally via app.scoring.specializations to (class_id, spec_name)
+    so the resulting records match what ingest.py expects.
+    """
+    from app.bnet.client import bnet_client
+    from app.scoring.specializations import resolve_spec
+    from app.scoring.dungeons.registry import _DUNGEONS
+
+    region_upper = region.upper()
+
+    # 1. Dungeon index + name-match to our active-season dungeons.
+    bnet_dungeons = bnet_client.get_keystone_dungeon_index(region_upper)
+    if not bnet_dungeons:
+        return {"error": "could not fetch Blizzard keystone dungeon index",
+                "region": region_upper}
+
+    def _norm(s: str) -> str:
+        # Lowercase, strip "the ", normalize apostrophes, collapse spaces.
+        s = (s or "").lower().replace("\u2019", "'").replace("the ", "", 1).strip()
+        return " ".join(s.split())
+
+    our_names = {_norm(d.name): (eid, d.name) for eid, d in _DUNGEONS.items()}
+    matched_dungeons: list[dict] = []  # {bnet_id, bnet_name, wcl_encounter_id, wcl_name}
+    unmatched_bnet: list[str] = []
+    for bd in bnet_dungeons:
+        key = _norm(bd["name"])
+        if key in our_names:
+            wcl_eid, wcl_name = our_names[key]
+            matched_dungeons.append({
+                "bnet_id": bd["id"], "bnet_name": bd["name"],
+                "wcl_encounter_id": wcl_eid, "wcl_name": wcl_name,
+            })
+    if not matched_dungeons:
+        return {"error": "no Blizzard dungeons matched our active season",
+                "bnet_dungeons_seen": [d["name"] for d in bnet_dungeons][:20],
+                "our_active": list(our_names.values())[:20]}
+
+    # 2. Current mythic period (weekly, so fetch every call — cheap).
+    period_id = bnet_client.get_current_mythic_period(region_upper)
+    if not period_id:
+        return {"error": "could not resolve current mythic period",
+                "region": region_upper}
+
+    # 3. Connected-realm list.
+    all_realms = bnet_client.get_connected_realms_index(region_upper)
+    if not all_realms:
+        return {"error": "no connected realms returned",
+                "region": region_upper}
+    realms_to_scan = all_realms[:realm_limit]
+    dungeons_to_scan = matched_dungeons[:dungeon_limit]
+
+    # 4. Fan out. Keep it sequential for dry-run — production scheduler
+    # can parallelize. 5 players per group × 500 groups × N calls adds
+    # up fast; the rate limiter at 36k/hr is generous but let's keep the
+    # dry-run modest.
+    discovered: dict[tuple[str, str, str], dict] = {}
+    unknown_specs: set[int] = set()
+    leaderboard_calls = 0
+    for realm_id in realms_to_scan:
+        # Slug lookup so we can store something humans recognize. One
+        # connected realm may host several display realms — take the
+        # first (primary) slug.
+        slugs = bnet_client.get_connected_realm_slugs(region_upper, realm_id)
+        primary_slug = slugs[0] if slugs else f"realm-{realm_id}"
+
+        for d in dungeons_to_scan:
+            board = bnet_client.get_mythic_leaderboard(
+                region_upper, realm_id, d["bnet_id"], period_id
+            )
+            leaderboard_calls += 1
+            if not board:
+                continue
+            for group in board.get("leading_groups") or []:
+                for m in group.get("members") or []:
+                    profile = m.get("profile") or {}
+                    spec = m.get("specialization") or {}
+                    name = profile.get("name")
+                    spec_id = spec.get("id")
+                    realm_obj = profile.get("realm") or {}
+                    player_realm_slug = realm_obj.get("slug") or primary_slug
+                    if not name or not isinstance(spec_id, int):
+                        continue
+                    resolved = resolve_spec(spec_id)
+                    if not resolved:
+                        unknown_specs.add(spec_id)
+                        continue
+                    class_id, spec_name = resolved
+                    key = (region_upper, player_realm_slug.lower(), name.lower())
+                    if key in discovered:
+                        continue
+                    discovered[key] = {
+                        "name": name,
+                        "realm": player_realm_slug,
+                        "region": region_upper,
+                        "class_id": class_id,
+                        "spec_name": spec_name,
+                    }
+
+    sample = list(discovered.values())[:25]
+    return {
+        "region": region_upper,
+        "period_id": period_id,
+        "realms_scanned": len(realms_to_scan),
+        "realms_available_total": len(all_realms),
+        "dungeons_scanned": [d["bnet_name"] for d in dungeons_to_scan],
+        "dungeons_matched_total": len(matched_dungeons),
+        "leaderboard_calls": leaderboard_calls,
+        "unique_players_found": len(discovered),
+        "unknown_spec_ids": sorted(unknown_specs),
+        "sample_players": sample,
+    }
+
+
 @app.get("/api/admin/scheduler-status", dependencies=[Depends(require_api_key)])
 def scheduler_status(session: Session = Depends(get_session)):
     """Report what the background refresher is seeing: config, the 10 stalest

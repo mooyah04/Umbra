@@ -179,4 +179,151 @@ class BnetClient:
             return None
 
 
+    # ── Game Data: mythic keystone leaderboard discovery ────────────────
+    #
+    # Used by the cold-start player-discovery pipeline. Blizzard publishes
+    # per-connected-realm / per-dungeon / per-period top-500 leaderboards
+    # and every ranked group's 5 members are named + spec'd in the payload.
+    # Polling these lets us ingest players who never search themselves on
+    # the site — the only requirement for appearing is running the key.
+
+    def _game_data_get(self, region: str, path: str) -> dict | None:
+        """GET a Game Data API path under `https://<region>.api.blizzard.com`
+        with the dynamic-<region> namespace. Returns parsed JSON or None
+        on any error. 404 is a valid "no such resource" outcome and also
+        returns None (caller decides whether that's expected).
+        """
+        token = self._get_token()
+        if not token:
+            return None
+        region_lower = region.lower()
+        url = f"https://{region_lower}.api.blizzard.com{path}"
+        namespace = "dynamic-" + region_lower
+        try:
+            with httpx.Client() as client:
+                resp = client.get(
+                    url,
+                    params={"namespace": namespace, "locale": "en_US"},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=15.0,
+                )
+            if resp.status_code == 404:
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.warning("Bnet game-data GET %s failed: %s", path, e)
+            return None
+
+    def get_connected_realms_index(self, region: str) -> list[int]:
+        """Return every connected-realm id for a region.
+
+        The index only gives us hrefs like
+        `.../connected-realm/509?namespace=dynamic-eu` — extract the id
+        from the path so callers can iterate without a second round-trip.
+        """
+        data = self._game_data_get(region, "/data/wow/connected-realm/index")
+        if not data:
+            return []
+        ids: list[int] = []
+        for entry in data.get("connected_realms") or []:
+            href = entry.get("href") or ""
+            # `.../connected-realm/509?namespace=...`
+            try:
+                tail = href.split("/connected-realm/", 1)[1]
+                rid_str = tail.split("?", 1)[0]
+                ids.append(int(rid_str))
+            except (IndexError, ValueError):
+                continue
+        return ids
+
+    def get_connected_realm_slugs(self, region: str, realm_id: int) -> list[str]:
+        """Return the realm slugs under a connected-realm id.
+
+        A single connected realm may host several display realms sharing
+        the same population pool (e.g. EU 509 hosts Tarren Mill +
+        Dead-Wind Pass + ...). We keep them all so matching is tolerant
+        to which display realm a player's name lives on.
+        """
+        data = self._game_data_get(
+            region, f"/data/wow/connected-realm/{realm_id}"
+        )
+        if not data:
+            return []
+        slugs: list[str] = []
+        for r in data.get("realms") or []:
+            slug = r.get("slug")
+            if slug:
+                slugs.append(slug)
+        return slugs
+
+    def get_keystone_dungeon_index(self, region: str) -> list[dict]:
+        """List every mythic-keystone dungeon known to Blizzard right now.
+
+        We match our WCL encounter ids to Blizzard keystone dungeon ids by
+        dungeon NAME (Blizzard's id doesn't overlap with WCL's encounterID
+        namespace). Since our season dungeon modules also carry a `name`
+        field, this mapping is done once per boot and cached.
+
+        Returns a list of {"id": int, "name": str}.
+        """
+        data = self._game_data_get(region, "/data/wow/mythic-keystone/dungeon/index")
+        if not data:
+            return []
+        out: list[dict] = []
+        for d in data.get("dungeons") or []:
+            did = d.get("id")
+            name = d.get("name")
+            if isinstance(did, int) and name:
+                out.append({"id": did, "name": name})
+        return out
+
+    def get_current_mythic_period(self, region: str) -> int | None:
+        """Return the currently-active mythic-keystone period id.
+
+        Periods tick weekly (Tuesday reset in US, Wednesday in EU/KR).
+        Leaderboards are keyed on period id, so we always fetch the
+        current value rather than hardcoding.
+        """
+        data = self._game_data_get(region, "/data/wow/mythic-keystone/period/index")
+        if not data:
+            return None
+        current = data.get("current_period") or {}
+        pid = current.get("id")
+        return int(pid) if isinstance(pid, int) else None
+
+    def get_mythic_leaderboard(
+        self,
+        region: str,
+        connected_realm_id: int,
+        dungeon_id: int,
+        period_id: int,
+    ) -> dict | None:
+        """Fetch the top leaderboard for one (realm, dungeon, period).
+
+        Response shape (trimmed, actual fields pulled in caller):
+            {
+              "leading_groups": [
+                {
+                  "ranking": 1,
+                  "keystone_level": 22,
+                  "duration": 1_200_000,
+                  "completed_timestamp": ...,
+                  "members": [
+                    { "profile": {"name", "id", "realm": {"slug", ...}},
+                      "specialization": {"id", "name"} },
+                    ... (x5)
+                  ]
+                },
+                ... (up to 500)
+              ]
+            }
+        """
+        path = (
+            f"/data/wow/connected-realm/{connected_realm_id}"
+            f"/mythic-leaderboard/{dungeon_id}/period/{period_id}"
+        )
+        return self._game_data_get(region, path)
+
+
 bnet_client = BnetClient()
