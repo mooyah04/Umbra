@@ -51,12 +51,16 @@ interface PageProps {
     role?: string;
     region?: string;
     class?: string;
+    per_page?: string;
   }>;
 }
 
+const PER_PAGE_OPTIONS = [50, 100, 200] as const;
+const DEFAULT_PER_PAGE = 50;
+
 function buildHref(
-  current: { role?: string; region?: string; class?: string },
-  patch: Partial<{ role?: string; region?: string; class?: string }>,
+  current: { role?: string; region?: string; class?: string; per_page?: string },
+  patch: Partial<{ role?: string; region?: string; class?: string; per_page?: string }>,
 ): string {
   // Null/undefined in a patch value = clear the param.
   const merged = { ...current, ...patch };
@@ -64,6 +68,9 @@ function buildHref(
   if (merged.role && merged.role !== "all") params.set("role", merged.role);
   if (merged.region && merged.region !== "all") params.set("region", merged.region);
   if (merged.class) params.set("class", merged.class);
+  if (merged.per_page && Number(merged.per_page) !== DEFAULT_PER_PAGE) {
+    params.set("per_page", merged.per_page);
+  }
   const qs = params.toString();
   return qs ? `/leaderboard?${qs}` : "/leaderboard";
 }
@@ -75,6 +82,10 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
     ? sp.region.toLowerCase()
     : "all";
   const classId = sp.class ? Number(sp.class) : undefined;
+  const perPageRaw = sp.per_page ? Number(sp.per_page) : DEFAULT_PER_PAGE;
+  const perPage = PER_PAGE_OPTIONS.includes(perPageRaw as (typeof PER_PAGE_OPTIONS)[number])
+    ? perPageRaw
+    : DEFAULT_PER_PAGE;
 
   let rows: PlayerSearchResult[];
   try {
@@ -82,7 +93,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
       role: role === "all" ? undefined : (role as "tank" | "healer" | "dps"),
       region: region === "all" ? undefined : region.toUpperCase(),
       classId: classId && classId >= 1 && classId <= 13 ? classId : undefined,
-      limit: 100,
+      limit: perPage,
     });
   } catch {
     rows = [];
@@ -108,7 +119,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
         {ROLE_TABS.map((t) => (
           <Link
             key={t.key}
-            href={buildHref({ role, region, class: sp.class }, { role: t.key })}
+            href={buildHref({ role, region, class: sp.class, per_page: sp.per_page }, { role: t.key })}
             className={
               "font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-4 py-2 rounded " +
               (role === t.key
@@ -127,7 +138,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
         {REGIONS.map((r) => (
           <Link
             key={r}
-            href={buildHref({ role, region, class: sp.class }, { region: r })}
+            href={buildHref({ role, region, class: sp.class, per_page: sp.per_page }, { region: r })}
             className={
               "px-3 py-1 rounded text-xs " +
               (region === r
@@ -145,7 +156,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center gap-2 mb-8">
         <span className="text-on-surface-variant text-xs uppercase tracking-widest mr-1">Class:</span>
         <Link
-          href={buildHref({ role, region, class: sp.class }, { class: undefined })}
+          href={buildHref({ role, region, class: sp.class, per_page: sp.per_page }, { class: undefined })}
           className={
             "px-3 py-1 rounded text-xs font-[family-name:var(--font-label)] uppercase tracking-widest " +
             (!classId
@@ -162,7 +173,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
             <Link
               key={cid}
               href={buildHref(
-                { role, region, class: sp.class },
+                { role, region, class: sp.class, per_page: sp.per_page },
                 { class: active ? undefined : String(cid) },
               )}
               title={CLASS_NAMES[cid]}
@@ -257,6 +268,38 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
             );
           })}
         </ul>
+      )}
+
+      {/* Page-size selector — shown when there are results */}
+      {rows.length > 0 && (
+        <div className="mt-8 flex items-center justify-center gap-2 text-sm">
+          <span className="text-on-surface-variant text-xs uppercase tracking-widest mr-1">
+            Show
+          </span>
+          {PER_PAGE_OPTIONS.map((n) => {
+            const active = n === perPage;
+            return (
+              <Link
+                key={n}
+                href={buildHref(
+                  { role, region, class: sp.class, per_page: sp.per_page },
+                  { per_page: String(n) },
+                )}
+                className={
+                  "px-4 py-1.5 rounded font-[family-name:var(--font-label)] text-xs uppercase tracking-widest " +
+                  (active
+                    ? "bg-primary text-on-primary"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface transition-colors")
+                }
+              >
+                {n}
+              </Link>
+            );
+          })}
+          <span className="text-on-surface-variant text-xs uppercase tracking-widest ml-1">
+            per page
+          </span>
+        </div>
       )}
     </main>
   );

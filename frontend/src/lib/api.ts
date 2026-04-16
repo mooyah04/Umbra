@@ -31,16 +31,23 @@ export interface ApiErrorDetail {
   message?: string;
 }
 
-async function fetchApi<T>(path: string, revalidateSec = 60): Promise<T> {
+async function fetchApi<T>(
+  path: string,
+  freshness: number | "no-store" = 60,
+): Promise<T> {
   // Per-endpoint cache freshness. Server components use Next's ISR —
-  // a response is served from cache for `revalidateSec` seconds, then
-  // stale-served once + regenerated in the background. Keep live-ish
-  // surfaces (stats, leaderboard, recently-graded) short so visitors
-  // don't see multi-minute-old numbers. Individual player/run pages
-  // barely change within 60s and stay on the default.
-  const res = await fetch(`${API_URL}${path}`, {
-    next: { revalidate: revalidateSec },
-  });
+  // responses are served from cache for `freshness` seconds, then
+  // stale-served once while the background regen runs.
+  //
+  // Pass "no-store" for routes where the first-visit stale window
+  // is unacceptable — player profiles after a force re-ingest, etc.
+  // Makes every request hit the backend; still fast because the
+  // backend caches scored data in PlayerScore.
+  const init: RequestInit =
+    freshness === "no-store"
+      ? { cache: "no-store" }
+      : { next: { revalidate: freshness } };
+  const res = await fetch(`${API_URL}${path}`, init);
   if (!res.ok) {
     let detail: ApiErrorDetail | string | undefined;
     let message = `API error ${res.status}`;
@@ -117,7 +124,10 @@ export async function getPlayerProfile(
   realm: string,
   name: string,
 ): Promise<PlayerProfileResponse> {
-  return fetchApi(`/api/player/${region}/${realm}/${name}/all`);
+  // No-store: after a force re-ingest, users expect the player page
+  // to reflect fresh data without a hard refresh. Server-side scoring
+  // is already cached in PlayerScore so the per-request cost is cheap.
+  return fetchApi(`/api/player/${region}/${realm}/${name}/all`, "no-store");
 }
 
 export async function getPlayerRuns(
@@ -127,8 +137,12 @@ export async function getPlayerRuns(
   page = 1,
   perPage = 20,
 ): Promise<RunListResponse> {
+  // Same rationale as getPlayerProfile — run list needs to reflect
+  // fresh ingests immediately (the recent-runs section is the first
+  // thing users check).
   return fetchApi(
     `/api/player/${region}/${realm}/${name}/runs?page=${page}&per_page=${perPage}`,
+    "no-store",
   );
 }
 
@@ -138,7 +152,13 @@ export async function getRunDetail(
   name: string,
   runId: number,
 ): Promise<RunResponse> {
-  return fetchApi(`/api/player/${region}/${realm}/${name}/runs/${runId}`);
+  // Run detail pages include the Level B timeline which populates on
+  // re-ingest — caching masks timeline appearances for the freshness
+  // window. Always fresh.
+  return fetchApi(
+    `/api/player/${region}/${realm}/${name}/runs/${runId}`,
+    "no-store",
+  );
 }
 
 export interface ClaimResponse {
