@@ -67,15 +67,27 @@ def _weighted_average(runs: list[DungeonRun], score_fn) -> float:
 def _score_damage_output(runs: list[DungeonRun]) -> float:
     """DPS performance across runs, weighted by key level.
 
-    The dps field contains the WCL rankPercent (0-100 percentile),
-    representing how this player compares to others of the same spec.
+    `dps` holds a WCL rankPercent (0-100 percentile) when zoneRankings
+    returned a match for the fight. When it didn't — unranked run, spec
+    not recognized, data missing upstream — ingest leaves the raw DPS
+    number (millions). Treating those as "missing" rather than clamping
+    to 100 prevents silent grade inflation. Runs with out-of-range
+    values are skipped; `_weighted_average` returns 0 if nothing's left.
     """
-    return _weighted_average(runs, lambda r: min(100, max(0, r.dps)))
+    valid = [r for r in runs if 0 <= r.dps <= 100]
+    return _weighted_average(valid, lambda r: r.dps)
 
 
 def _score_healing_throughput(runs: list[DungeonRun]) -> float:
-    """Healing performance for healers, weighted by key level."""
-    return _weighted_average(runs, lambda r: min(100, max(0, r.hps)))
+    """Healing performance for healers, weighted by key level.
+
+    Same percentile-vs-raw guard as _score_damage_output — WCL's hps
+    zoneRankings doesn't always return a match, in which case ingest
+    leaves the raw HPS in place. Skip out-of-range values rather than
+    saturating them to 100.
+    """
+    valid = [r for r in runs if 0 <= r.hps <= 100]
+    return _weighted_average(valid, lambda r: r.hps)
 
 
 def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None) -> float:
@@ -97,7 +109,13 @@ def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None)
             effective_kicks = (base_kicks - crit_kicks) + (crit_kicks * 1.5)
         else:
             effective_kicks = base_kicks
-        interrupt_score = min(100, (effective_kicks / 15) * 100)
+        # Tanks get a softer denominator than DPS because route variance
+        # (trash packs skipped, caster mobs pulled later) makes a fixed
+        # "15 kicks per run" benchmark punishing for tanks who follow the
+        # pull plan. DPS share those same pulls but at 4:1 vs the tank,
+        # so the same raw kick count means different things.
+        denom = 12 if run.role == Role.tank else 15
+        interrupt_score = min(100, (effective_kicks / denom) * 100)
 
         # Dispel component only applies to classes that can dispel. Everyone
         # else redistributes the weight to the remaining components.
@@ -301,7 +319,7 @@ def _score_cooldown_usage(runs: list[DungeonRun]) -> float:
     return _weighted_average(runs, score_fn)
 
 
-def _score_casts_per_minute(runs: list[DungeonRun]) -> float:
+def _score_casts_per_minute(runs: list[DungeonRun], class_id: int | None = None) -> float:
     """Score based on casts per minute, using role/spec-aware benchmarks.
 
     The old scorer used a single universal curve (35+ CPM = 100) which unfairly
@@ -322,7 +340,7 @@ def _score_casts_per_minute(runs: list[DungeonRun]) -> float:
             return 0.0
 
         cpm = run.casts_total / duration_min
-        benchmark = get_benchmark(run.role, run.spec_name)
+        benchmark = get_benchmark(run.role, run.spec_name, class_id=class_id)
         return score_cpm(cpm, benchmark)
 
     return _weighted_average(runs, score_fn)
@@ -372,13 +390,18 @@ ROLE_WEIGHTS: dict[Role, RoleWeights] = {
     ),
     # P1 rebalance: healing_throughput reduced (punishes efficient healers in
     # clean groups), healer DPS doubled (key differentiator in modern M+).
+    # P3 rebalance (2026-04-16 scoring audit): bumped survivability from 0.15
+    # to 0.20 since a healer dying repeatedly is actively throwing and should
+    # meaningfully move the grade; dropped cooldown_usage from 0.15 to 0.10
+    # (which was saturating flat-100 for healers — weight reduction is safe
+    # while that signal is rebuilt).
     Role.healer: RoleWeights(
         categories={
             "healing_throughput": 0.20, # down from 0.30 — penalized efficient healers
             "damage_output": 0.20,      # up from 0.10 — healer DPS is a key M+ differentiator
             "utility": 0.20,            # unchanged
-            "survivability": 0.15,      # unchanged
-            "cooldown_usage": 0.15,     # unchanged
+            "survivability": 0.20,      # P3: up from 0.15 — dying matters more
+            "cooldown_usage": 0.10,     # P3: down from 0.15 — signal still weak
             "casts_per_minute": 0.10,   # unchanged
         }
     ),
@@ -459,9 +482,13 @@ def score_player_runs(
             score = zone_dps_percentile
         else:
             scorer = scorers[category_name]
-            # Utility scorers (healer and dps/tank) both take class_id now —
-            # healer uses it for interrupt eligibility, dps/tank for dispel.
+            # Scorers that need class_id:
+            # - utility: healer interrupt eligibility / dps+tank dispel
+            # - casts_per_minute: disambiguates same-spec-different-class
+            #   benchmarks (Resto Druid vs Resto Shaman, Prot Warr vs Pal)
             if category_name == "utility":
+                score = scorer(runs, class_id=class_id)
+            elif category_name == "casts_per_minute":
                 score = scorer(runs, class_id=class_id)
             else:
                 score = scorer(runs)

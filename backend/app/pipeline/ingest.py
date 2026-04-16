@@ -267,9 +267,18 @@ def _get_cooldown_usage(
     for buff_id, _name, expected_uptime_pct in cooldowns:
         actual_uses = aura_uses.get(buff_id, 0)
 
-        # Expected uses: scale by fight duration and expected uptime
-        # A 2-min CD with 15% uptime in a 30-min fight ≈ 4-5 expected uses
-        expected_uses = max(1, duration_min * expected_uptime_pct / 100)
+        # Expected uses = max of:
+        #   a) duration_min * uptime_pct / 100 — the uptime-based formula
+        #      (works well for high-uptime CDs like Shield Block)
+        #   b) duration_min / 5 — a "1 press per 5 min of fight" floor
+        #      so a single Tranquility use in a 20-min key doesn't score
+        #      100%. Prior `max(1, ...)` floor made long fights trivial
+        #      to satisfy — Dobbermon's cooldown_usage was flat 100.0
+        #      across every run because each 3-min-CD major was hitting
+        #      expected=1 and any single use saturated it.
+        baseline = duration_min * expected_uptime_pct / 100
+        floor = max(1.0, duration_min / 5.0)
+        expected_uses = max(baseline, floor)
 
         # Score this CD: cap at 100% (using it more than expected is fine)
         cd_scores.append(min(100, (actual_uses / expected_uses) * 100))
@@ -866,6 +875,11 @@ def ingest_player(
                     fight_id_r = rank.get("report", {}).get("fightID", 0)
                     pct_lookup[(report_code_r, fight_id_r)] = rank.get("rankPercent", 0)
 
+            # Overwrite raw DPS with rankPercent when WCL has a ranking
+            # for this fight. Runs without a match keep their raw DPS —
+            # the scorer in engine.py guards against out-of-range values
+            # and skips them, so storing raw here is intentional and
+            # safe. No separate "percentile available?" flag needed.
             for run in runs:
                 pct = pct_lookup.get((run.wcl_report_id, run.fight_id))
                 if pct is not None:

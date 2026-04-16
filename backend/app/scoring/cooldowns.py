@@ -283,13 +283,13 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     (11, "Restoration"): [
         (740, "Tranquility", 4),                # baseline, ~3min CD
         (391528, "Convoke the Spirits", 3),     # commonly talented, ~2min CD
-        (22812, "Barkskin", 15),                # baseline 1min CD personal
-        # Innervate (29166) removed 2026-04-16 (Pass 2): typically cast
-        # on a caster ally (healer mana recovery), so the buff usually
-        # lands on someone else — not consistently on the druid's own
-        # BuffsTable. Sampler didn't see it at 50% consensus.
-        # Ironbark (102342) removed 2026-04-15: external CD — buff lands
-        # on the tank/target, not the Resto Druid.
+        # Barkskin (22812) removed 2026-04-16 (Pass 3): 1-min rotational
+        # personal defensive, not a "major" CD. Its inclusion saturated
+        # Dobbermon's cooldown_usage at flat 100 across every run — the
+        # category lost all signal. Tranq + Convoke are the true signature
+        # CDs for a Resto Druid; score on those alone.
+        # Innervate removed in Pass 2 (cast on allies, not self).
+        # Ironbark removed 2026-04-15 (external, lands on target).
     ],
     (13, "Preservation"): [
         (363534, "Rewind", 3),

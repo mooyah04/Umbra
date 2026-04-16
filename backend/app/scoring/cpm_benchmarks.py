@@ -28,15 +28,20 @@ class CPMBenchmark:
     excellent: float  # scales 80 -> 100; above = 100
 
 
-# Role-level defaults. Tuned from community parsing conventions; refine with logs.
+# Role-level defaults. Tuned from live Midnight S1 data (2026-04-16 audit
+# against Elonmunk/Dobbermon runs + community baselines). Prior values had
+# every player pegging at 100 — the category gave zero signal. Thresholds
+# now sit above observed p50 but below observed p90 for each role.
 ROLE_BENCHMARKS: dict[Role, CPMBenchmark] = {
     # DPS baseline assumes a mid-pack spec (e.g. Frost Mage, Ret Paladin).
     # Extreme specs (Fury, MM Hunter) should live in SPEC_BENCHMARKS below.
     Role.dps: CPMBenchmark(poor=10, fair=18, good=26, excellent=35),
 
-    # Healers cast heal spells continuously but the rate is lower than DPS;
-    # damage-during-downtime is a separate category (healer damage_output).
-    Role.healer: CPMBenchmark(poor=8, fair=14, good=20, excellent=28),
+    # Healers cast heal spells continuously but the rate is lower than DPS.
+    # Observed live range for top healers: 30-50 CPM — bumped from 28 to 36
+    # excellent so "top 15% only" gates 100. Prior value saturated Dobbermon
+    # on every run.
+    Role.healer: CPMBenchmark(poor=10, fair=18, good=26, excellent=36),
 
     # Tanks spam mitigation + builder/spender; GCD-locked rotations.
     Role.tank: CPMBenchmark(poor=12, fair=20, good=28, excellent=36),
@@ -58,18 +63,59 @@ SPEC_BENCHMARKS: dict[str, CPMBenchmark] = {
     "Destruction": CPMBenchmark(poor=8, fair=14, good=20, excellent=26),
     "Beast Mastery": CPMBenchmark(poor=10, fair=16, good=22, excellent=30),
 
-    # Tanks with distinct rotations
-    "Protection Paladin": CPMBenchmark(poor=14, fair=22, good=30, excellent=38),
-    "Brewmaster": CPMBenchmark(poor=14, fair=24, good=32, excellent=42),
+    # Unambiguous tanks.
+    "Brewmaster": CPMBenchmark(poor=16, fair=26, good=38, excellent=50),
+    "Vengeance": CPMBenchmark(poor=16, fair=26, good=36, excellent=46),
+    "Guardian": CPMBenchmark(poor=16, fair=26, good=36, excellent=44),
+    "Blood": CPMBenchmark(poor=16, fair=26, good=36, excellent=46),
 
-    # Healer outliers
-    "Restoration Druid": CPMBenchmark(poor=6, fair=12, good=18, excellent=26),
+    # Unambiguous healer.
     "Discipline": CPMBenchmark(poor=10, fair=16, good=22, excellent=30),
+    "Mistweaver": CPMBenchmark(poor=10, fair=18, good=26, excellent=36),
+    "Preservation": CPMBenchmark(poor=10, fair=18, good=26, excellent=36),
 }
 
 
-def get_benchmark(role: Role, spec_name: str | None = None) -> CPMBenchmark:
-    """Return the tightest-matching benchmark: spec override > role default."""
+# Class-aware benchmarks for specs whose name alone is ambiguous. WCL returns
+# spec_name as just the spec (e.g. "Protection", "Restoration"), so "Protection
+# Paladin" vs "Protection Warrior" can't be disambiguated without the class id.
+# Keys are (class_id, spec_name). Checked before SPEC_BENCHMARKS.
+CLASS_SPEC_BENCHMARKS: dict[tuple[int, str], CPMBenchmark] = {
+    # Protection: class 1 = Warrior, class 2 = Paladin.
+    (1, "Protection"): CPMBenchmark(poor=16, fair=26, good=36, excellent=44),
+    (2, "Protection"): CPMBenchmark(poor=14, fair=22, good=30, excellent=38),
+    # Holy: class 2 = Paladin healer, class 5 = Priest healer.
+    (2, "Holy"): CPMBenchmark(poor=10, fair=18, good=26, excellent=34),
+    (5, "Holy"): CPMBenchmark(poor=10, fair=18, good=26, excellent=34),
+    # Restoration: class 7 = Shaman, class 11 = Druid. Both observed 30-50 CPM
+    # live; re-anchored at 42 excellent to match what top healers actually do
+    # (prior single-entry 26 was pegging every run at 100).
+    (7, "Restoration"): CPMBenchmark(poor=10, fair=22, good=32, excellent=42),
+    (11, "Restoration"): CPMBenchmark(poor=10, fair=22, good=32, excellent=42),
+    # Frost: class 6 = DK (melee), class 8 = Mage (ranged caster). Completely
+    # different rotations — DK hits ~30 CPM, Mage ~25.
+    (6, "Frost"): CPMBenchmark(poor=12, fair=22, good=30, excellent=38),
+    (8, "Frost"): CPMBenchmark(poor=10, fair=18, good=25, excellent=32),
+}
+
+
+def get_benchmark(
+    role: Role,
+    spec_name: str | None = None,
+    class_id: int | None = None,
+) -> CPMBenchmark:
+    """Return the tightest-matching benchmark.
+
+    Resolution order (first hit wins):
+      1. (class_id, spec_name) in CLASS_SPEC_BENCHMARKS — disambiguates
+         same-spec-different-class pairs (Protection Warrior vs Paladin,
+         Restoration Druid vs Shaman, etc.)
+      2. spec_name in SPEC_BENCHMARKS — covers unambiguous specs (Fury,
+         Outlaw, Brewmaster, Discipline...).
+      3. ROLE_BENCHMARKS[role] — default.
+    """
+    if class_id is not None and spec_name and (class_id, spec_name) in CLASS_SPEC_BENCHMARKS:
+        return CLASS_SPEC_BENCHMARKS[(class_id, spec_name)]
     if spec_name and spec_name in SPEC_BENCHMARKS:
         return SPEC_BENCHMARKS[spec_name]
     return ROLE_BENCHMARKS[role]

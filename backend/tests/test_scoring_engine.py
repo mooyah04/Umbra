@@ -16,6 +16,8 @@ from app.scoring.engine import (
     ROLE_WEIGHTS,
     _key_weight,
     _score_casts_per_minute,
+    _score_damage_output,
+    _score_healing_throughput,
     _timing_modifier,
     composite_to_grade,
     score_player_runs,
@@ -114,6 +116,26 @@ def test_cpm_differs_between_specs_at_same_raw_rate():
     assert mm_score > fury_score + 40, "spec-aware benchmarks not being applied"
 
 
+def test_cpm_class_disambiguates_ambiguous_spec_names():
+    """Resto Druid and Resto Shaman both have spec_name='Restoration' in ingest.
+    Class-aware lookup must route each to its own benchmark rather than both
+    falling back to the role default.
+    """
+    # Prot Warrior and Prot Paladin — both role=tank, spec='Protection' in ingest.
+    # They have different benchmarks: Warrior excellent=44, Paladin excellent=38.
+    # At 40 CPM: Warrior is ~80 (between good 36 and excellent 44), Paladin is 100.
+    warr = _run(role=Role.tank, spec="Protection",
+                casts_total=30 * 40, duration=30 * 60000)
+    pal = _run(role=Role.tank, spec="Protection",
+               casts_total=30 * 40, duration=30 * 60000)
+    warr_score = _score_casts_per_minute([warr], class_id=1)
+    pal_score = _score_casts_per_minute([pal], class_id=2)
+    assert pal_score > warr_score, (
+        "class_id-aware CPM must distinguish Prot Warrior (higher benchmark) "
+        "from Prot Paladin (lower benchmark) at the same raw CPM"
+    )
+
+
 # ── Full pipeline ───────────────────────────────────────────────────────────
 
 def test_score_player_runs_returns_all_expected_categories():
@@ -144,3 +166,41 @@ def test_empty_runs_produce_f_grade():
     result = score_player_runs([], Role.dps, zone_dps_percentile=0)
     assert result.runs_analyzed == 0
     assert result.composite_score <= 20
+
+
+# ── Percentile-vs-raw guard ─────────────────────────────────────────────────
+# Ingest overwrites `dps` with WCL rankPercent (0-100) only when zoneRankings
+# returns a match; otherwise the raw absolute DPS (millions) stays there.
+# The scorer must skip out-of-range values rather than min(100, raw)=100,
+# which silently inflated grades for runs without a ranking match.
+
+def test_damage_output_skips_raw_dps_values():
+    """Raw DPS numbers (millions) must not clamp to 100."""
+    # Mix: one genuine 40th-percentile run + one run where ingest left
+    # the raw DPS (no zoneRankings match). Result should reflect only
+    # the percentile run, not saturate at 100.
+    runs = [
+        _run(dps=40),          # valid percentile
+        _run(dps=60_571_184),  # raw — this was a real Elonmunk observation
+    ]
+    assert _score_damage_output(runs) == pytest.approx(40)
+
+
+def test_damage_output_all_raw_returns_zero():
+    """A player with NO runs tagged with a percentile gets 0, not 100."""
+    runs = [_run(dps=30_000_000), _run(dps=45_000_000)]
+    assert _score_damage_output(runs) == 0
+
+
+def test_healing_throughput_skips_raw_hps_values():
+    runs = [
+        _run(role=Role.healer, hps=85),           # valid percentile
+        _run(role=Role.healer, hps=59_110_540),   # raw — real Dobbermon observation
+    ]
+    assert _score_healing_throughput(runs) == pytest.approx(85)
+
+
+def test_damage_output_accepts_boundary_values():
+    """0 and 100 are valid percentile values, not raw. Keep them."""
+    runs = [_run(dps=0), _run(dps=100)]
+    assert _score_damage_output(runs) == pytest.approx(50)
