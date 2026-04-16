@@ -935,6 +935,87 @@ def debug_wcl_timeline_raw(code: str, fight_id: int, actor_id: int):
     }
 
 
+@app.get("/api/debug/wcl-pulls-raw", dependencies=[Depends(require_api_key)])
+def debug_wcl_pulls_raw(code: str, fight_id: int, actor_id: int):
+    """Diagnose why _build_pulls returns empty. Shows:
+    - masterData actor type distribution
+    - death event count + categorization (player / enemy / other)
+    - sample death events so we can see targetID + killingAbilityGameID
+    """
+    from app.wcl.client import wcl_client
+    out: dict = {"report": code, "fight_id": fight_id, "actor_id": actor_id}
+
+    # masterData
+    try:
+        md = wcl_client.get_report_master_data(code) or {}
+    except Exception as e:
+        return {**out, "error": f"masterData: {e}"}
+    actors = md.get("actors") or []
+    actor_type_by_id = {a.get("id"): (a.get("type") or "") for a in actors if isinstance(a.get("id"), int)}
+    type_counts: dict[str, int] = {}
+    for t in actor_type_by_id.values():
+        type_counts[t] = type_counts.get(t, 0) + 1
+
+    # Deaths
+    try:
+        death_events = wcl_client.get_player_events(
+            code, [fight_id], data_type="Deaths",
+        )
+    except Exception as e:
+        return {**out, "error": f"deaths: {e}"}
+
+    categorized: dict[str, int] = {
+        "player_under_inspection": 0,
+        "Player_other": 0,
+        "NPC": 0,
+        "Boss": 0,
+        "Pet": 0,
+        "unknown_type": 0,
+        "no_target_id": 0,
+    }
+    samples = []
+    for ev in death_events:
+        tid = ev.get("targetID")
+        if not isinstance(tid, int):
+            categorized["no_target_id"] += 1
+            continue
+        t = actor_type_by_id.get(tid, "")
+        if tid == actor_id:
+            categorized["player_under_inspection"] += 1
+        elif t == "Player":
+            categorized["Player_other"] += 1
+        elif t == "NPC":
+            categorized["NPC"] += 1
+        elif t == "Boss":
+            categorized["Boss"] += 1
+        elif t == "Pet":
+            categorized["Pet"] += 1
+        else:
+            categorized["unknown_type"] += 1
+        if len(samples) < 5:
+            actor_name = next(
+                (a.get("name") for a in actors if a.get("id") == tid),
+                None,
+            )
+            samples.append({
+                "timestamp": ev.get("timestamp"),
+                "targetID": tid,
+                "target_type": t,
+                "target_name": actor_name,
+                "killingAbilityGameID": ev.get("killingAbilityGameID"),
+                "abilityGameID": ev.get("abilityGameID"),
+            })
+
+    return {
+        **out,
+        "masterData_actor_count": len(actors),
+        "masterData_type_distribution": type_counts,
+        "death_event_count": len(death_events),
+        "death_categorization": categorized,
+        "death_samples_first_5": samples,
+    }
+
+
 @app.get("/api/debug/wcl-interrupts", dependencies=[Depends(require_api_key)])
 def debug_wcl_interrupts(code: str, fight_id: int):
     """Return the raw interruptTable payload for one specific fight so we
