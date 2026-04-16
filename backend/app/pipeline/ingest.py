@@ -979,11 +979,14 @@ def ingest_player(
 
             duration_ms = fight.get("endTime", 0) - fight.get("startTime", 0)
 
-            # Timed = completed AND within the dungeon's par time
-            # keystoneTime is the par timer in ms; kill means the key was completed
+            # Timed = `keystoneBonus` > 0. WCL sets this to 1, 2, or 3 for
+            # +1/+2/+3 chest timed finishes and 0/null for depleted runs.
+            # Authoritative — the previous heuristic (duration <= keystoneTime)
+            # misclassified razor-thin finishes because `keystoneTime` is
+            # the run's official completion time, not the par timer.
             key_completed = fight.get("kill", False)
-            keystone_time = fight.get("keystoneTime", 0)
-            key_timed = key_completed and keystone_time > 0 and duration_ms <= keystone_time
+            keystone_bonus = fight.get("keystoneBonus") or 0
+            key_timed = key_completed and keystone_bonus > 0
 
             # Dedup was resolved above, before the expensive fetch.
             # Re-use the values computed there so later DB insertion is
@@ -1051,6 +1054,7 @@ def ingest_player(
                 rating=fight.get("rating"),
                 average_item_level=fight.get("averageItemLevel"),
                 keystone_affixes=fight.get("keystoneAffixes"),
+                keystone_bonus=fight.get("keystoneBonus") or None,
                 healing_received=healing_received,
                 cc_casts=cc_count,
                 critical_interrupts=crit_interrupts,

@@ -103,6 +103,11 @@ class DungeonRun(Base):
     pulls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     average_item_level: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # WCL `keystoneBonus`: 1, 2, or 3 = timed with chest count (+1/+2/+3);
+    # 0 or null = depleted. Authoritative for the `timed` flag — prior
+    # heuristic (duration vs. keystoneTime) misclassified razor-thin
+    # finishes like run 1798 (Osyr +3 chest read as depleted).
+    keystone_bonus: Mapped[int | None] = mapped_column(Integer, nullable=True)
     keystone_affixes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     healing_received: Mapped[float | None] = mapped_column(Float, nullable=True)
     cc_casts: Mapped[int | None] = mapped_column(Integer, nullable=True)

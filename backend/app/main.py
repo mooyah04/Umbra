@@ -213,6 +213,7 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
         rating=run.rating,
         average_item_level=run.average_item_level,
         keystone_affixes=run.keystone_affixes,
+        keystone_bonus=run.keystone_bonus,
         healing_received=run.healing_received,
         cc_casts=run.cc_casts,
         critical_interrupts=run.critical_interrupts,

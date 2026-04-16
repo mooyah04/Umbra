@@ -35,6 +35,7 @@ query($code: String!) {
         name
         keystoneLevel
         keystoneTime
+        keystoneBonus
         startTime
         endTime
         kill

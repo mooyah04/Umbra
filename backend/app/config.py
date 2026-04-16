@@ -73,12 +73,14 @@ class Settings(BaseSettings):
     # `scheduler_stale_after_seconds` (or NULL) and re-ingests them. Keeps
     # logged data fresh without requiring anyone to visit their profile.
     # Disable in tests / one-off containers with `SCHEDULER_ENABLED=false`.
-    # Defaults tuned for Platinum WCL (18k calls/hour). An ingest is ~30
-    # WCL calls, so 15 players × (60s/300s) = 180/hr = ~5.4k calls/hr ≈ 30%
-    # of budget — leaves room for visitor lookups and refresh=true calls.
+    # Defaults tuned for Platinum WCL (18k points/hour). Measured ~120
+    # WCL points per cold ingest (character lookup + per-fight details
+    # for a 5-10 fight window). So batch=10 × (3600/300) = 120/hr ≈
+    # 14.4k points/hr ≈ 80% of budget — leaves headroom for visitor
+    # cold-starts, on-demand refresh, and bursts.
     scheduler_enabled: bool = True
     scheduler_interval_seconds: int = 300       # 5 min between sweeps
-    scheduler_batch_size: int = 15              # players per sweep
+    scheduler_batch_size: int = 10              # players per sweep
     scheduler_stale_after_seconds: int = 3600   # 1 hr since last ingest
     # Optional region filter for the ingest sweep. Empty string = all regions;
     # set to "EU" (or comma-separated "EU,US") to prioritize specific regions

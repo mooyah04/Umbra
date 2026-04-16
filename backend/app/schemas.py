@@ -151,6 +151,7 @@ class RunResponse(BaseModel):
     rating: int | None = None
     average_item_level: float | None = None
     keystone_affixes: list | None = None
+    keystone_bonus: int | None = None
     healing_received: float | None = None
     cc_casts: int | None = None
     critical_interrupts: int | None = None
@@ -192,6 +193,7 @@ class PerDungeonGrade(BaseModel):
     composite_score: float | None = None
     best_keystone_timed: int | None = None
     best_keystone_attempted: int | None = None
+
 
 
 class PlayerProfileResponse(BaseModel):
