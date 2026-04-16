@@ -188,3 +188,31 @@ export async function getPlayerHistory(
     `/api/player/${region}/${realm}/${name}/history?period=${period}`,
   );
 }
+
+export interface BugReportPayload {
+  summary: string;
+  details?: string;
+  source?: "website" | "addon";
+  submitter_name?: string;
+  submitter_email?: string;
+  page_url?: string;
+}
+
+export async function submitBugReport(payload: BugReportPayload): Promise<{ id: number; ok: boolean }> {
+  const res = await fetch(`${API_URL}/api/bug-report`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let message = `Bug report submit failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.detail) message = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } catch {
+      /* fall through */
+    }
+    throw new ApiError(res.status, message);
+  }
+  return res.json();
+}

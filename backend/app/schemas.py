@@ -214,3 +214,36 @@ class HistoryPoint(BaseModel):
 class HistoryResponse(BaseModel):
     points: list[HistoryPoint]
     period: str
+
+
+# ── Bug reports ─────────────────────────────────────────────────────────────
+
+class BugReportRequest(BaseModel):
+    """Public submission from the website form (or a user pasting addon
+    SavedVariables output into the same form)."""
+    summary: str = Field(..., min_length=3, max_length=200)
+    details: str = Field(default="", max_length=8000)
+    source: str = Field(default="website", max_length=20)
+    submitter_name: str | None = Field(default=None, max_length=80)
+    submitter_email: str | None = Field(default=None, max_length=200)
+    page_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator("source", mode="after")
+    @classmethod
+    def _valid_source(cls, v: str) -> str:
+        if v not in ("website", "addon"):
+            raise ValueError("source must be 'website' or 'addon'")
+        return v
+
+
+class BugReportResponse(BaseModel):
+    id: int
+    created_at: datetime
+    source: str
+    status: str
+    submitter_name: str | None
+    submitter_email: str | None
+    summary: str
+    details: str
+    page_url: str | None
+    user_agent: str | None

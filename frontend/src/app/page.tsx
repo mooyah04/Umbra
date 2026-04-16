@@ -294,6 +294,12 @@ export default async function Home() {
           >
             Download Addon
           </a>
+          <Link
+            href="/bug-report"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Report a Bug
+          </Link>
         </div>
         <div className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-[0.3em]">
           WoWUmbra.gg © 2026

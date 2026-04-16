@@ -124,3 +124,37 @@ class AddonDownload(Base):
     )
     ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class BugReport(Base):
+    """User-submitted bug reports from the website or the addon.
+
+    Addon reports come in via the website form too — the addon can't make
+    HTTP calls, so the /umbra bug slash command writes to SavedVariables
+    and tells the user to paste it into the site form. The `source` field
+    captures which path a given row came in on so we can tell addon-
+    surface bugs from web-surface bugs when triaging.
+    """
+    __tablename__ = "bug_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False, index=True
+    )
+    # "website" | "addon" — free-form but we filter on this in the admin view.
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="website")
+    # Optional contact info — users can submit anonymously.
+    submitter_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    submitter_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Freeform bug body; no format enforced so users can paste stack traces
+    # or screenshots of WoW errors. Capped at 8k chars to prevent abuse.
+    summary: Mapped[str] = mapped_column(String(200), nullable=False)
+    details: Mapped[str] = mapped_column(String(8000), nullable=False, default="")
+    # Context the site can fill in automatically.
+    page_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Hashed submitter IP for abuse tracking (never store raw IPs).
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Triage state — simple enough to keep as a free-form string for now.
+    # "new" | "triaged" | "resolved" | "wontfix"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="new")

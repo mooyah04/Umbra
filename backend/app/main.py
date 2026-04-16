@@ -16,11 +16,13 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import settings
 from app.db import engine, get_session
 from app.export.lua_writer import generate_lua
-from app.models import AddonDownload, Base, DungeonRun, Player, PlayerScore, Role
+from app.models import AddonDownload, Base, BugReport, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, require_api_key
 from app.validators import ValidationError, validate_player_identity
 from app.schemas import (
+    BugReportRequest,
+    BugReportResponse,
     ClaimRequest,
     ClaimResponse,
     HistoryPoint,
@@ -242,6 +244,79 @@ def download_stats(session: Session = Depends(get_session)):
             {"day": d.date().isoformat() if hasattr(d, "date") else str(d),
              "count": int(n)}
             for d, n in daily_rows
+        ],
+    }
+
+
+@app.post("/api/bug-report")
+@limiter.limit("10/hour")
+def submit_bug_report(
+    request: Request,
+    payload: BugReportRequest,
+    session: Session = Depends(get_session),
+):
+    """Public endpoint for user-submitted bug reports.
+
+    Rate-limited per IP (10/hour) so a single abuser can't flood the
+    triage queue. Captures user_agent + salted-IP-hash for spam
+    attribution without storing raw IPs. Source=addon is intended for
+    users who pasted SavedVariables output via the site — the addon
+    itself has no network and cannot POST.
+    """
+    ip = request.client.host if request.client else None
+    ip_hash: str | None = None
+    if ip:
+        salt = settings.api_key or "umbra-fallback-salt"
+        ip_hash = hashlib.sha256(f"{ip}:{salt}".encode()).hexdigest()
+    ua = (request.headers.get("user-agent") or "")[:500]
+    row = BugReport(
+        source=payload.source,
+        submitter_name=payload.submitter_name,
+        submitter_email=payload.submitter_email,
+        summary=payload.summary,
+        details=payload.details,
+        page_url=payload.page_url,
+        user_agent=ua or None,
+        ip_hash=ip_hash,
+        status="new",
+    )
+    session.add(row)
+    session.commit()
+    return {"id": row.id, "ok": True}
+
+
+@app.get("/api/admin/bug-reports", dependencies=[Depends(require_api_key)])
+def list_bug_reports(
+    status_filter: str | None = None,
+    source: str | None = None,
+    limit: int = Query(default=50, le=200),
+    session: Session = Depends(get_session),
+):
+    """List recent bug reports for triage. Optional filters on status
+    ('new' | 'triaged' | 'resolved' | 'wontfix') and source
+    ('website' | 'addon')."""
+    stmt = select(BugReport).order_by(BugReport.created_at.desc()).limit(limit)
+    if status_filter:
+        stmt = stmt.where(BugReport.status == status_filter)
+    if source:
+        stmt = stmt.where(BugReport.source == source)
+    rows = list(session.execute(stmt).scalars())
+    return {
+        "count": len(rows),
+        "reports": [
+            BugReportResponse(
+                id=r.id,
+                created_at=r.created_at,
+                source=r.source,
+                status=r.status,
+                submitter_name=r.submitter_name,
+                submitter_email=r.submitter_email,
+                summary=r.summary,
+                details=r.details,
+                page_url=r.page_url,
+                user_agent=r.user_agent,
+            ).model_dump(mode="json")
+            for r in rows
         ],
     }
 
