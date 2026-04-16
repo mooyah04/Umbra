@@ -806,6 +806,95 @@ def sample_dungeon_mechanics(
     }
 
 
+@app.get("/api/admin/sample-dungeon-interrupts", dependencies=[Depends(require_api_key)])
+def sample_dungeon_interrupts(
+    encounter_id: int,
+    top_n: int = Query(default=20, le=30),
+    consensus_pct: float = Query(default=50.0, ge=0, le=100),
+):
+    """Sample top-N WCL logs for a dungeon encounter, aggregate per-spell
+    interrupt counts across them, and return spells that appear in
+    `consensus_pct`% or more of the logs. Use this output as the input
+    to populate `critical_interrupts` in dungeon modules — these are
+    the casts top parties consistently target for kicks.
+
+    Writes nothing to our DB. Pure read against WCL.
+    """
+    from collections import defaultdict
+    from app.wcl.client import wcl_client
+
+    top_logs = wcl_client.get_top_logs_for_encounter(encounter_id, metric="speed", limit=top_n)
+    if not top_logs:
+        return {"error": "no rankings returned for this encounter", "encounter_id": encounter_id}
+
+    # InterruptTable shape (from queries.py REPORT_PLAYER_DATA):
+    #   entries: [{ guid, name, total, entries: [{ details: [...] }] }]
+    # Top-level guid is the ABILITY that was interrupted; total is the
+    # party-wide count across the fight. Perfect for cross-log aggregation.
+    interrupt_query = """
+    query($code: String!, $fightIDs: [Int!]!) {
+      reportData {
+        report(code: $code) {
+          interruptTable: table(fightIDs: $fightIDs, dataType: Interrupts)
+        }
+      }
+    }
+    """
+
+    appearances: dict[int, set] = defaultdict(set)
+    total_kicks: dict[int, int] = defaultdict(int)
+    name_for_id: dict[int, str] = {}
+    successful_logs = 0
+    for log in top_logs:
+        try:
+            data = wcl_client.query(
+                interrupt_query,
+                {"code": log["report_code"], "fightIDs": [log["fight_id"]]},
+            )
+        except Exception:
+            continue
+        table = (
+            data.get("reportData", {}).get("report", {}).get("interruptTable", {})
+            or {}
+        )
+        entries = (table.get("data") or {}).get("entries") or []
+        if not entries:
+            continue
+        successful_logs += 1
+        for entry in entries:
+            gid = entry.get("guid")
+            if not isinstance(gid, int):
+                continue
+            appearances[gid].add(log["report_code"])
+            total_kicks[gid] += int(entry.get("total") or 0)
+            name_for_id[gid] = entry.get("name") or name_for_id.get(gid, "?")
+
+    if successful_logs == 0:
+        return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}
+
+    threshold = (consensus_pct / 100.0) * successful_logs
+    consensus = [
+        {
+            "guid": gid,
+            "name": name_for_id[gid],
+            "logs_seen_in": len(appearances[gid]),
+            "logs_pct": round(100 * len(appearances[gid]) / successful_logs, 1),
+            "total_kicks": total_kicks[gid],
+        }
+        for gid in appearances
+        if len(appearances[gid]) >= threshold
+    ]
+    consensus.sort(key=lambda x: x["total_kicks"], reverse=True)
+
+    return {
+        "encounter_id": encounter_id,
+        "logs_sampled": successful_logs,
+        "consensus_threshold_pct": consensus_pct,
+        "abilities_passing_threshold": len(consensus),
+        "abilities": consensus[:40],
+    }
+
+
 @app.get("/api/admin/sample-spec-cooldowns", dependencies=[Depends(require_api_key)])
 def sample_spec_cooldowns(
     class_id: int = Query(..., ge=1, le=13),
