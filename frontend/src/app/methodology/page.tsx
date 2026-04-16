@@ -162,7 +162,7 @@ export default function MethodologyPage() {
       </section>
 
       {/* Mechanics: key-level + timing */}
-      <section className="mb-20 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
             Key level weighting
@@ -192,6 +192,70 @@ export default function MethodologyPage() {
             correct direction. Mythic+ keys are also resettable, so timing
             is gameable. The key level is already rewarded inside every
             category via per-run weighting.
+          </p>
+        </div>
+      </section>
+
+      {/* Per-dungeon + pull-by-pull (new features, documented here so the
+          /breakdown page can link back for explanation) */}
+      <section className="mb-20 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-surface-container-high rounded-xl p-8">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
+            Per-dungeon grades
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
+            WHERE YOUR GRADE COMES FROM
+          </h3>
+          <p className="text-on-surface-variant leading-relaxed">
+            The composite hides which dungeons you&apos;re actually weak in.
+            Every player page shows a separate grade per active-season
+            dungeon, computed by running the exact same scoring engine over
+            just that dungeon&apos;s runs. A tile with a C+ next to your
+            overall A- tells you exactly where the drag is.
+          </p>
+        </div>
+        <div className="bg-surface-container-high rounded-xl p-8">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
+            Pull-by-pull breakdown
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
+            THE WHOLE DUNGEON, 30 SECONDS
+          </h3>
+          <p className="text-on-surface-variant leading-relaxed">
+            Click any run and we show it pull-by-pull: your kicks, the
+            avoidable damage you ate, the pulls you died in — aggregated
+            per ability (&quot;took 3 hits from Dread Pulse, 840k total&quot;)
+            so it reads as a recap, not a raw log. No one else in the
+            ecosystem does this.
+          </p>
+        </div>
+      </section>
+
+      {/* Transparency on source data */}
+      <section className="mb-20">
+        <div className="bg-surface-container-high rounded-xl p-8 md:p-10">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
+            Source data
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl text-on-surface mb-4 tracking-tight">
+            HOW WE DECIDE WHAT COUNTS AS AVOIDABLE
+          </h3>
+          <p className="text-on-surface-variant leading-relaxed mb-4">
+            The &quot;avoidable damage&quot; and &quot;critical kick&quot;
+            lists per dungeon aren&apos;t hand-curated by us. They come from
+            a cross-log sampler that pulls the top 20 speed-ranked logs per
+            dungeon and finds the abilities + casts that consistently
+            appear across them. If top players take damage from it in
+            {" "}<span className="text-on-surface">50%+ of runs</span>, it&apos;s
+            avoidable. If they kick the same cast in 50%+ of runs, it&apos;s
+            critical.
+          </p>
+          <p className="text-on-surface-variant leading-relaxed">
+            That&apos;s it — no editorial curation, no favoritism toward any
+            class or spec. When a new season&apos;s data rolls in, the
+            lists update. When we add a new dungeon, we re-sample. The
+            endpoint that generates these lists is the same one our
+            scoring engine reads from.
           </p>
         </div>
       </section>

@@ -128,8 +128,8 @@ export const ROLE_WEIGHT_PROFILES: Record<
     { key: "healing_throughput", weight: 0.2 },
     { key: "damage_output", weight: 0.2 },
     { key: "utility", weight: 0.2 },
-    { key: "survivability", weight: 0.15 },
-    { key: "cooldown_usage", weight: 0.15 },
+    { key: "survivability", weight: 0.2 },
+    { key: "cooldown_usage", weight: 0.1 },
     { key: "casts_per_minute", weight: 0.1 },
   ],
   tank: [
@@ -177,23 +177,23 @@ export const DESIGN_PRINCIPLES = [
  */
 export const DIFFERENTIATORS = [
   {
+    title: "Receipts, not rankings",
+    body:
+      "Gear score shows what you brought. IO shows what you completed. Umbra shows how you actually played: the kicks you hit, the avoidable damage you ate, the cooldowns you held. Every grade drills down to the specific events that drove it.",
+  },
+  {
     title: "Fair across roles",
     body:
-      "Most competing systems bias heavily toward DPS metrics. Our tank and healer grades reflect tanking and healing, not 'how close are you to a DPS number.'",
+      "Most rating systems quietly weight toward DPS output. Our tank and healer grades reflect tanking and healing — survivability and utility carry real weight, not the ceremonial 5% other tools give them.",
+  },
+  {
+    title: "Per-dungeon + pull-by-pull",
+    body:
+      "You don't just get an overall letter. You get a grade per dungeon (see where you actually struggle) and a pull-by-pull breakdown per run (scan the whole dungeon in 30 seconds). Nobody else does this.",
   },
   {
     title: "Built for M+, not raids",
     body:
-      "Raid parsing tools are mature. M+ evaluation isn't. We start from M+-native assumptions: key-level weighting, timed-rate modifier, per-dungeon avoidable ability lists.",
-  },
-  {
-    title: "Transparent scoring",
-    body:
-      "Every category has a written explanation and the raw numbers beneath the grade. No black box.",
-  },
-  {
-    title: "Uses logs you already produce",
-    body:
-      "We don't ask anyone to install proprietary software. Enable Advanced Combat Logging (our addon does it automatically), upload to Warcraft Logs, done.",
+      "Raid parsing tools are mature. M+ evaluation isn't. We start from M+-native assumptions: key-level weighting in every category, timed rate as context not penalty, per-dungeon avoidable-ability lists sourced from live top logs.",
   },
 ];
