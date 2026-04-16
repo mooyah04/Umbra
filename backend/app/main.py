@@ -890,56 +890,48 @@ def sample_dungeon_mechanics(
 @app.get("/api/debug/wcl-timeline-raw", dependencies=[Depends(require_api_key)])
 def debug_wcl_timeline_raw(code: str, fight_id: int, actor_id: int):
     """Show what events the Level B timeline pulls see for a given
-    (report, fight, player). Used to diagnose why avoidable-damage
-    events come back empty on runs that clearly took avoidable hits.
+    (report, fight, player). Mirrors the new ingest behavior (no
+    server-side targetID filter on DamageTaken/Deaths; Python-side
+    narrowing).
 
-    Returns event counts + the top 10 per type (raw, unfiltered by
-    ability-id intersection), plus the unique abilityGameIDs present
-    in the first 100 damage events so we can sanity-check whether our
-    avoidable list actually overlaps with what WCL returned.
+    Returns counts + breakdown by type, plus how many damage events
+    survive each of the Python-side filters (type → targetID → ability
+    intersection) so we can see exactly where events are getting
+    dropped.
     """
     from app.wcl.client import wcl_client
     out: dict = {"report": code, "fight_id": fight_id, "actor_id": actor_id}
+
     try:
         dmg_raw = wcl_client.get_player_events(
-            code, [fight_id], data_type="DamageTaken", target_id=actor_id,
+            code, [fight_id], data_type="DamageTaken",
         )
     except Exception as e:
         return {**out, "error": f"damage fetch: {e}"}
-    try:
-        int_raw = wcl_client.get_player_events(
-            code, [fight_id], data_type="Interrupts", source_id=actor_id,
-        )
-    except Exception as e:
-        return {**out, "error": f"interrupt fetch: {e}"}
-    try:
-        death_raw = wcl_client.get_player_events(
-            code, [fight_id], data_type="Deaths", target_id=actor_id,
-        )
-    except Exception as e:
-        return {**out, "error": f"death fetch: {e}"}
 
-    dmg_types: dict[str, int] = {}
-    dmg_abilities: dict[int, int] = {}
-    for ev in dmg_raw:
-        t = ev.get("type") or "?"
-        dmg_types[t] = dmg_types.get(t, 0) + 1
-        aid = ev.get("abilityGameID")
+    # Count at each filter stage to diagnose where events disappear.
+    total = len(dmg_raw)
+    type_kept = [e for e in dmg_raw if e.get("type") in ("damage", "calculateddamage")]
+    target_kept = [e for e in type_kept if e.get("targetID") == actor_id]
+
+    # Top abilities surviving target filter — sanity check whether the
+    # filter actually matched Elonmunk and whether any of his hits
+    # come from the list we'd want to flag as avoidable.
+    ability_histogram: dict[int, int] = {}
+    for e in target_kept:
+        aid = e.get("abilityGameID")
         if isinstance(aid, int):
-            dmg_abilities[aid] = dmg_abilities.get(aid, 0) + 1
+            ability_histogram[aid] = ability_histogram.get(aid, 0) + 1
+    top_abilities = sorted(ability_histogram.items(), key=lambda kv: -kv[1])[:15]
 
     return {
         **out,
-        "damage_event_count": len(dmg_raw),
-        "damage_event_types": dmg_types,
-        "damage_unique_abilities_top20": sorted(
-            dmg_abilities.items(), key=lambda kv: -kv[1]
-        )[:20],
-        "damage_sample_first_3": dmg_raw[:3],
-        "interrupt_event_count": len(int_raw),
-        "interrupt_sample_first_3": int_raw[:3],
-        "death_event_count": len(death_raw),
-        "death_sample_first_3": death_raw[:3],
+        "damage_total_events_raw": total,
+        "damage_after_type_filter": len(type_kept),
+        "damage_after_targetID_filter": len(target_kept),
+        "damage_top_abilities_for_player": top_abilities,
+        "damage_sample_first_3_raw": dmg_raw[:3],
+        "damage_sample_first_3_for_player": target_kept[:3],
     }
 
 
