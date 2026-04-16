@@ -935,6 +935,48 @@ def debug_wcl_timeline_raw(code: str, fight_id: int, actor_id: int):
     }
 
 
+@app.get("/api/debug/wcl-fight-pulls", dependencies=[Depends(require_api_key)])
+def debug_wcl_fight_pulls(code: str, fight_id: int):
+    """Probe WCL's fight.dungeonPulls field. For M+ fights this has
+    pre-computed pull boundaries with startTime/endTime + enemy IDs —
+    exactly what Level B v2 needs. If it exists we ditch the
+    death-clustering approach entirely.
+    """
+    from app.wcl.client import wcl_client
+    query = """
+    query($code: String!, $fightIDs: [Int!]!) {
+      reportData {
+        report(code: $code) {
+          fights(fightIDs: $fightIDs) {
+            id
+            name
+            startTime
+            endTime
+            encounterID
+            keystoneLevel
+            dungeonPulls {
+              id
+              name
+              startTime
+              endTime
+              bossIds
+              enemyNPCs { id gameID minimumInstanceID maximumInstanceID }
+            }
+          }
+        }
+      }
+    }
+    """
+    try:
+        data = wcl_client.query(query, {"code": code, "fightIDs": [fight_id]})
+    except Exception as e:
+        return {"error": str(e), "code": code, "fight_id": fight_id}
+    fights = (
+        data.get("reportData", {}).get("report", {}).get("fights") or []
+    )
+    return {"code": code, "fight_id": fight_id, "fights": fights}
+
+
 @app.get("/api/debug/wcl-pulls-raw", dependencies=[Depends(require_api_key)])
 def debug_wcl_pulls_raw(code: str, fight_id: int, actor_id: int):
     """Diagnose why _build_pulls returns empty. Shows:
