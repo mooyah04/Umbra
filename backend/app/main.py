@@ -1434,8 +1434,14 @@ def discover_players(
                 "region": region_upper}
 
     def _norm(s: str) -> str:
-        # Lowercase, strip "the ", normalize apostrophes, collapse spaces.
-        s = (s or "").lower().replace("\u2019", "'").replace("the ", "", 1).strip()
+        # Lowercase, drop all apostrophes (singular vs plural possessive
+        # varies between ours and Blizzard's names — Magister's vs
+        # Magisters'), strip a leading "the " (prefix only, so inner
+        # "the"s like "Seat of the Triumvirate" aren't damaged), and
+        # collapse whitespace.
+        s = (s or "").lower().replace("\u2019", "").replace("'", "").strip()
+        if s.startswith("the "):
+            s = s[4:]
         return " ".join(s.split())
 
     our_names = {_norm(d.name): (eid, d.name) for eid, d in _DUNGEONS.items()}
