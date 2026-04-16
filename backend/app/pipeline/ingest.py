@@ -332,19 +332,27 @@ def _build_timeline_events(
     del player_name  # parameter kept for caller symmetry; not used here
 
     # ── Deaths ──────────────────────────────────────────────────────────
+    # WCL's Deaths dataType ignores the targetID query-param filter
+    # (verified empirically: passing target_id=player still returns
+    # every party member's deaths). Fetch unfiltered and filter
+    # Python-side by targetID. Also note: the `killingAbilityGameID`
+    # field on the event is the one with real spell IDs;
+    # `abilityGameID` is always 0 on death events.
     try:
         raw = wcl_client.get_player_events(
-            report_code, [fight_id],
-            data_type="Deaths",
-            target_id=actor_id,
+            report_code, [fight_id], data_type="Deaths",
         )
     except Exception as e:
         logger.debug("Timeline: death events failed for %s/%d: %s",
                      report_code, fight_id, e)
         raw = []
     for ev in raw:
+        if ev.get("targetID") != actor_id:
+            continue
         ts = ev.get("timestamp")
-        aid = ev.get("abilityGameID") or 0
+        # Prefer killingAbilityGameID (the actual killing blow); fall back
+        # to abilityGameID (often 0 on deaths) which renders as "Unknown".
+        aid = ev.get("killingAbilityGameID") or ev.get("abilityGameID") or 0
         if not isinstance(ts, (int, float)):
             continue
         events.append({
@@ -355,14 +363,16 @@ def _build_timeline_events(
             "amount": int(ev.get("amount") or 0) or None,
         })
 
-    # ── Avoidable damage — fetch all damage-taken events for this
-    #    player, then filter to avoidable abilities Python-side ──────────
+    # ── Avoidable damage ────────────────────────────────────────────────
+    # WCL's targetID filter on DamageTaken strictly requires source==target
+    # (verified empirically: passing target_id=player returned only self-
+    # damage stagger ticks, not hits taken from enemies). So we fetch
+    # unfiltered and narrow Python-side. Abilities-of-interest filter is
+    # also applied here, so the net in-memory footprint stays small.
     if avoidable_ids:
         try:
             raw = wcl_client.get_player_events(
-                report_code, [fight_id],
-                data_type="DamageTaken",
-                target_id=actor_id,
+                report_code, [fight_id], data_type="DamageTaken",
             )
         except Exception as e:
             logger.debug("Timeline: damage events failed for %s/%d: %s",
@@ -371,6 +381,8 @@ def _build_timeline_events(
         dmg_events: list[dict] = []
         for ev in raw:
             if ev.get("type") not in ("damage", "calculateddamage"):
+                continue
+            if ev.get("targetID") != actor_id:
                 continue
             aid = ev.get("abilityGameID")
             if not isinstance(aid, int) or aid not in avoidable_ids:
@@ -386,8 +398,6 @@ def _build_timeline_events(
                 "ability_name": None,
                 "amount": amt,
             })
-        # Top 8 by amount — a DoT ticking 40 times shouldn't drown out a
-        # one-shot that actually mattered.
         dmg_events.sort(key=lambda e: e["amount"] or 0, reverse=True)
         events.extend(dmg_events[:8])
 
