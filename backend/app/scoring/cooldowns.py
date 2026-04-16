@@ -16,7 +16,8 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Warrior
     (1, "Arms"): [
-        (227847, "Bladestorm", 5),
+        # Bladestorm (227847) removed 2026-04-16 (Pass 2): channel with no
+        # persistent self-aura — sampler didn't see it at 50% consensus.
         (107574, "Avatar", 15),
     ],
     (1, "Fury"): [
@@ -29,7 +30,10 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     # Paladin
     (2, "Retribution"): [
         (31884, "Avenging Wrath", 20),
-        (255937, "Wake of Ashes", 5),
+        # Wake of Ashes (255937) replaced 2026-04-16 (Pass 2): WoA is a
+        # hard cast with no self-aura. Execution Sentence is the
+        # trackable major CD per sampler (90% consensus, med=24).
+        (1234189, "Execution Sentence", 24),
     ],
 
     # Hunter
@@ -38,10 +42,13 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (359844, "Call of the Wild", 10),
     ],
     (3, "Marksmanship"): [
-        (288613, "Trueshot", 15),
+        (288613, "Trueshot", 13),  # Pass 2: observed at 70% consensus, med=13 (uptime was 15, now realistic)
     ],
     (3, "Survival"): [
-        (360966, "Spearhead", 12),
+        # Spearhead (360966) removed 2026-04-16 (Pass 2): 3s buff too
+        # short to register reliably in BuffsTable — sampler didn't see
+        # it at 50% consensus. Surv currently has no trackable major CD
+        # via the BuffsTable path; needs a cast-event path if we add one.
         # Kill Command removed 2026-04-15: ~6s CD rotational spam, not a
         # "major" cooldown. Audit showed 0 buff uses — appears as a cast
         # event but not in the player's buff aura table.
@@ -68,14 +75,19 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Priest
     (5, "Shadow"): [
-        (228260, "Void Eruption", 15),
-        (391109, "Dark Ascension", 10),
+        # Void Eruption (228260) replaced 2026-04-16 (Pass 2): VE is the
+        # cast, Voidform (194249) is the resulting self-aura — that's
+        # what BuffsTable reports. Sampler confirmed at 80% med=12.
+        (194249, "Voidform", 12),
+        # Dark Ascension (391109) removed: alternative talent to Void
+        # Eruption, not universally taken. Sampler didn't see it at 50%.
     ],
 
     # Death Knight
     (6, "Frost"): [
         (51271, "Pillar of Frost", 20),
-        (279302, "Frostwyrm's Fury", 3),
+        # Frostwyrm's Fury (279302) removed 2026-04-16 (Pass 2): cast
+        # with no self-aura. Sampler didn't see it at 50% consensus.
     ],
     (6, "Unholy"): [
         # Apocalypse (275699) removed 2026-04-15: ~45s-90s CD (too short
@@ -94,25 +106,32 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     (7, "Enhancement"): [
         # Feral Spirit (51533) removed 2026-04-16: summons wolves, no
         # self-buff on the shaman. Same pet-summon pattern as Fire Elemental.
-        (114051, "Ascendance", 10),
+        # Ascendance (114051) replaced 2026-04-16 (Pass 2): Ascendance is
+        # the alternate-form DPS CD but didn't show in the sampler;
+        # Doom Winds is the current-meta major CD (90% consensus, med=25).
+        (466772, "Doom Winds", 25),
     ],
 
     # Mage
     (8, "Arcane"): [
         (365362, "Arcane Surge", 10),  # was 365350 — sampler showed 365362 as the aura ID (2026-04-16)
-        (321507, "Touch of the Magi", 8),
+        # Touch of the Magi (321507) removed 2026-04-16 (Pass 2): applies
+        # a debuff to target, not a buff on the mage — BuffsTable can't
+        # see it. Needs a debuff-on-target detection path if we add one.
     ],
     (8, "Fire"): [
         (190319, "Combustion", 12),
     ],
     (8, "Frost"): [
-        (12472, "Icy Veins", 20),
+        # Icy Veins (12472) removed 2026-04-16 (Pass 2): sampler didn't
+        # see any Icy Veins aura at 50% consensus across 10 top Frost
+        # Mages. The aura ID must have changed in Midnight — until we
+        # identify the correct one, track Mirror Image instead (90%
+        # consensus, med=6). Mirror Image is an 80s-CD DPS decoy that
+        # every Frost Mage talents.
+        (55342, "Mirror Image", 6),
         # Frozen Orb (84714) removed 2026-04-16: cast-only spell with no
-        # self-buff aura — same pattern as Kill Command. The orb effect
-        # exists in the world, not on the caster, so BuffsTable can't
-        # see it. Icy Veins remains; if it disappears across multiple
-        # Frost Mage logs we'll revisit the ID (Midnight may have
-        # renamed/replaced).
+        # self-buff aura — same pattern as Kill Command.
     ],
 
     # Warlock
@@ -134,25 +153,35 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Monk
     (10, "Windwalker"): [
-        (137639, "Storm, Earth, and Fire", 20),
-        # Invoke Xuen (123904) removed 2026-04-16: summons a pet, no
-        # self-buff. SEF stays (it buffs the monk via spirit clones).
+        # Storm, Earth, and Fire (137639) replaced 2026-04-16 (Pass 2):
+        # no SEF aura showed at 50% consensus. Aura ID must have
+        # changed in Midnight. Touch of Karma (122470) is a universally-
+        # taken WW defensive that sampler confirmed at 90% med=10.
+        (122470, "Touch of Karma", 10),
+        # Invoke Xuen (123904) removed 2026-04-16: summons a pet.
     ],
 
     # Druid
     (11, "Balance"): [
-        (194223, "Celestial Alignment", 15),
+        # Celestial Alignment (194223) replaced 2026-04-16 (Pass 2):
+        # Incarnation: Chosen of Elune is the current-meta major (90%
+        # consensus, med=15) — it's the talent upgrade to CA.
+        (102560, "Incarnation: Chosen of Elune", 15),
         (202770, "Fury of Elune", 5),
     ],
     (11, "Feral"): [
         (106951, "Berserk", 15),
-        (102543, "Incarnation: Avatar of Ashamane", 15),
+        # Incarnation: Avatar of Ashamane (102543) removed 2026-04-16
+        # (Pass 2): alternate talent to Berserk, not universally taken
+        # in Midnight S1 Feral builds. Sampler didn't see it at 50%.
     ],
 
     # Demon Hunter
     (12, "Havoc"): [
         (162264, "Metamorphosis", 15),  # was 191427 — sampler showed 162264 as the DH Meta aura (2026-04-16)
-        (258860, "Essence Break", 5),
+        # Essence Break (258860) removed 2026-04-16 (Pass 2): target
+        # debuff, not self-buff — BuffsTable can't see it.
+        (370965, "The Hunt", 22),  # Pass 2 add: 80% consensus, med=22 — Havoc's reliable hero-talent CD
     ],
     # Midnight-added 4th DH spec (ranged DPS). Void Metamorphosis is the
     # high-confidence major CD identified from Mvpewe's audit (659 buff
@@ -169,14 +198,19 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (13, "Augmentation"): [
         (395296, "Ebon Might", 30),  # was 395152 — sampler showed 395296 as the self-aura ID (2026-04-16)
-        (404977, "Time Skip", 5),
+        # Time Skip (404977) removed 2026-04-16 (Pass 2): talented, not
+        # universal. Breath of Eons is the Aug signature major CD the
+        # sampler confirmed at 100% med=22.
+        (442204, "Breath of Eons", 22),
     ],
 
     # ── Tank Specs (active mitigation cooldowns) ─────────────────────────
 
     (1, "Protection"): [
         (871, "Shield Wall", 3),
-        (12975, "Last Stand", 5),
+        # Last Stand (12975) removed 2026-04-16 (Pass 2): 15s aura too
+        # short to register reliably via BuffsTable snapshots — sampler
+        # didn't see it at 50% consensus.
         (132404, "Shield Block", 40),  # was 2565 — sampler showed 132404 as the buff-on-warrior (2026-04-16)
     ],
     (2, "Protection"): [
@@ -210,12 +244,17 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     (2, "Holy"): [
         (31884, "Avenging Wrath", 20),
-        (105809, "Holy Avenger", 10),
+        # Holy Avenger (105809) removed 2026-04-16 (Pass 2): not taken in
+        # current-meta M+ Holy Paladin builds — sampler didn't see it at
+        # 50% consensus.
     ],
     (5, "Discipline"): [
-        (47536, "Rapture", 8),
-        # PW: Barrier (62618) removed 2026-04-16: ground effect, not a
-        # self-buff aura on the priest — BuffsTable cannot see it.
+        # Rapture (47536) replaced 2026-04-16 (Pass 2): Rapture empowers
+        # PW:Shield but isn't a persistent self-buff. Ultimate Penitence
+        # (421453) is Disc's big hero-talent CD that does show reliably
+        # (80% consensus, med=4).
+        (421453, "Ultimate Penitence", 4),
+        # PW: Barrier (62618) removed 2026-04-16: ground effect.
     ],
     (5, "Holy"): [
         (200183, "Apotheosis", 10),
@@ -229,10 +268,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (325174, "Spirit Link Totem", 5),
     ],
     (10, "Mistweaver"): [
-        # Yu'lon (322118) removed 2026-04-16: summons a pet serpent, no
-        # self-buff on the MW. Revival (115310) is retained as a self-cast
-        # channel even though the sampler didn't see it consistently.
-        (115310, "Revival", 2),
+        # Yu'lon (322118) removed 2026-04-16: summons a pet serpent.
+        # Revival (115310) replaced 2026-04-16 (Pass 2): self-cast heal
+        # burst with no aura on caster. Celestial Conduit (443028) is
+        # the current-meta MW major CD (90% consensus, med=11).
+        (443028, "Celestial Conduit", 11),
     ],
     # Core CDs every Resto Druid has regardless of talent build.
     # Tree of Life, Nature's Swiftness, and Flourish are talent choices
@@ -244,14 +284,19 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (740, "Tranquility", 4),                # baseline, ~3min CD
         (391528, "Convoke the Spirits", 3),     # commonly talented, ~2min CD
         (22812, "Barkskin", 15),                # baseline 1min CD personal
-        (29166, "Innervate", 4),                # baseline ~3min CD (on self or ally)
+        # Innervate (29166) removed 2026-04-16 (Pass 2): typically cast
+        # on a caster ally (healer mana recovery), so the buff usually
+        # lands on someone else — not consistently on the druid's own
+        # BuffsTable. Sampler didn't see it at 50% consensus.
         # Ironbark (102342) removed 2026-04-15: external CD — buff lands
-        # on the tank/target, not the Resto Druid. Our BuffsTable query
-        # only sees self-auras, so Ironbark is invisible here by design.
+        # on the tank/target, not the Resto Druid.
     ],
     (13, "Preservation"): [
         (363534, "Rewind", 3),
-        (370960, "Emerald Communion", 5),
+        # Emerald Communion (370960) replaced 2026-04-16 (Pass 2): mana-
+        # recovery channel, not a performance major. Stasis (370562) is
+        # the signature Pres cooldown the sampler caught at 100% med=17.
+        (370562, "Stasis", 17),
     ],
 }
 
