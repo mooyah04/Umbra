@@ -4,6 +4,7 @@ Supports a pool of client credentials so requests can be distributed
 across multiple 18k-points/hr Platinum buckets. Single-client mode is
 preserved for local dev and the simplest production setup.
 """
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -11,6 +12,8 @@ from dataclasses import dataclass, field
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -72,6 +75,14 @@ class WCLAuth:
 
     def __init__(self) -> None:
         self._credentials: list[WCLCredential] = _load_credentials()
+        if self._credentials:
+            logger.info(
+                "WCL credentials loaded: %d client(s) [%s]",
+                len(self._credentials),
+                ", ".join(c.client_id[:6] + "…" for c in self._credentials),
+            )
+        else:
+            logger.warning("WCL credentials loaded: 0 clients (set WCL_CLIENT_ID/SECRET)")
 
     def credentials(self) -> list[WCLCredential]:
         return list(self._credentials)
