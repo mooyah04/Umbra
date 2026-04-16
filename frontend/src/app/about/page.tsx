@@ -2,9 +2,9 @@ import Link from "next/link";
 import { DESIGN_PRINCIPLES, DIFFERENTIATORS } from "@/lib/methodology";
 
 export const metadata = {
-  title: "About — WoWUmbra.gg",
+  title: "About · WoWUmbra.gg",
   description:
-    "A Mythic+ performance grading tool for players who take the game seriously. Transparent, receipts-backed, built to help you improve — not to replace your judgment.",
+    "A Mythic+ performance grading tool for players who take the game seriously. Transparent, receipts-backed, built to help you improve. Not to replace your judgment.",
 };
 
 export default function AboutPage() {
@@ -23,8 +23,8 @@ export default function AboutPage() {
           A Mythic+ performance grading tool built for two things: helping
           you see exactly where your play needs work, and helping you find
           groupmates who take the game as seriously as you do.
-          Every grade drills down to the specific events — kicks, avoidable
-          damage, cooldown presses — that produced it.
+          Every grade drills down to the specific events that produced it:
+          kicks, avoidable damage, cooldown presses.
         </p>
       </section>
 
@@ -103,7 +103,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-on-surface-variant leading-relaxed mb-8 max-w-3xl">
             Umbra doesn&apos;t replace IO. It doesn&apos;t replace item level.
-            Each tool answers a different question — and the three together
+            Each tool answers a different question, and the three together
             give you a signal no single one can:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -149,7 +149,7 @@ export default function AboutPage() {
               <p className="mb-4">
                 Raider.IO was called toxic when it launched. Players argued
                 it would turn every LFG into a gated meritocracy. By 2022 it
-                was the default way to vet groups — because transparent data
+                was the default way to vet groups, because transparent data
                 is less toxic than rumor, reputation, and guess.
               </p>
               <p>
@@ -161,7 +161,7 @@ export default function AboutPage() {
             </div>
             <div>
               <p className="mb-4">
-                The right stance isn&apos;t &quot;no ratings&quot; — it&apos;s
+                The right stance isn&apos;t &quot;no ratings.&quot; It&apos;s
                 &quot;ratings you can argue with.&quot; If you disagree with
                 your Umbra grade, you can open your run breakdown, see every
                 event that drove it, cross-check against the source WCL log,
@@ -177,7 +177,7 @@ export default function AboutPage() {
 
           <div className="border-t border-outline-variant/20 pt-6">
             <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-4">
-              Our commitments — in code, not words
+              Our commitments, in code, not words
             </p>
             <ul className="space-y-3">
               {COMMITMENTS.map((c) => (
@@ -279,7 +279,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-on-surface-variant leading-relaxed max-w-3xl mb-4">
             Role weights, category-by-category explanations, the keystone
-            weighting curve, and the universal timing stat — every input
+            weighting curve, and the universal timing stat. Every input
             that produces a composite grade, written up end-to-end.
           </p>
           <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
@@ -310,7 +310,7 @@ export default function AboutPage() {
               spec-specific, dungeon-specific advice: which kicks you missed,
               which defensives you hoarded, which mechanics killed you. We
               won&apos;t ship the coach until the grades it&apos;s built on
-              are rock solid — because a confident wrong answer is worse
+              are rock solid, because a confident wrong answer is worse
               than no answer.
             </p>
             <Link
@@ -351,7 +351,7 @@ function ToolCard({
   );
 }
 
-/** What we ship today — every item is a live feature, not a promise. */
+/** What we ship today. Every item is a live feature, not a promise. */
 const WHAT_WE_PROVIDE = [
   {
     icon: "grade",
@@ -376,16 +376,16 @@ const WHAT_WE_PROVIDE = [
   {
     icon: "extension",
     title: "A free addon that surfaces grades in-game",
-    body: "Tooltips in the world and in Group Finder show grades inline — yours and everyone else's. No signup, no account, no payment. Download, install, it just works.",
+    body: "Tooltips in the world and in Group Finder show grades inline: yours and everyone else's. No signup, no account, no payment. Download, install, it just works.",
   },
   {
     icon: "refresh",
     title: "Fresh data without a manual refresh",
-    body: "Run a key, upload to Warcraft Logs (the addon can auto-toggle combat logging), and we re-ingest your character on the next scheduled sweep — usually within a few hours of upload. Looking yourself up on the site triggers an immediate ingest if you want it sooner.",
+    body: "Run a key, upload to Warcraft Logs (the addon can auto-toggle combat logging), and we re-ingest your character on the next scheduled sweep, usually within a few hours of upload. Looking yourself up on the site triggers an immediate ingest if you want it sooner.",
   },
 ];
 
-/** Concrete commitments — every line describes a mechanism, not a promise. */
+/** Concrete commitments. Every line describes a mechanism, not a promise. */
 const COMMITMENTS = [
   {
     title: "Your grade is never hidden from you",
@@ -401,7 +401,7 @@ const COMMITMENTS = [
   },
   {
     title: "Dungeon ability data is sourced from live logs, not guesses",
-    body: "Every 'avoidable damage' ability in our scoring comes from a cross-log sampler that reads the top 20 speed-runs per dungeon each week. No curated list, no editorial favoritism — if top players take damage from it and good players avoid it, we track it.",
+    body: "Every 'avoidable damage' ability in our scoring comes from a cross-log sampler that reads the top 20 speed-runs per dungeon each week. No curated list, no editorial favoritism. If top players take damage from it and good players avoid it, we track it.",
   },
   {
     title: "Open roadmap, open tradeoffs",
