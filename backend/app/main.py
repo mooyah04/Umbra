@@ -813,6 +813,7 @@ def sample_spec_cooldowns(
     encounter_id: int = Query(default=10658),  # Pit of Saron — high traffic
     top_n: int = Query(default=10, le=20),
     consensus_pct: float = Query(default=80.0, ge=0, le=100),
+    metric: str = Query(default="dps", pattern="^(dps|hps)$"),
 ):
     """Sample top-N players of a (class, spec) on a representative
     encounter, fetch their buffs from their top log, aggregate which
@@ -842,7 +843,7 @@ def sample_spec_cooldowns(
         encounter_id=encounter_id,
         class_name=class_name,
         spec_name=spec,
-        metric="dps",
+        metric=metric,
         limit=top_n,
     )
     if not top_chars:
