@@ -33,6 +33,12 @@ DUNGEON = DungeonData(
         (385981, "Arcane Orb"),
         (373326, "Arcane Missiles"),
     ),
+    critical_interrupts=(
+        (388862, "Surge"),
+        (1279627, "Arcane Bolt"),
+        (388392, "Monotonous Lecture"),
+        (396640, "Healing Touch"),
+    ),
     appearances=("Midnight S1", "Dragonflight S1"),
     last_reviewed="2026-04-16",
     verified=True,

@@ -29,6 +29,13 @@ DUNGEON = DungeonData(
         (1252691, "Gale Surge"),
         (1258174, "Dread Wind"),
     ),
+    critical_interrupts=(
+        (1255377, "Repel"),
+        (1254669, "Solar Bolt"),
+        (152953, "Blinding Light"),
+        (154396, "Solar Blast"),
+        (1254686, "Mark of Death"),
+    ),
     appearances=("Midnight S1", "Shadowlands S4", "WoD"),
     last_reviewed="2026-04-16",
     verified=True,

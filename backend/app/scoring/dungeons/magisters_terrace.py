@@ -32,6 +32,13 @@ DUNGEON = DungeonData(
         (1284633, "Stygian Ichor"),
         (1282051, "Arcane Beam"),
     ),
+    critical_interrupts=(
+        (1248327, "Shadow Bolt"),
+        (1264693, "Terror Wave"),
+        (468962, "Arcane Bolt"),
+        (468966, "Polymorph"),
+        (1254294, "Pyroblast"),
+    ),
     appearances=("Midnight S1", "TBC Heroic"),
     last_reviewed="2026-04-16",
     verified=True,
