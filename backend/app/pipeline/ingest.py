@@ -997,6 +997,21 @@ def ingest_player(
                 keystone_level=fight_keystone,
             )
 
+            # Reclassify avoidable_deaths from pulls when available. The
+            # Deaths table's `killingAbility.guid` sometimes disagrees with
+            # the events API's `killingAbilityGameID` (wrapper spell vs.
+            # final damaging tick), causing us to undercount avoidable
+            # deaths. Pulls uses the events API and is authoritative.
+            if pulls and avoidable_ids:
+                pull_avoidable = sum(
+                    1
+                    for p in pulls
+                    for e in p.get("events", [])
+                    if e.get("type") == "death" and e.get("ability_id") in avoidable_ids
+                )
+                if pull_avoidable > avoidable_death_count:
+                    avoidable_death_count = pull_avoidable
+
             run = DungeonRun(
                 player_id=player.id,
                 encounter_id=encounter_id,

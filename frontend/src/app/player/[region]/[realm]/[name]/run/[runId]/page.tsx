@@ -36,6 +36,17 @@ export default async function RunDetailPage({ params }: Props) {
   const cpm = run.duration > 0 ? ((run.casts_total / (run.duration / 60000))).toFixed(1) : "0";
   const narrative = generateRunNarrative(run);
 
+  const deathEvents = (run.pulls ?? []).flatMap((p) =>
+    p.events
+      .filter((e) => e.type === "death")
+      .map((e) => ({ ...e, pullLabel: p.label, pullIndex: p.i })),
+  );
+  const formatClock = (t: number) => {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   return (
     <main className="mt-24 px-6 max-w-7xl mx-auto space-y-12 pb-32">
       {/* Hero Banner */}
@@ -194,15 +205,36 @@ export default async function RunDetailPage({ params }: Props) {
                   <span className="font-[family-name:var(--font-label)] text-xs text-error font-bold mt-1">
                     {run.deaths}x
                   </span>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-bold text-on-surface font-[family-name:var(--font-body)]">
                       Deaths Recorded
                     </p>
-                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                      {run.avoidable_deaths !== null && run.avoidable_deaths > 0
-                        ? `${run.avoidable_deaths} of ${run.deaths} deaths were from avoidable mechanics.`
-                        : "Death details require avoidable ability data to classify."}
-                    </p>
+                    {deathEvents.length > 0 ? (
+                      <ul className="mt-2 space-y-1.5">
+                        {deathEvents.map((d, idx) => (
+                          <li key={idx} className="text-xs text-on-surface-variant leading-relaxed">
+                            <span className="text-error font-semibold">{d.ability_name}</span>
+                            {" — "}
+                            <span className="text-on-surface">{d.pullLabel}</span>
+                            {" at "}
+                            <span className="font-[family-name:var(--font-label)] tabular-nums">{formatClock(d.t)}</span>
+                          </li>
+                        ))}
+                        {run.avoidable_deaths !== null && run.avoidable_deaths > 0 && (
+                          <li className="text-[10px] text-on-surface-variant/70 mt-1">
+                            {run.avoidable_deaths} of {run.deaths} classified as avoidable mechanics.
+                          </li>
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                        {run.avoidable_deaths !== null && run.avoidable_deaths > 0
+                          ? `${run.avoidable_deaths} of ${run.deaths} deaths were from avoidable mechanics.`
+                          : run.keystone_level < 8
+                            ? "Per-death details are only captured on keys +8 and higher."
+                            : "No death details available for this log."}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {run.avoidable_damage_taken > 0 && (
