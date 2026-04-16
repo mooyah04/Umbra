@@ -867,6 +867,8 @@ def sample_dungeon_interrupts(
     total_kicks: dict[int, int] = defaultdict(int)
     name_for_id: dict[int, str] = {}
     successful_logs = 0
+    # WCL's interruptTable shape: entries[0].entries[] contains the
+    # per-kicked-ability rows. Each inner row: {guid, name, spellsInterrupted, details[]}.
     for log in top_logs:
         try:
             data = wcl_client.query(
@@ -879,17 +881,20 @@ def sample_dungeon_interrupts(
             data.get("reportData", {}).get("report", {}).get("interruptTable", {})
             or {}
         )
-        entries = (table.get("data") or {}).get("entries") or []
-        if not entries:
+        wrappers = (table.get("data") or {}).get("entries") or []
+        ability_rows = []
+        for w in wrappers:
+            ability_rows.extend(w.get("entries") or [])
+        if not ability_rows:
             continue
         successful_logs += 1
-        for entry in entries:
-            gid = entry.get("guid")
+        for row in ability_rows:
+            gid = row.get("guid")
             if not isinstance(gid, int):
                 continue
             appearances[gid].add(log["report_code"])
-            total_kicks[gid] += int(entry.get("total") or 0)
-            name_for_id[gid] = entry.get("name") or name_for_id.get(gid, "?")
+            total_kicks[gid] += int(row.get("spellsInterrupted") or 0)
+            name_for_id[gid] = row.get("name") or name_for_id.get(gid, "?")
 
     if successful_logs == 0:
         return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}

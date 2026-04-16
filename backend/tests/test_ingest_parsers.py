@@ -70,16 +70,24 @@ def test_get_nested_stat_empty():
 # ── Critical interrupts (filters nested table by interrupted ability ID) ────
 
 def test_count_critical_interrupts_only_counts_critical_ids():
+    # Real WCL shape has a wrapper: entries[0].entries[] is where the
+    # per-kicked-ability rows live. Each inner row carries `guid`
+    # (the kicked spell) and `details[]` (kickers with a `total`).
+    # Verified 2026-04-16 against a live Magister's Terrace log.
     table = {
         "data": {
             "entries": [
-                {  # Critical cast
-                    "guid": 100,
-                    "entries": [{"details": [{"name": "Mooyuh", "total": 2}]}],
-                },
-                {  # Filler cast — should NOT count
-                    "guid": 999,
-                    "entries": [{"details": [{"name": "Mooyuh", "total": 10}]}],
+                {
+                    "entries": [
+                        {  # Critical cast
+                            "guid": 100,
+                            "details": [{"name": "Mooyuh", "total": 2}],
+                        },
+                        {  # Filler cast — should NOT count
+                            "guid": 999,
+                            "details": [{"name": "Mooyuh", "total": 10}],
+                        },
+                    ],
                 },
             ],
         },

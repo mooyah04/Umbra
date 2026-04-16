@@ -158,16 +158,25 @@ def _count_critical_interrupts(
 ) -> int:
     """Count interrupts of high-priority spells.
 
-    The Interrupts table has structure: entries[interrupted_ability].entries[spell].details[player].
-    The top-level entry guid is the ability that was interrupted.
+    Actual WCL Interrupts table shape (verified 2026-04-16 against a live
+    Magister's Terrace log): the top-level entries[] contains ONE wrapper
+    with no guid of its own; the kicked-ability rows are inside
+    wrapper.entries[]. Each ability row has `guid` (the spell that was
+    kicked) and `details[]` (one per player who kicked it, with `total`).
+
+    Previous implementation read `guid` from the wrapper and always got 0,
+    so critical_interrupts silently returned 0 regardless of input. Fixed
+    to descend one level.
     """
+    if not critical_ids:
+        return 0
     total = 0
-    for top_entry in interrupt_table.get("data", {}).get("entries", []):
-        interrupted_id = top_entry.get("guid", 0)
-        if interrupted_id not in critical_ids:
-            continue
-        for spell_entry in top_entry.get("entries", []):
-            for player in spell_entry.get("details", []):
+    for wrapper in interrupt_table.get("data", {}).get("entries", []):
+        for ability_entry in wrapper.get("entries", []):
+            interrupted_id = ability_entry.get("guid", 0)
+            if interrupted_id not in critical_ids:
+                continue
+            for player in ability_entry.get("details", []):
                 if player.get("name", "").lower() == player_name.lower():
                     total += player.get("total", 0)
     return total
