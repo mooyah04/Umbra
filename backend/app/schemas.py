@@ -142,6 +142,11 @@ class RunResponse(BaseModel):
     cooldown_usage_pct: float
     timed: bool
     logged_at: datetime
+    # WCL provenance — exposed so the frontend can deep-link to the source
+    # log page (e.g. "Open on WCL") and future backfill work can key on
+    # these fields without a round-trip.
+    wcl_report_id: str
+    fight_id: int
     # Enrichment fields (nullable)
     rating: int | None = None
     average_item_level: float | None = None

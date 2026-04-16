@@ -42,6 +42,8 @@ export interface RunResponse {
   cooldown_usage_pct: number;
   timed: boolean;
   logged_at: string;
+  wcl_report_id: string;
+  fight_id: number;
   rating: number | null;
   average_item_level: number | null;
   keystone_affixes: number[] | null;

@@ -199,7 +199,11 @@ export default async function PlayerProfilePage({ params }: Props) {
 
   const categoryScoresForRole = primary
     ? getCategoriesForRole(role)
-        .filter((c) => c.key in primary.category_scores || c.key === "timing_modifier")
+        // Hide timing_modifier — it's stored on a ±8 scale (bonus to
+        // composite) but CategoryExplainer renders everything as /100,
+        // so e.g. +6 shows as "6/100 red" and reads as failure. Timing
+        // rate is still surfaced as a plain "X% keys timed" stat.
+        .filter((c) => c.key !== "timing_modifier" && c.key in primary.category_scores)
         .map((c) => ({
           explanation: c,
           score: primary.category_scores[c.key] ?? 0,

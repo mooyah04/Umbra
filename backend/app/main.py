@@ -156,6 +156,8 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
         cooldown_usage_pct=run.cooldown_usage_pct,
         timed=run.timed,
         logged_at=run.logged_at,
+        wcl_report_id=run.wcl_report_id,
+        fight_id=run.fight_id,
         rating=run.rating,
         average_item_level=run.average_item_level,
         keystone_affixes=run.keystone_affixes,

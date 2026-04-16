@@ -3,6 +3,7 @@ import { getRunDetail } from "@/lib/api";
 import { formatNumber, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
+import { generateRunNarrative } from "@/lib/narrative";
 import type { PartyMember } from "@/lib/types";
 
 interface Props {
@@ -33,6 +34,7 @@ export default async function RunDetailPage({ params }: Props) {
   const durationMin = Math.floor(run.duration / 60000);
   const durationSec = Math.floor((run.duration % 60000) / 1000);
   const cpm = run.duration > 0 ? ((run.casts_total / (run.duration / 60000))).toFixed(1) : "0";
+  const narrative = generateRunNarrative(run);
 
   return (
     <main className="mt-24 px-6 max-w-7xl mx-auto space-y-12 pb-32">
@@ -80,6 +82,40 @@ export default async function RunDetailPage({ params }: Props) {
           </div>
         </div>
       </section>
+
+      {/* Run recap — derived from stored stats, no WCL roundtrip */}
+      {narrative.length > 0 && (
+        <section className="bg-surface-container-low rounded-xl p-6 md:p-8 border-l-4 border-primary/60">
+          <div className="flex items-end justify-between mb-4 gap-4 flex-wrap">
+            <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl md:text-2xl tracking-tighter uppercase text-on-surface italic">
+              Run Recap
+            </h3>
+            <Link
+              href={`${playerPath}/run/${runId}/breakdown`}
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:text-on-surface transition-colors inline-flex items-center gap-1 border border-primary/40 hover:border-primary rounded-md px-3 py-1.5"
+            >
+              Full Breakdown
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          </div>
+          <ul className="space-y-2">
+            {narrative.map((line, i) => (
+              <li
+                key={i}
+                className="text-on-surface/90 font-[family-name:var(--font-body)] leading-relaxed flex gap-3"
+              >
+                <span
+                  className="text-primary/60 font-[family-name:var(--font-label)] text-xs mt-1 shrink-0"
+                  aria-hidden
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* What Went Right */}
