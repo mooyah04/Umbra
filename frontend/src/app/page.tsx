@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
+import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
 import { ADDON_DOWNLOAD_URL, getStatsSummary, getTopPlayers, getLeaderboard } from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
 import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
@@ -12,7 +13,7 @@ export default async function Home() {
   // Parallel fetch so homepage renders in a single RTT to the API.
   const [stats, recent, topRanked] = await Promise.all([
     getStatsSummary().catch(() => null),
-    getTopPlayers(8).catch(() => [] as PlayerSearchResult[]),
+    getTopPlayers(12).catch(() => [] as PlayerSearchResult[]),
     getLeaderboard({ limit: 5 }).catch(() => [] as PlayerSearchResult[]),
   ]);
 
@@ -177,11 +178,11 @@ export default async function Home() {
               Live
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <RecentlyGradedCarousel>
             {recent.map((p) => (
               <PlayerCard key={`${p.name}-${p.realm}`} player={p} />
             ))}
-          </div>
+          </RecentlyGradedCarousel>
         </section>
       )}
 
