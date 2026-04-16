@@ -11,6 +11,7 @@ import { specIconUrl, classIdFromName, classifyDpsSpec } from "@/lib/wow-assets"
 import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
+import DungeonBreakdown from "@/components/DungeonBreakdown";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
 
 interface Props {
@@ -418,6 +419,11 @@ export default async function PlayerProfilePage({ params }: Props) {
             ))}
           </div>
         </section>
+      )}
+
+      {/* ── Per-dungeon grade breakdown ── */}
+      {profile.per_dungeon && profile.per_dungeon.length > 0 && (
+        <DungeonBreakdown tiles={profile.per_dungeon} />
       )}
 
       {/* ── Run history ── */}

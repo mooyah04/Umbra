@@ -75,6 +75,16 @@ export interface RoleScore {
   primary_role: boolean;
 }
 
+export interface PerDungeonGrade {
+  encounter_id: number;
+  dungeon_name: string;
+  runs_count: number;
+  grade: string | null;
+  composite_score: number | null;
+  best_keystone_timed: number | null;
+  best_keystone_attempted: number | null;
+}
+
 export interface PlayerProfileResponse {
   name: string;
   realm: string;
@@ -87,6 +97,7 @@ export interface PlayerProfileResponse {
   avatar_url?: string | null;
   inset_url?: string | null;
   render_url?: string | null;
+  per_dungeon?: PerDungeonGrade[];
 }
 
 export interface HistoryPoint {

@@ -168,6 +168,23 @@ class RoleScore(BaseModel):
     primary_role: bool
 
 
+class PerDungeonGrade(BaseModel):
+    """One tile of the 'Performance by Dungeon' breakdown on the player page.
+
+    Grade + composite_score are the player's primary-role scoring result
+    restricted to runs of this single dungeon. Empty dungeons (runs_count=0)
+    carry the tile so the UI can surface coverage gaps — the frontend
+    renders those dimmed.
+    """
+    encounter_id: int
+    dungeon_name: str
+    runs_count: int
+    grade: str | None = None
+    composite_score: float | None = None
+    best_keystone_timed: int | None = None
+    best_keystone_attempted: int | None = None
+
+
 class PlayerProfileResponse(BaseModel):
     name: str
     realm: str
@@ -180,6 +197,8 @@ class PlayerProfileResponse(BaseModel):
     avatar_url: str | None = None
     inset_url: str | None = None
     render_url: str | None = None
+    # Sorted: graded tiles descending by composite, empty tiles last.
+    per_dungeon: list[PerDungeonGrade] = []
 
 
 class HistoryPoint(BaseModel):

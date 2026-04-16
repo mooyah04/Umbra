@@ -27,6 +27,7 @@ from app.schemas import (
     HistoryResponse,
     IngestRequest,
     IngestResponse,
+    PerDungeonGrade,
     PlayerProfileResponse,
     PlayerScoreResponse,
     PlayerSearchResult,
@@ -1930,6 +1931,65 @@ def get_player_profile(
     timed_runs = session.execute(timed_stmt).scalar() or 0
     timed_pct = round((timed_runs / total_runs) * 100, 1) if total_runs > 0 else 0
 
+    # Per-dungeon breakdown. Groups the player's runs (in their primary
+    # role) by encounter_id and scores each group independently via the
+    # normal engine — gives a per-dungeon composite that explains where
+    # the overall grade is being dragged up or down. Active-season
+    # dungeons with no runs get an empty tile so the UI can surface
+    # coverage gaps rather than silently omit them.
+    from collections import defaultdict
+    from app.scoring.dungeons.registry import _DUNGEONS
+    from app.scoring.engine import score_player_runs
+
+    primary_role = None
+    if player.scores:
+        primary = next((s for s in player.scores if s.primary_role), player.scores[0])
+        primary_role = primary.role
+
+    per_dungeon: list[PerDungeonGrade] = []
+    if primary_role is not None:
+        # All runs in the primary role (not just recent 20) so aggregates
+        # are representative.
+        all_role_runs_stmt = (
+            select(DungeonRun)
+            .where(
+                DungeonRun.player_id == player.id,
+                DungeonRun.role == primary_role,
+            )
+        )
+        all_role_runs = list(session.execute(all_role_runs_stmt).scalars())
+        by_enc: dict[int, list[DungeonRun]] = defaultdict(list)
+        for r in all_role_runs:
+            by_enc[r.encounter_id].append(r)
+
+        for eid, dungeon in _DUNGEONS.items():
+            runs_here = by_enc.get(eid, [])
+            tile = PerDungeonGrade(
+                encounter_id=eid,
+                dungeon_name=dungeon.name,
+                runs_count=len(runs_here),
+            )
+            if runs_here:
+                result = score_player_runs(
+                    runs=runs_here,
+                    role=primary_role,
+                    class_id=player.class_id,
+                )
+                tile.grade = result.overall_grade
+                tile.composite_score = result.composite_score
+                timed = [r.keystone_level for r in runs_here if r.timed]
+                tile.best_keystone_timed = max(timed) if timed else None
+                tile.best_keystone_attempted = max(r.keystone_level for r in runs_here)
+            per_dungeon.append(tile)
+
+        # Graded tiles first, sorted high-to-low; empty tiles last,
+        # alphabetical so the bottom of the list is stable.
+        per_dungeon.sort(key=lambda t: (
+            0 if t.grade else 1,
+            -(t.composite_score or 0),
+            t.dungeon_name,
+        ))
+
     return PlayerProfileResponse(
         name=player.name,
         realm=player.realm,
@@ -1942,6 +2002,7 @@ def get_player_profile(
         avatar_url=player.avatar_url,
         inset_url=player.inset_url,
         render_url=player.render_url,
+        per_dungeon=per_dungeon,
     )
 
 
