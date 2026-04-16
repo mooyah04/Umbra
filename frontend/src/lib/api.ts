@@ -176,16 +176,35 @@ export async function claimPlayer(
   region: string,
   reportUrlOrCode: string,
 ): Promise<ClaimResponse> {
-  const res = await fetch(`${API_URL}/api/player/claim`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name,
-      realm,
-      region,
-      report_url_or_code: reportUrlOrCode,
-    }),
-  });
+  // Hard cap the claim wait so a stuck backend (WCL 429 + slow retry)
+  // surfaces as a clear error to the user instead of the "Verifying…"
+  // button spinning forever. Comfortably below Railway's edge timeout.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25_000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/player/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        realm,
+        region,
+        report_url_or_code: reportUrlOrCode,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "The request timed out. Warcraft Logs may be rate-limiting us — try again in a minute.",
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) {
     let detail: ApiErrorDetail | string | undefined;
     let message = `API error ${res.status}`;

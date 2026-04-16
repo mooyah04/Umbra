@@ -493,7 +493,7 @@ def claim_player(
     data since we still only store players that appear in a real WCL log.
     """
     from app.scoring.spec_to_class import class_id_from_name
-    from app.wcl.client import wcl_client
+    from app.wcl.client import WCLRateLimitedError, wcl_client
 
     name, realm, region = _canonical_identity(body.name, body.realm, body.region)
     code = _extract_report_code(body.report_url_or_code)
@@ -508,7 +508,21 @@ def claim_player(
             },
         )
 
-    fights = wcl_client.get_report_fights(code)
+    try:
+        fights = wcl_client.get_report_fights(code)
+    except WCLRateLimitedError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "wcl_rate_limited",
+                "retry_after": e.retry_after,
+                "message": (
+                    "Warcraft Logs rate-limited us — your claim will work "
+                    f"again in about {max(1, round(e.retry_after / 60))} "
+                    "minute(s). Try again then."
+                ),
+            },
+        )
     if not fights:
         raise HTTPException(
             status_code=404,
@@ -520,7 +534,21 @@ def claim_player(
         )
 
     fight_ids = [f["id"] for f in fights]
-    rd = wcl_client.get_report_player_data(code, fight_ids)
+    try:
+        rd = wcl_client.get_report_player_data(code, fight_ids)
+    except WCLRateLimitedError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "wcl_rate_limited",
+                "retry_after": e.retry_after,
+                "message": (
+                    "Warcraft Logs rate-limited us — your claim will work "
+                    f"again in about {max(1, round(e.retry_after / 60))} "
+                    "minute(s). Try again then."
+                ),
+            },
+        )
     pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {}) if rd else {}
 
     matched_name: str | None = None
@@ -553,11 +581,25 @@ def claim_player(
         )
 
     class_id = class_id_from_name(matched_class)
-    result = ingest_player(
-        session, name, realm, region,
-        class_hint=class_id,
-        report_codes=[code],
-    )
+    try:
+        result = ingest_player(
+            session, name, realm, region,
+            class_hint=class_id,
+            report_codes=[code],
+        )
+    except WCLRateLimitedError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "wcl_rate_limited",
+                "retry_after": e.retry_after,
+                "message": (
+                    "Warcraft Logs rate-limited us mid-ingest — your claim "
+                    f"will work again in about {max(1, round(e.retry_after / 60))} "
+                    "minute(s). Try again then."
+                ),
+            },
+        )
     if not result.player:
         raise HTTPException(
             status_code=502,
@@ -2188,9 +2230,20 @@ def get_player_profile(
             result = None
             is_indexing = True
         except Exception as e:
-            logger.warning("Inline ingest raised for %s-%s (%s): %s",
-                           name, realm, region, e)
-            result = None
+            # Treat WCL-rate-limit the same as a timeout: the request is
+            # live, WCL is temporarily unavailable, render the indexing
+            # state so the user at least sees the page load. Scheduler
+            # will retry once WCL's cool-off window ends.
+            from app.wcl.client import WCLRateLimitedError
+            if isinstance(e, WCLRateLimitedError):
+                logger.info("Inline ingest rate-limited for %s-%s (%s): %s",
+                            name, realm, region, e)
+                result = None
+                is_indexing = True
+            else:
+                logger.warning("Inline ingest raised for %s-%s (%s): %s",
+                               name, realm, region, e)
+                result = None
 
         if not is_indexing and (result is None or result.player is None):
             reason = getattr(result, "reason", None) if result else None

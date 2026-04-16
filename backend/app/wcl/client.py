@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 _WCL_MAX_IN_FLIGHT = 4
 _wcl_semaphore = threading.Semaphore(_WCL_MAX_IN_FLIGHT)
 
+# Hard cap on Retry-After. WCL has been observed returning huge values
+# (e.g. 2800s = 47 min — quota-reset windows) which hang user-facing
+# requests until the edge timeouts. Anything longer than this raises
+# WCLRateLimitedError so callers can decide: fail fast (user requests)
+# or reschedule for later (scheduler).
+_RETRY_AFTER_MAX_SECONDS = 20
+
 
 class WCLClient:
     """Sync GraphQL client for Warcraft Logs API v2 with retry on rate limit."""
@@ -41,13 +48,26 @@ class WCLClient:
                     )
 
                 if resp.status_code == 429:
-                    # Respect WCL's Retry-After if present; otherwise use
-                    # exponential-ish backoff that doesn't exceed ~75s total.
-                    retry_after = resp.headers.get("Retry-After")
+                    # Respect WCL's Retry-After when it's sane; otherwise
+                    # use exponential-ish backoff. If WCL asks for a long
+                    # wait (daily-quota reset window) don't block the
+                    # request thread — raise so the caller handles it.
+                    retry_after_header = resp.headers.get("Retry-After")
                     try:
-                        wait = int(retry_after) if retry_after else 15 * (attempt + 1)
+                        advised = int(retry_after_header) if retry_after_header else None
                     except ValueError:
-                        wait = 15 * (attempt + 1)
+                        advised = None
+
+                    if advised is not None and advised > _RETRY_AFTER_MAX_SECONDS:
+                        logger.warning(
+                            "WCL rate limited, Retry-After=%ds exceeds cap=%ds — "
+                            "failing fast (attempt %d/%d)",
+                            advised, _RETRY_AFTER_MAX_SECONDS,
+                            attempt + 1, max_retries,
+                        )
+                        raise WCLRateLimitedError(advised)
+
+                    wait = advised if advised is not None else 15 * (attempt + 1)
                     logger.warning(
                         "WCL rate limited, waiting %ds (attempt %d/%d)",
                         wait, attempt + 1, max_retries,
@@ -714,6 +734,17 @@ class WCLQueryError(Exception):
         self.errors = errors
         messages = [e.get("message", str(e)) for e in errors]
         super().__init__(f"WCL GraphQL errors: {'; '.join(messages)}")
+
+
+class WCLRateLimitedError(Exception):
+    """Raised when WCL returns 429 with a Retry-After longer than
+    `_RETRY_AFTER_MAX_SECONDS`. Callers decide whether to fail the
+    user request, reschedule, or back off the whole worker pool."""
+    def __init__(self, retry_after_seconds: int):
+        self.retry_after = retry_after_seconds
+        super().__init__(
+            f"WCL rate limit; retry after {retry_after_seconds}s"
+        )
 
 
 wcl_client = WCLClient()
