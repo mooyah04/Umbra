@@ -38,8 +38,14 @@ def _region_filter_list() -> list[str]:
 
 def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str, str, str]]:
     """Return up to `limit` (name, realm, region) tuples for players whose
-    last_ingested_at is older than the cutoff, oldest first. NULL counts
-    as 'never ingested' and sorts to the top.
+    last_ingested_at is older than the cutoff.
+
+    Order:
+      1. `discovered_keystone_level` DESC, nulls last — prefer high-tier
+         leaderboard stubs over the long tail when WCL budget is tight.
+      2. `last_ingested_at` ASC, nulls first — among peers at the same
+         tier, serve never-ingested stubs before re-sweeps, and the
+         stalest re-sweeps before fresher ones.
 
     If `SCHEDULER_REGION_FILTER` is set, only players in those regions are
     eligible — useful for prioritizing a single region (EU for internal
@@ -56,7 +62,10 @@ def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str,
                     Player.last_ingested_at < cutoff,
                 )
             )
-            .order_by(Player.last_ingested_at.asc().nullsfirst())
+            .order_by(
+                Player.discovered_keystone_level.desc().nullslast(),
+                Player.last_ingested_at.asc().nullsfirst(),
+            )
             .limit(limit)
         )
         if region_whitelist:

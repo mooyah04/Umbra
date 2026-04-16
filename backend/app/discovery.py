@@ -34,6 +34,11 @@ class DiscoveredPlayer:
     region: str
     class_id: int
     spec_name: str
+    # Highest keystone_level seen for this player across all leaderboard
+    # rows in this discovery pass. Drives scheduler prioritization: high
+    # keys get ingested first. Zero if leaderboard response lacked a
+    # keystone_level (defensive default; shouldn't happen in practice).
+    keystone_level: int = 0
 
 
 def _norm_dungeon_name(s: str) -> str:
@@ -105,6 +110,7 @@ def discover_from_realm(
         if not board:
             continue
         for group in board.get("leading_groups") or []:
+            group_keystone = group.get("keystone_level") or 0
             for m in group.get("members") or []:
                 profile = m.get("profile") or {}
                 spec = m.get("specialization") or {}
@@ -120,7 +126,13 @@ def discover_from_realm(
                     continue
                 class_id, spec_name = resolved
                 key = (region, player_realm_slug.lower(), name.lower())
+                # Keep the highest keystone level we've seen for this
+                # player in this discovery pass — a name appearing on
+                # both +22 and +14 leaderboards should be prioritized by
+                # the +22 run.
                 if key in discovered:
+                    if group_keystone > discovered[key].keystone_level:
+                        discovered[key].keystone_level = group_keystone
                     continue
                 discovered[key] = DiscoveredPlayer(
                     name=name,
@@ -128,6 +140,7 @@ def discover_from_realm(
                     region=region,
                     class_id=class_id,
                     spec_name=spec_name,
+                    keystone_level=group_keystone,
                 )
     return list(discovered.values()), unknown_specs
 
@@ -147,15 +160,26 @@ def upsert_stub_players(
     sweep's next tick.
     """
     new_count = 0
+    updated_count = 0
     for p in players:
         existing = session.execute(
-            select(Player.id).where(
+            select(Player).where(
                 Player.name.ilike(p.name),
                 Player.realm.ilike(p.realm),
                 Player.region == p.region,
             )
         ).scalar_one_or_none()
         if existing is not None:
+            # Existing row — refresh the discovered_keystone_level if
+            # this leaderboard pass saw a higher key than we had
+            # recorded. Everything else (class_id, last_ingested_at,
+            # media URLs) is owned by the ingest pipeline.
+            if p.keystone_level and (
+                existing.discovered_keystone_level is None
+                or p.keystone_level > existing.discovered_keystone_level
+            ):
+                existing.discovered_keystone_level = p.keystone_level
+                updated_count += 1
             continue
         session.add(Player(
             name=p.name,
@@ -163,8 +187,14 @@ def upsert_stub_players(
             region=p.region,
             class_id=p.class_id,
             last_ingested_at=None,
+            discovered_keystone_level=p.keystone_level or None,
         ))
         new_count += 1
-    if new_count:
+    if new_count or updated_count:
         session.commit()
+        if updated_count:
+            logger.debug(
+                "upsert_stub_players: %d new rows, %d existing rows had keystone level bumped",
+                new_count, updated_count,
+            )
     return new_count

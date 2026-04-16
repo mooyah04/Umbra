@@ -43,6 +43,13 @@ class Player(Base):
     # scheduler picks the stalest rows by this timestamp to re-ingest;
     # `updated_at` is unsuitable because it also fires on media refreshes.
     last_ingested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Highest keystone level seen for this player in the Blizzard
+    # mythic-keystone leaderboard row that created (or last updated) this
+    # stub. Used by the scheduler to prioritize high-tier stubs when WCL
+    # budget is constrained — we'd rather ingest +20 pushers than +3 filler.
+    # Null for stubs discovered before this column existed and for players
+    # who were never seen on a leaderboard (organic lookups).
+    discovered_keystone_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
