@@ -21,7 +21,9 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (1, "Fury"): [
         (1719, "Recklessness", 15),
-        (228920, "Ravager", 5),
+        # Ravager (228920) removed 2026-04-16: summons a weapon (pet-like
+        # entity), no self-buff aura on the player. Sampler confirmed 0
+        # Fury logs had it in their BuffsTable.
     ],
 
     # Paladin
@@ -47,12 +49,15 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Rogue
     (4, "Assassination"): [
-        (360194, "Deathmark", 10),
-        (79140, "Vendetta", 15),
+        # Deathmark (360194) and Vendetta (79140) removed 2026-04-16:
+        # both apply debuffs to enemies rather than buffs to the rogue,
+        # so BuffsTable cannot see them. Needs a different detection path
+        # (debuff-on-target count) to audit properly. Until then, Assn
+        # has no trackable major CD here.
     ],
     (4, "Outlaw"): [
         (13750, "Adrenaline Rush", 20),
-        (271877, "Blade Rush", 5),
+        (271896, "Blade Rush", 5),  # was 271877 — sampler showed 271896 as the actual buff ID (2026-04-16)
     ],
     (4, "Subtlety"): [
         (121471, "Shadow Blades", 15),
@@ -82,16 +87,19 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     # Shaman
     (7, "Elemental"): [
         (191634, "Stormkeeper", 10),
-        (198067, "Fire Elemental", 15),
+        # Fire Elemental (198067) removed 2026-04-16: summons a pet — the
+        # elemental has its own buffs, the shaman does not. No self-aura
+        # detectable via BuffsTable.
     ],
     (7, "Enhancement"): [
-        (51533, "Feral Spirit", 15),
+        # Feral Spirit (51533) removed 2026-04-16: summons wolves, no
+        # self-buff on the shaman. Same pet-summon pattern as Fire Elemental.
         (114051, "Ascendance", 10),
     ],
 
     # Mage
     (8, "Arcane"): [
-        (365350, "Arcane Surge", 10),
+        (365362, "Arcane Surge", 10),  # was 365350 — sampler showed 365362 as the aura ID (2026-04-16)
         (321507, "Touch of the Magi", 8),
     ],
     (8, "Fire"): [
@@ -109,7 +117,10 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Warlock
     (9, "Affliction"): [
-        (205180, "Summon Darkglare", 10),
+        # Summon Darkglare (205180) removed 2026-04-16: summons a demon,
+        # no self-buff aura. Aff currently has no trackable major CD via
+        # BuffsTable; flagged for future debuff-on-target detection
+        # (Haunt / Malefic Rapture stacking) if we add that path.
     ],
     (9, "Demonology"): [
         (265187, "Summon Demonic Tyrant", 10),
@@ -118,13 +129,14 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         # comparatively few self-buff majors; Tyrant is the primary.
     ],
     (9, "Destruction"): [
-        (1122, "Summon Infernal", 10),
+        (111685, "Summon Infernal", 10),  # was 1122 — 111685 is the player-side aura (2026-04-16)
     ],
 
     # Monk
     (10, "Windwalker"): [
         (137639, "Storm, Earth, and Fire", 20),
-        (123904, "Invoke Xuen", 12),
+        # Invoke Xuen (123904) removed 2026-04-16: summons a pet, no
+        # self-buff. SEF stays (it buffs the monk via spirit clones).
     ],
 
     # Druid
@@ -139,7 +151,7 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
 
     # Demon Hunter
     (12, "Havoc"): [
-        (191427, "Metamorphosis", 15),
+        (162264, "Metamorphosis", 15),  # was 191427 — sampler showed 162264 as the DH Meta aura (2026-04-16)
         (258860, "Essence Break", 5),
     ],
     # Midnight-added 4th DH spec (ranged DPS). Void Metamorphosis is the
@@ -156,7 +168,7 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
         (375087, "Dragonrage", 15),
     ],
     (13, "Augmentation"): [
-        (395152, "Ebon Might", 30),
+        (395296, "Ebon Might", 30),  # was 395152 — sampler showed 395296 as the self-aura ID (2026-04-16)
         (404977, "Time Skip", 5),
     ],
 
@@ -165,16 +177,16 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     (1, "Protection"): [
         (871, "Shield Wall", 3),
         (12975, "Last Stand", 5),
-        (2565, "Shield Block", 40),
+        (132404, "Shield Block", 40),  # was 2565 — sampler showed 132404 as the buff-on-warrior (2026-04-16)
     ],
     (2, "Protection"): [
         (31850, "Ardent Defender", 5),
-        (86659, "Guardian of Ancient Kings", 5),
-        (53600, "Shield of the Righteous", 40),
+        (393108, "Guardian of Ancient Kings", 5),  # was 86659 — sampler showed 393108 as the active aura (2026-04-16)
+        (132403, "Shield of the Righteous", 40),  # was 53600 — sampler showed 132403 as the stacking buff (2026-04-16)
     ],
     (6, "Blood"): [
         (55233, "Vampiric Blood", 8),
-        (49028, "Dancing Rune Weapon", 10),
+        (81256, "Dancing Rune Weapon", 10),  # was 49028 — sampler showed 81256 as the DK self-buff (2026-04-16)
     ],
     (10, "Brewmaster"): [
         (120954, "Fortifying Brew", 8),
@@ -202,18 +214,24 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float]]] = {
     ],
     (5, "Discipline"): [
         (47536, "Rapture", 8),
-        (62618, "Power Word: Barrier", 3),
+        # PW: Barrier (62618) removed 2026-04-16: ground effect, not a
+        # self-buff aura on the priest — BuffsTable cannot see it.
     ],
     (5, "Holy"): [
         (200183, "Apotheosis", 10),
         (64843, "Divine Hymn", 3),
     ],
     (7, "Restoration"): [
-        (108280, "Healing Tide Totem", 5),
-        (98008, "Spirit Link Totem", 3),
+        # Healing Tide Totem (108280) and original Spirit Link Totem (98008)
+        # removed 2026-04-16: both drop totems, not self-buffs. Sampler showed
+        # 325174 "Spirit Link Totem" as the actual self-aura on the shaman
+        # while the totem is active — using that instead.
+        (325174, "Spirit Link Totem", 5),
     ],
     (10, "Mistweaver"): [
-        (322118, "Yu'lon", 12),
+        # Yu'lon (322118) removed 2026-04-16: summons a pet serpent, no
+        # self-buff on the MW. Revival (115310) is retained as a self-cast
+        # channel even though the sampler didn't see it consistently.
         (115310, "Revival", 2),
     ],
     # Core CDs every Resto Druid has regardless of talent build.
