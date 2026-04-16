@@ -188,32 +188,39 @@ class WCLClient:
         report_code: str,
         fight_ids: list[int],
         data_type: str,
-        filter_expression: str | None = None,
+        source_id: int | None = None,
+        target_id: int | None = None,
     ) -> list[dict]:
-        """Paginated event fetch with optional filterExpression.
+        """Paginated events-API fetch for a single player, narrowed by
+        WCL's first-class sourceID / targetID query parameters (not the
+        fragile filterExpression string). Caller filters by ability ID
+        Python-side.
 
-        Used by the per-run event-timeline ingest (Level B). WCL's
-        filterExpression pushes predicates server-side so we get back
-        only the events we care about — e.g. damage taken by this player
-        from a short list of avoidable ability IDs, rather than every
-        damage event in the fight. Typical result: 10-200 events per
-        fight instead of 5000+.
+        Used by the per-run event-timeline ingest (Level B). Typical
+        shapes we call this with:
+          - DamageTaken + target_id=<actor> — damage received by player
+          - Interrupts + source_id=<actor> — kicks performed by player
+          - Deaths + target_id=<actor> — death events for player
 
-        `data_type` is the WCL EventDataType enum (e.g. "DamageTaken",
-        "Interrupts", "Deaths"). `filter_expression` syntax:
-          "type='damage' and target.id=5 and ability.id IN (12345, 67890)"
-
-        Returns a list of event dicts. Paginates internally up to a hard
-        cap so a misconfigured filter can't blow through the rate limit.
+        Narrowing by ID at the query level drops event volume from
+        tens-of-thousands per fight to tens-to-hundreds, so the paginate
+        loop usually exits after one page. We still cap at 5 pages to
+        avoid burning rate limit on a pathological fight.
         """
         if not fight_ids:
             return []
-        filter_clause = (
-            ", filterExpression: $filter" if filter_expression is not None else ""
-        )
-        var_decl = (
-            ", $filter: String!" if filter_expression is not None else ""
-        )
+        # Build the optional argument fragments. WCL rejects the query
+        # if we pass null for these, so we include them only when set.
+        extra_args = []
+        extra_vars = []
+        if source_id is not None:
+            extra_args.append("sourceID: $sourceID")
+            extra_vars.append("$sourceID: Int!")
+        if target_id is not None:
+            extra_args.append("targetID: $targetID")
+            extra_vars.append("$targetID: Int!")
+        args_csv = ", ".join(extra_args)
+        vars_csv = ", ".join(extra_vars)
         query = """
         query($code: String!, $fightIDs: [Int!]!, $startTime: Float!, $dataType: EventDataType!%s) {
           reportData {
@@ -226,7 +233,10 @@ class WCLClient:
             }
           }
         }
-        """ % (var_decl, filter_clause)
+        """ % (
+            (", " + vars_csv) if vars_csv else "",
+            (", " + args_csv) if args_csv else "",
+        )
 
         events: list[dict] = []
         start = 0.0
@@ -238,8 +248,10 @@ class WCLClient:
                 "startTime": start,
                 "dataType": data_type,
             }
-            if filter_expression is not None:
-                variables["filter"] = filter_expression
+            if source_id is not None:
+                variables["sourceID"] = source_id
+            if target_id is not None:
+                variables["targetID"] = target_id
             data = self.query(query, variables)
             events_blob = (
                 data.get("reportData", {}).get("report", {}).get("events", {}) or {}
@@ -254,8 +266,6 @@ class WCLClient:
             events.extend(batch)
             nxt = events_blob.get("nextPageTimestamp")
             seen_pages += 1
-            # Hard cap. Legitimate Level B filters usually return one
-            # page; anything beyond 5 pages is a filter misconfiguration.
             if not nxt or seen_pages >= 5:
                 break
             start = nxt

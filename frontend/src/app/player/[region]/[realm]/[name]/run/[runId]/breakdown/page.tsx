@@ -92,13 +92,12 @@ export default async function RunBreakdownPage({ params }: Props) {
             The moments that mattered
           </h2>
           <p className="text-on-surface-variant text-sm">
-            Your top {timeline.length} most-impactful events in chronological order.
-            Every avoidable hit is shown by damage taken; every critical kick and
-            death is shown regardless of how loud it was.
+            Chronological recap of the {timeline.length} most-impactful
+            moments in this run.
           </p>
-          <ol className="space-y-2 pt-2">
+          <ol className="space-y-1 pt-2 bg-surface-container-low rounded-xl p-5 md:p-6">
             {timeline.map((ev, i) => (
-              <TimelineRow key={i} event={ev} />
+              <TimelineSentence key={i} event={ev} />
             ))}
           </ol>
         </section>
@@ -139,51 +138,57 @@ export default async function RunBreakdownPage({ params }: Props) {
   );
 }
 
-function TimelineRow({ event }: { event: TimelineEvent }) {
+/**
+ * One event → one plain-English sentence with a timestamp prefix.
+ * Rendered as a flowing list of lines, not data rows, so the page
+ * reads as a recap rather than a spreadsheet.
+ */
+function TimelineSentence({ event }: { event: TimelineEvent }) {
   const time = formatTime(event.t);
-  const config = TYPE_CONFIG[event.type];
+  const color = TYPE_COLOR[event.type];
+  const ability = event.ability_name || "an unknown ability";
+  const amount = event.amount && event.amount > 0 ? formatNumber(event.amount) : null;
+
+  let sentence: string;
+  switch (event.type) {
+    case "death":
+      sentence = amount
+        ? `Died to ${ability} — ${amount} damage.`
+        : `Died to ${ability}.`;
+      break;
+    case "avoidable_damage":
+      sentence = amount
+        ? `Took ${amount} from ${ability} — avoidable.`
+        : `Took avoidable damage from ${ability}.`;
+      break;
+    case "critical_interrupt":
+      sentence = `Kicked ${ability}.`;
+      break;
+    default:
+      sentence = ability;
+  }
 
   return (
-    <li
-      className="bg-surface-container-high rounded-lg px-4 py-3 border-l-4 flex items-center gap-4"
-      style={{ borderLeftColor: config.color }}
-    >
+    <li className="flex gap-4 py-1.5 leading-relaxed">
       <span
-        className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant tabular-nums shrink-0 w-16"
+        className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant/70 tabular-nums shrink-0 w-14 pt-0.5"
       >
         {time}
       </span>
       <span
-        className="material-symbols-outlined text-xl shrink-0"
-        style={{ color: config.color }}
-        aria-hidden
+        className="font-[family-name:var(--font-body)] text-on-surface"
+        style={{ borderLeft: `2px solid ${color}`, paddingLeft: "0.75rem" }}
       >
-        {config.icon}
+        {sentence}
       </span>
-      <div className="flex-1 min-w-0">
-        <p className="font-[family-name:var(--font-body)] font-semibold text-on-surface text-sm truncate">
-          {config.label}
-        </p>
-        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant truncate">
-          {event.ability_name}
-        </p>
-      </div>
-      {event.amount !== null && event.amount > 0 && (
-        <span
-          className="font-[family-name:var(--font-label)] text-sm font-bold tabular-nums shrink-0"
-          style={{ color: config.color }}
-        >
-          {formatNumber(event.amount)}
-        </span>
-      )}
     </li>
   );
 }
 
-const TYPE_CONFIG: Record<TimelineEvent["type"], { icon: string; color: string; label: string }> = {
-  avoidable_damage: { icon: "bolt", color: "#fbbf24", label: "Avoidable damage" },
-  critical_interrupt: { icon: "check_circle", color: "#22d3ee", label: "Critical kick" },
-  death: { icon: "skull", color: "#f87171", label: "Death" },
+const TYPE_COLOR: Record<TimelineEvent["type"], string> = {
+  avoidable_damage: "#fbbf24",
+  critical_interrupt: "#22d3ee",
+  death: "#f87171",
 };
 
 function formatTime(seconds: number): string {
