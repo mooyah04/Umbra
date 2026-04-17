@@ -128,13 +128,6 @@ local function AddUmbraTooltip(tooltip, data)
         end
     end
 
-    if data.timed_pct then
-        local color = GetStatColor(data.timed_pct)
-        tooltip:AddDoubleLine(
-            GREY .. "Keys Timed:|r",
-            color .. data.timed_pct .. "%|r" .. GREY .. " (" .. (data.runs or 0) .. " runs)|r"
-        )
-    end
 end
 
 -- Compact grade string for inline display (e.g., on LFG applicant rows)
