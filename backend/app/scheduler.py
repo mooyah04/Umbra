@@ -89,6 +89,7 @@ def _ingest_one(name: str, realm: str, region: str) -> None:
         logger.warning(
             "scheduler: ingest failed for %s-%s-%s: %s",
             name, realm, region, e,
+            exc_info=True,
         )
 
 
