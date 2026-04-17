@@ -792,6 +792,7 @@ def ingest_player(
     # Log at the end so we can see how much budget the stale-probe saved.
     skipped_exact = 0
     skipped_fuzzy = 0
+    skipped_not_present = 0  # fights where target player didn't participate
     fetched_fights = 0
 
     logger.info("Processing %d reports for %s-%s", len(reports), name, realm)
@@ -804,19 +805,44 @@ def ingest_player(
             logger.debug("Report %s zone='%s' — skipped (not M+)", report_code, zone_name)
             continue
 
-        # Get M+ fights from this report
+        # Get M+ fights + actor map from this report. The actor map lets us
+        # filter fights by friendlyPlayers before the expensive playerDetails
+        # call — most fights in a leaderboard-discovered report don't
+        # contain the target player, and previously each was still costing
+        # us a full REPORT_PLAYER_DATA query.
         try:
-            fights = wcl_client.get_report_fights(report_code)
+            header = wcl_client.get_report_header_and_fights(report_code)
         except WCLQueryError as e:
             logger.warning("Report %s fights query errored: %s", report_code, e)
             continue
+        fights = header.get("fights", [])
+        actors_by_name = header.get("actors_by_name", {})
+        target_actor_ids = set(actors_by_name.get(name, []))
         logger.info("Report %s: %d M+ fights", report_code, len(fights))
         if not fights:
+            continue
+        # If the target player isn't in this report's actor list at all,
+        # skip the whole report — every fight would fail the presence
+        # check anyway.
+        if not target_actor_ids:
+            logger.debug(
+                "Report %s: %r not in actor list, skipping %d fights",
+                report_code, name, len(fights),
+            )
+            skipped_not_present += len(fights)
             continue
 
         # Process each fight individually
         for fight in fights:
             fight_id = fight["id"]
+
+            # Presence filter — skip fights where the target player isn't
+            # in friendlyPlayers. Free to check (we already have the data)
+            # and avoids the expensive REPORT_PLAYER_DATA call downstream.
+            friendly_players = set(fight.get("friendlyPlayers") or [])
+            if friendly_players and not (target_actor_ids & friendly_players):
+                skipped_not_present += 1
+                continue
 
             # Early dedup — if we've already ingested this fight (either by
             # exact (report_code, fight_id) match, or by the fuzzy cross-log
@@ -1069,11 +1095,13 @@ def ingest_player(
         if len(runs) >= settings.max_runs_to_analyze:
             break
 
-    if skipped_exact or skipped_fuzzy or fetched_fights:
+    if skipped_exact or skipped_fuzzy or skipped_not_present or fetched_fights:
+        # "not-present" skips save ~5 queries each (playerDetails + 4 tables).
+        # Dedup skips save ~2 each (playerDetails + auras).
         logger.info(
-            "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d (WCL queries saved ~%d)",
-            name, realm, fetched_fights, skipped_exact, skipped_fuzzy,
-            (skipped_exact + skipped_fuzzy) * 2,  # rough: playerDetails+auras per skipped fight
+            "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d not-present=%d (WCL queries saved ~%d)",
+            name, realm, fetched_fights, skipped_exact, skipped_fuzzy, skipped_not_present,
+            (skipped_exact + skipped_fuzzy) * 2 + skipped_not_present * 5,
         )
 
     # 4. Fetch zone rankings for DPS percentile (available even for archived reports)

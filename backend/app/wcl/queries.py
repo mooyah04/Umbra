@@ -23,12 +23,22 @@ query($name: String!, $serverSlug: String!, $serverRegion: String!, $limit: Int!
 }
 """
 
-# Fetch M+ fights from a report
+# Fetch M+ fights from a report.
+#
+# `friendlyPlayers` + `masterData.actors` are included so ingest can filter
+# out fights where the target player didn't participate BEFORE paying for
+# the much-more-expensive REPORT_PLAYER_DATA call (playerDetails + four
+# tables). A player appearing in ~5 of ~50 fights across their recent
+# reports used to cost ~50 playerDetails queries; with this filter it's
+# ~5. Adding these fields to the existing round-trip is nearly free.
 REPORT_FIGHTS = """
 query($code: String!) {
   reportData {
     report(code: $code) {
       startTime
+      masterData {
+        actors(type: "Player") { id name }
+      }
       fights(difficulty: 10) {
         id
         encounterID
@@ -42,6 +52,7 @@ query($code: String!) {
         rating
         averageItemLevel
         keystoneAffixes
+        friendlyPlayers
       }
     }
   }

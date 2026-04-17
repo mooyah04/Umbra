@@ -206,19 +206,31 @@ class WCLClient:
         return report.get("fights", [])
 
     def get_report_header_and_fights(self, report_code: str) -> dict:
-        """Return {'startTime': int, 'fights': list[dict]} in one query.
+        """Return {'startTime': int, 'fights': list[dict], 'actors_by_name': dict}.
 
         Callers needing wall-clock timestamps for fights should use this
         — report.startTime is the absolute ms epoch, fight.startTime is
         the offset within the report.
+
+        `actors_by_name` maps player name -> list of actor IDs (list
+        because rare same-name collisions within one report are possible;
+        callers should treat presence of any ID in fight.friendlyPlayers
+        as a match). Enables pre-filtering fights so we only call the
+        expensive REPORT_PLAYER_DATA for fights the target actually
+        participated in.
         """
         from app.wcl.queries import REPORT_FIGHTS
 
         data = self.query(REPORT_FIGHTS, {"code": report_code})
         report = data.get("reportData", {}).get("report") or {}
+        actors = (report.get("masterData") or {}).get("actors") or []
+        actors_by_name: dict[str, list[int]] = {}
+        for a in actors:
+            actors_by_name.setdefault(a.get("name", ""), []).append(a.get("id", 0))
         return {
             "startTime": report.get("startTime", 0),
             "fights": report.get("fights", []),
+            "actors_by_name": actors_by_name,
         }
 
     def get_report_player_data(
