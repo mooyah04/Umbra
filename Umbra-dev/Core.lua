@@ -286,6 +286,32 @@ local function HasRaiderIO()
     return false
 end
 
+-- Ensure every currently-visible applicant member frame has our OnEnter
+-- attached. Called from the UpdateResults hook below. We used to rely on
+-- scrollBox:RegisterCallback("OnDataRangeChanged", ...) for this, but that
+-- doesn't fire for the initial render — so hooks never attached and the
+-- tooltip silently did nothing.
+--
+-- Kept separate from UpdateApplicantGrades on purpose: badges bail out
+-- when Raider.IO is installed (to avoid pixel-fighting for the same
+-- spot), but the tooltip should still enrich regardless — RIO and Umbra
+-- happily coexist in the tooltip body.
+local function AttachApplicantHoverHooks()
+    local appViewer = LFGListFrame and LFGListFrame.ApplicationViewer
+    local scrollBox = appViewer and appViewer.ScrollBox
+    if not scrollBox then return end
+    scrollBox:ForEachFrame(function(button)
+        if button and button.Members then
+            for _, member in pairs(button.Members) do
+                if member and not member._umbraHooked then
+                    member:HookScript("OnEnter", OnLFGApplicantEnter)
+                    member._umbraHooked = true
+                end
+            end
+        end
+    end)
+end
+
 local function UpdateApplicantGrades()
     if UmbraSettings and not UmbraSettings.showLFG then
         -- Hide any badges we previously rendered.
@@ -373,6 +399,7 @@ local function TryHookApplicantUpdateResults()
     local viewer = LFGListFrame and LFGListFrame.ApplicationViewer
     if viewer and type(viewer.UpdateResults) == "function" then
         hooksecurefunc(viewer, "UpdateResults", UpdateApplicantGrades)
+        hooksecurefunc(viewer, "UpdateResults", AttachApplicantHoverHooks)
         _applicantUpdateResultsHooked = true
     end
 end
