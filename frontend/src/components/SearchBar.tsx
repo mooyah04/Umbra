@@ -1,160 +1,154 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-interface Realm {
-  slug: string;
-  name: string;
-}
-
-interface RealmsData {
-  us: Realm[];
-  eu: Realm[];
-  kr: Realm[];
-  tw: Realm[];
-}
-
-type Region = "us" | "eu" | "kr" | "tw";
-
-const REGION_OPTIONS: Array<{ value: Region; label: string }> = [
-  { value: "us", label: "US" },
-  { value: "eu", label: "EU" },
-  { value: "kr", label: "KR" },
-  { value: "tw", label: "TW" },
-];
+import { searchPlayers } from "@/lib/api";
+import type { PlayerSearchResult } from "@/lib/types";
+import { getGradeColor } from "@/lib/grades";
 
 export default function SearchBar() {
   const router = useRouter();
-  const [realms, setRealms] = useState<RealmsData | null>(null);
-  const [region, setRegion] = useState<Region | "">("");
-  const [realmSlug, setRealmSlug] = useState("");
-  const [name, setName] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<PlayerSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/realms.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled) setRealms(d as RealmsData | null);
-      })
-      .catch(() => setRealms(null));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const VALID_REGIONS = new Set(["us", "eu", "kr", "tw", "cn"]);
 
-  // Reset downstream fields when an earlier field changes.
-  function handleRegionChange(v: Region | "") {
-    setRegion(v);
-    setRealmSlug("");
-    setName("");
-  }
-  function handleRealmChange(v: string) {
-    setRealmSlug(v);
-    setName("");
+  /**
+   * Parse a `Name-Realm-Region` string (or `Name-Realm Name-Region` with
+   * a spaced realm) into a route target. The trailing token must be a
+   * known region code; realm can contain hyphens (Area-52) so we join
+   * everything between the first and last segments.
+   */
+  function parseIdentity(input: string): { name: string; realm: string; region: string } | null {
+    const parts = input.trim().split("-").map((s) => s.trim()).filter(Boolean);
+    if (parts.length < 3) return null;
+    const region = parts[parts.length - 1].toLowerCase();
+    if (!VALID_REGIONS.has(region)) return null;
+    const name = parts[0];
+    const realm = parts.slice(1, -1).join("-");
+    if (!name || !realm) return null;
+    return { name, realm, region };
   }
 
-  const currentRealms = useMemo(() => {
-    if (!region || !realms) return [];
-    return realms[region] ?? [];
-  }, [region, realms]);
-
-  const canSubmit = region !== "" && realmSlug !== "" && name.trim().length > 0;
-
-  function submit() {
-    if (!canSubmit) return;
-    router.push(
-      `/player/${region}/${encodeURIComponent(realmSlug)}/${encodeURIComponent(
-        name.trim(),
-      )}`,
-    );
+  async function handleSearch(value: string) {
+    setQuery(value);
+    if (value.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await searchPlayers(value);
+      setResults(data);
+      setOpen(true);
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
+    if (e.key !== "Enter") return;
+    const parsed = parseIdentity(query);
+    if (parsed) {
+      // Looked like Name-Realm-Region — skip autocomplete, go straight in.
       e.preventDefault();
-      submit();
+      setOpen(false);
+      setQuery("");
+      router.push(
+        `/player/${parsed.region}/${encodeURIComponent(parsed.realm)}/${encodeURIComponent(parsed.name)}`,
+      );
+    } else if (results.length > 0) {
+      // Otherwise enter picks the top autocomplete match.
+      e.preventDefault();
+      selectPlayer(results[0]);
     }
+  }
+
+  function selectPlayer(player: PlayerSearchResult) {
+    setOpen(false);
+    setQuery("");
+    router.push(
+      `/player/${player.region.toLowerCase()}/${player.realm.toLowerCase()}/${player.name.toLowerCase()}`,
+    );
   }
 
   return (
     <div className="w-full max-w-3xl relative group">
-      {/* Glow effect on focus (same purple halo as before). */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary-container opacity-20 blur group-focus-within:opacity-40 transition-opacity pointer-events-none rounded-lg" />
+      {/* Glow effect */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary-container opacity-20 blur group-focus-within:opacity-40 transition-opacity" />
 
-      <div className="relative flex flex-col md:flex-row items-stretch bg-surface-container-highest rounded-lg overflow-hidden">
-        {/* Region */}
-        <select
-          value={region}
-          onChange={(e) => handleRegionChange(e.target.value as Region | "")}
-          className="bg-transparent border-none focus:ring-0 focus:outline-none px-4 py-4 md:py-0 md:h-20 font-[family-name:var(--font-label)] text-sm text-on-surface uppercase tracking-widest md:border-r border-outline-variant/10 cursor-pointer"
-          aria-label="Region"
-        >
-          <option value="">Region</option>
-          {REGION_OPTIONS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Server */}
-        <select
-          value={realmSlug}
-          onChange={(e) => handleRealmChange(e.target.value)}
-          disabled={!region || currentRealms.length === 0}
-          className="bg-transparent border-none focus:ring-0 focus:outline-none px-4 py-4 md:py-0 md:h-20 font-[family-name:var(--font-label)] text-sm text-on-surface md:border-r border-outline-variant/10 md:max-w-[240px] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          aria-label="Server"
-        >
-          <option value="">
-            {!region
-              ? "Select region first"
-              : currentRealms.length === 0
-              ? "Loading..."
-              : "Server"}
-          </option>
-          {currentRealms.map((r) => (
-            <option key={r.slug} value={r.slug}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Name */}
+      {/* Search input */}
+      <div className="relative flex items-center bg-surface-container-highest h-16 md:h-20 px-6 rounded-lg">
+        <span className="material-symbols-outlined text-on-surface-variant mr-4">
+          search
+        </span>
         <input
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={!realmSlug}
-          placeholder={
-            !region
-              ? "Character name"
-              : !realmSlug
-              ? "Pick a server"
-              : "Character name"
-          }
-          className="bg-transparent border-none focus:ring-0 focus:outline-none w-full px-4 py-4 md:py-0 md:h-20 font-[family-name:var(--font-label)] text-lg placeholder:text-on-surface-variant/40 text-on-surface disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Character name"
+          onFocus={() => results.length > 0 && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+          placeholder="Enter Name-Realm-Region (e.g. Elonmunk-Tarren Mill-EU)"
+          className="bg-transparent border-none focus:ring-0 focus:outline-none w-full font-[family-name:var(--font-label)] text-lg md:text-xl placeholder:text-on-surface-variant/40 text-on-surface"
         />
-
-        {/* Submit */}
-        <button
-          onClick={submit}
-          disabled={!canSubmit}
-          className="shrink-0 h-12 md:h-20 md:w-24 m-2 md:m-0 bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Search"
-        >
-          <span className="material-symbols-outlined text-base">search</span>
-          <span className="md:hidden">Search</span>
-        </button>
+        {loading ? (
+          <span className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant">
+            ...
+          </span>
+        ) : (
+          <kbd className="hidden md:flex items-center gap-1 font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant border border-outline-variant px-2 py-1 rounded">
+            <span className="material-symbols-outlined text-sm">keyboard_command_key</span>
+            K
+          </kbd>
+        )}
       </div>
 
-      {!realms && (
-        <p className="absolute -bottom-6 left-2 text-xs text-on-surface-variant/70">
-          Loading server list...
-        </p>
+      {/* Autocomplete dropdown */}
+      {open && results.length > 0 && (
+        <div className="absolute top-full mt-1 w-full bg-surface-container-highest border border-outline-variant rounded-lg shadow-xl overflow-hidden z-50">
+          {results.map((player) => (
+            <button
+              key={`${player.name}-${player.realm}-${player.region}`}
+              onClick={() => selectPlayer(player)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-surface-bright transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div>
+                  <span className="font-[family-name:var(--font-headline)] font-bold text-on-surface">
+                    {player.name}
+                  </span>
+                  <span className="text-on-surface-variant ml-2 font-[family-name:var(--font-label)] text-xs">
+                    {player.realm}
+                  </span>
+                </div>
+                <span className="text-[10px] font-[family-name:var(--font-label)] px-1 border border-primary/20 text-primary uppercase">
+                  {player.region}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                {player.spec && (
+                  <span className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant">
+                    {player.spec}
+                  </span>
+                )}
+                {player.grade && (
+                  <span
+                    className="font-[family-name:var(--font-headline)] font-bold text-xl"
+                    style={{ color: getGradeColor(player.grade) }}
+                  >
+                    {player.grade}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
