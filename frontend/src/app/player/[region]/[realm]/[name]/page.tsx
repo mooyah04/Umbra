@@ -492,7 +492,8 @@ export default async function PlayerProfilePage({ params }: Props) {
           ) : (
             <p className="text-on-surface-variant text-center py-16">
               No runs recorded yet. Run an M+ key with Advanced Combat Logging
-              enabled, upload to Warcraft Logs, and re-ingest.
+              enabled, upload via Archon (the official WCL uploader), then
+              re-ingest.
             </p>
           )}
         </div>

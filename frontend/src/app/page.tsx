@@ -163,9 +163,27 @@ export default async function Home() {
           />
           <StepCard
             num="02"
-            title="Upload to Warcraft Logs"
+            title="Upload via Archon"
             icon="cloud_upload"
-            body="Run the official Warcraft Logs Uploader alongside WoW. It watches your combatlog folder and uploads every M+ key automatically — that's what we read from."
+            body={
+              <>
+                <p className="mb-3">
+                  Install{" "}
+                  <a
+                    href="https://www.archon.gg/download?utm_source=header-cta-warcraftlogs"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Archon
+                  </a>
+                  , the official Warcraft Logs uploader. Turn on{" "}
+                  <span className="text-on-surface">Live Logging</span>, point
+                  it at your WoW log folder, hit <em>Go</em>, and run your
+                  keys — every M+ uploads automatically.
+                </p>
+              </>
+            }
           />
           <StepCard
             num="03"
@@ -182,8 +200,16 @@ export default async function Home() {
             We grade characters on demand — not by scraping Warcraft Logs at
             scale. If you want your grade to appear,{" "}
             <span className="text-on-surface">install the addon and run your keys</span>{" "}
-            (your logs will be there already, via the standard WCL Uploader),
-            then search yourself. That&apos;s the whole flow.
+            (your logs will be there already, via{" "}
+            <a
+              href="https://www.archon.gg/download?utm_source=header-cta-warcraftlogs"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Archon
+            </a>
+            ), then search yourself. That&apos;s the whole flow.
           </p>
         </div>
       </section>
@@ -420,7 +446,7 @@ function StepCard({
   num: string;
   title: string;
   icon: string;
-  body: string;
+  body: React.ReactNode;
 }) {
   return (
     <div className="bg-surface-container-high rounded-xl p-6 relative overflow-hidden">
@@ -433,7 +459,9 @@ function StepCard({
       <h4 className="font-[family-name:var(--font-headline)] font-bold text-xl text-on-surface mb-2 tracking-tight relative">
         {title}
       </h4>
-      <p className="text-on-surface-variant leading-relaxed relative">{body}</p>
+      <div className="text-on-surface-variant leading-relaxed relative">
+        {body}
+      </div>
     </div>
   );
 }
