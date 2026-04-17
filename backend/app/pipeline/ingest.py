@@ -72,13 +72,36 @@ def _slug_to_realm(slug: str) -> str:
     return "".join(word.capitalize() for word in slug.split("-"))
 
 
+def _iter_player_details(player_details: dict):
+    """Yield (role_group, player_dict) tuples from a playerDetails payload.
+
+    WCL usually returns playerDetails as a dict {dps:[], tanks:[], healers:[]},
+    but occasionally returns a flat list (observed in scheduler crashes
+    2026-04-17 for Kombat-Ragnaros, Fazo-TwistingNether, Seatbelton-Draenor,
+    Fauni-Stormreaver). The flat-list shape has no role grouping, so we
+    yield each player with an "unknown" role tag; callers that need role
+    should fall back to the player's own `type`/`specs` fields.
+    """
+    details = player_details.get("data", {}).get("playerDetails", {})
+    if isinstance(details, dict):
+        for role_group in ("dps", "tanks", "healers"):
+            role_players = details.get(role_group)
+            if isinstance(role_players, list):
+                for p in role_players:
+                    if isinstance(p, dict):
+                        yield role_group, p
+    elif isinstance(details, list):
+        for p in details:
+            if isinstance(p, dict):
+                yield "unknown", p
+
+
 def _find_player_in_details(player_details: dict, character_name: str) -> dict | None:
     """Find a specific player in the playerDetails response."""
-    details = player_details.get("data", {}).get("playerDetails", {})
-    for role_group in ("dps", "tanks", "healers"):
-        for player in details.get(role_group, []):
-            if player.get("name", "").lower() == character_name.lower():
-                return {**player, "_role_group": role_group}
+    target = character_name.lower()
+    for role_group, player in _iter_player_details(player_details):
+        if player.get("name", "").lower() == target:
+            return {**player, "_role_group": role_group}
     return None
 
 
@@ -527,20 +550,18 @@ def _extract_groupmates(player_details: dict, exclude_name: str, region: str) ->
     Returns list of {name, realm, region} dicts for each groupmate.
     """
     groupmates = []
-    details = player_details.get("data", {}).get("playerDetails", {})
-    for role_group in ("dps", "tanks", "healers"):
-        for player in details.get(role_group, []):
-            pname = player.get("name", "")
-            if not pname or pname.lower() == exclude_name.lower():
-                continue
-            server = player.get("server", "")
-            player_region = player.get("region", region)
-            if server and pname:
-                groupmates.append({
-                    "name": pname,
-                    "realm": server,
-                    "region": player_region.upper() if player_region else region.upper(),
-                })
+    for _role_group, player in _iter_player_details(player_details):
+        pname = player.get("name", "")
+        if not pname or pname.lower() == exclude_name.lower():
+            continue
+        server = player.get("server", "")
+        player_region = player.get("region", region)
+        if server and pname:
+            groupmates.append({
+                "name": pname,
+                "realm": server,
+                "region": player_region.upper() if player_region else region.upper(),
+            })
     return groupmates
 
 
@@ -553,24 +574,37 @@ def _extract_party_comp(player_details: dict) -> list[dict]:
     string; the frontend maps it to class_id for icon lookup.
     """
     party: list[dict] = []
-    details = player_details.get("data", {}).get("playerDetails", {})
     role_label = {"tanks": "tank", "healers": "healer", "dps": "dps"}
-    for role_group in ("tanks", "healers", "dps"):
-        for player in details.get(role_group, []):
-            name = player.get("name") or ""
-            if not name:
-                continue
-            specs = player.get("specs") or []
-            spec = None
-            if specs and isinstance(specs[0], dict):
-                spec = specs[0].get("spec")
-            party.append({
-                "name": name,
-                "realm": player.get("server") or "",
-                "class": player.get("type") or "",
-                "role": role_label[role_group],
-                "spec": spec,
-            })
+    # Order: tank → healer → dps. _iter_player_details doesn't guarantee
+    # that ordering, so we bucket first and emit in role order.
+    buckets: dict[str, list[dict]] = {"tank": [], "healer": [], "dps": []}
+    for role_group, player in _iter_player_details(player_details):
+        name = player.get("name") or ""
+        if not name:
+            continue
+        specs = player.get("specs") or []
+        spec = None
+        if specs and isinstance(specs[0], dict):
+            spec = specs[0].get("spec")
+        # If WCL returned a flat list (role_group == "unknown"), fall back
+        # to the spec's own role field. specs[0].role is "tank"|"healer"|
+        # "dps" when present; default to "dps" if everything else fails.
+        if role_group in role_label:
+            role = role_label[role_group]
+        else:
+            spec_role = (specs[0].get("role") if specs and isinstance(specs[0], dict) else None)
+            role = (spec_role or "dps").lower()
+            if role not in buckets:
+                role = "dps"
+        buckets[role].append({
+            "name": name,
+            "realm": player.get("server") or "",
+            "class": player.get("type") or "",
+            "role": role,
+            "spec": spec,
+        })
+    for role in ("tank", "healer", "dps"):
+        party.extend(buckets[role])
     return party
 
 
@@ -890,11 +924,7 @@ def ingest_player(
             # Only process fights where our player participated
             player_info = _find_player_in_details(player_details, name)
             if not player_info:
-                all_names = []
-                pd_inner = player_details.get("data", {}).get("playerDetails", {})
-                for rg in ("dps", "tanks", "healers"):
-                    for p in pd_inner.get(rg, []):
-                        all_names.append(p.get("name", ""))
+                all_names = [p.get("name", "") for _rg, p in _iter_player_details(player_details)]
                 logger.warning(
                     "Fight %s/%d: player %r not found in playerDetails. Names present: %s",
                     report_code, fight_id, name, all_names,
