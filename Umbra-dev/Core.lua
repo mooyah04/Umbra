@@ -26,18 +26,6 @@ local function GetStatColor(value)
     end
 end
 
-local ROLE_NAMES = {
-    tank = "Tank",
-    healer = "Healer",
-    dps = "DPS",
-}
-
-local ROLE_ICONS = {
-    tank = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:0:19:22:41|t",
-    healer = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:1:20|t",
-    dps = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
-}
-
 -- Stat labels = exactly the categories that feed the composite grade.
 -- Keep in sync with backend ROLE_WEIGHTS + lua_writer ROLE_EXPORT_FIELDS.
 -- Display-only fields (dps_ilvl, timed_pct) aren't shown here because
@@ -112,19 +100,18 @@ end
 
 local function AddUmbraTooltip(tooltip, data)
     tooltip:AddLine(" ")
-    tooltip:AddLine(UMBRA_PURPLE .. "Umbra.gg|r")
 
     local gradeColor = GetGradeColor(data.grade)
     local role = data.role or "dps"
-    local roleIcon = ROLE_ICONS[role] or ""
-    local roleName = ROLE_NAMES[role] or "DPS"
 
-    -- Spec/role on left, grade on right. Grade color alone carries the
+    -- "Umbra.gg" header on the left, grade on the right. Native WoW
+    -- tooltip already shows "<spec> <class>" above us, so no need to
+    -- duplicate role/spec text here. Grade color alone carries the
     -- visual emphasis — no SetFont so this is safe for tooltip line
     -- recycling (previously ran into text-region font leaks onto other
     -- addons' tooltips when we used SetFont).
     tooltip:AddDoubleLine(
-        roleIcon .. " " .. GREY .. (data.spec or roleName) .. "|r",
+        UMBRA_PURPLE .. "Umbra.gg|r",
         gradeColor .. data.grade .. "|r"
     )
 
