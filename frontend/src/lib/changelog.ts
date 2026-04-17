@@ -16,6 +16,62 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-17",
+    title: "D and F grades now have their own colors",
+    category: "fixed",
+    body:
+      "Before, D tier rendered as plain white and F blended into grey body text — you could miss a bad grade at a glance. D is now amber, F is red. Everything else keeps its WoW-item-quality color (S orange, A purple, B blue, C green).",
+  },
+  {
+    date: "2026-04-17",
+    title: "'Grades match reality' homepage section",
+    category: "new",
+    body:
+      "New section with three anonymized real-data examples showing what the stats look like behind an F, a D, and an S grade. No names — just numbers. Shows that the grade is a summary of the log evidence, not a black box.",
+  },
+  {
+    date: "2026-04-17",
+    title: "Leaderboard taken down for now",
+    category: "improved",
+    body:
+      "Publicly ranking named players isn't consistent with Umbra's anti-toxicity stance, so we've removed the leaderboard from the nav and the homepage. Your player page still shows your own grade and breakdown — that's what the product is actually for.",
+  },
+  {
+    date: "2026-04-17",
+    title: "Timed runs no longer mislabeled as depleted",
+    category: "fixed",
+    body:
+      "Some timed keys (especially +1 / +2 / +3 chest runs) were showing up as depleted on your run list. The underlying field we read had a different meaning than we thought — switched to the authoritative one. Existing affected runs get corrected on the next refresh.",
+  },
+  {
+    date: "2026-04-17",
+    title: "Death details now show on every run page",
+    category: "new",
+    body:
+      "Risk Analysis panel on the run page now lists each death by the ability that killed you and the pull it happened in. Previously this info was there but hidden behind a fallback message.",
+  },
+  {
+    date: "2026-04-17",
+    title: "Avoidable death count fixed",
+    category: "fixed",
+    body:
+      "A small number of avoidable deaths were being undercounted in your risk score due to a mismatch between two Warcraft Logs data sources. Backfilled 125 affected runs and made the live pipeline use the authoritative source.",
+  },
+  {
+    date: "2026-04-17",
+    title: "No more silent freezes on cold player lookups",
+    category: "improved",
+    body:
+      "Clicking an uncached player on a run page used to sometimes hang quietly for a minute. Now you see an 'Analyzing this player' state immediately while the backend ingests in the background — you can come back to the page in a moment and it'll be graded.",
+  },
+  {
+    date: "2026-04-17",
+    title: "Windrunner Spire name fixed",
+    category: "fixed",
+    body:
+      "One Windrunner Spire encounter ID was missing from the frontend dungeon map, so those runs showed up as 'Mythic+ Dungeon' instead. Now labeled correctly.",
+  },
+  {
     date: "2026-04-16",
     title: "Pull-by-pull run breakdowns",
     category: "new",
