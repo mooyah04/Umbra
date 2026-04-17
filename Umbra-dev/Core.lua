@@ -186,30 +186,30 @@ end)
 -- ── LFG Applicant Tooltip (hover over applicants in Group Finder) ───────────
 
 local function OnLFGApplicantEnter(self)
-    print("|cff8a2be2[Umbra]|r OnEnter fired")
-    if UmbraSettings and not UmbraSettings.showLFG then
-        print("|cff8a2be2[Umbra]|r showLFG disabled, bail")
-        return
-    end
+    if UmbraSettings and not UmbraSettings.showLFG then return end
 
-    -- Blizzard puts applicantID on the parent button and uses the frame's
-    -- own GetID() as memberIdx. Reading them off `self` directly (as we
-    -- used to) returned nil on every hover.
+    -- applicantID lives on the parent button. memberIdx used to come from
+    -- self:GetID(), but in current retail Blizzard doesn't assign an ID to
+    -- member frames (GetID returns 0), so we find our slot in the parent's
+    -- Members array by identity instead.
     local parent = self:GetParent()
     local applicantID = parent and parent.applicantID
-    local memberIdx = self:GetID()
-    print(string.format("|cff8a2be2[Umbra]|r applicantID=%s memberIdx=%s",
-        tostring(applicantID), tostring(memberIdx)))
-    if not applicantID or not memberIdx or memberIdx == 0 then return end
+    if not applicantID or not parent.Members then return end
+
+    local memberIdx
+    for i, m in ipairs(parent.Members) do
+        if m == self then
+            memberIdx = i
+            break
+        end
+    end
+    if not memberIdx then return end
 
     local name = C_LFGList.GetApplicantMemberInfo(applicantID, memberIdx)
-    print(string.format("|cff8a2be2[Umbra]|r name=%s", tostring(name)))
     if not name then return end
 
     -- Name comes as "Player-Realm" from the API
     local data = LookupPlayer(name)
-    print(string.format("|cff8a2be2[Umbra]|r lookup=%s", data and ("FOUND " .. (data.grade or "?")) or "NIL"))
-
     if data then
         AddUmbraTooltip(GameTooltip, data)
         GameTooltip:Show()
@@ -307,16 +307,10 @@ end
 local function AttachApplicantHoverHooks()
     local appViewer = LFGListFrame and LFGListFrame.ApplicationViewer
     local scrollBox = appViewer and appViewer.ScrollBox
-    if not scrollBox then
-        print("|cff8a2be2[Umbra]|r AttachHover: no scrollBox")
-        return
-    end
-    local buttons, members = 0, 0
+    if not scrollBox then return end
     scrollBox:ForEachFrame(function(button)
-        buttons = buttons + 1
         if button and button.Members then
             for _, member in pairs(button.Members) do
-                members = members + 1
                 if member and not member._umbraHooked then
                     member:HookScript("OnEnter", OnLFGApplicantEnter)
                     member._umbraHooked = true
@@ -324,7 +318,6 @@ local function AttachApplicantHoverHooks()
             end
         end
     end)
-    print(string.format("|cff8a2be2[Umbra]|r AttachHover: buttons=%d members=%d", buttons, members))
 end
 
 local function UpdateApplicantGrades()
