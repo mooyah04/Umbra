@@ -2,6 +2,23 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.1] - 2026-04-17
+
+### Added
+- "Open full profile on wowumbra.gg" button at the bottom of the `/umbra`
+  panel. Click it to get a popup with your profile URL pre-selected.
+  Copy, alt-tab to your browser, paste. WoW sandboxes browser opens, so
+  this is as frictionless as the client allows.
+
+### Changed
+- D and F grade colors now readable. D is amber, F is red. Previously
+  both rendered close to white/grey and were easy to miss at a glance.
+  Colors now match the site (wowumbra.gg).
+
+### Fixed
+- README now points at Archon (the official WCL uploader app) with its
+  Live Logging setup recipe, instead of the old generic uploader link.
+
 ## [0.3.0] - 2026-04-16
 
 ### Added

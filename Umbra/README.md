@@ -12,9 +12,10 @@ Backed by combat-log data ingested at https://wowumbra.gg.
    ```
    The final path should look like
    `World of Warcraft/_retail_/Interface/AddOns/Umbra/Umbra.toc`.
-3. Install the **Warcraft Logs Uploader** (free, official):
-   https://www.warcraftlogs.com/client/download
-   It auto-uploads your combat logs so they feed Umbra's grading.
+3. Install **Archon**, the official Warcraft Logs uploader (free):
+   https://www.archon.gg/download?utm_source=header-cta-warcraftlogs
+   In Archon, turn on "Live Logging", point it at your WoW log folder,
+   hit Go. Your M+ keys upload automatically and feed Umbra's grading.
 4. Launch WoW. The addon loads automatically — no configuration.
 
 ## What it does
