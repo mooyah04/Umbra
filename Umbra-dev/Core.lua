@@ -86,6 +86,21 @@ local function GetFullName(name, realm)
     return name .. "-" .. realm:gsub("%s+", "")
 end
 
+-- The LFG API returns "Name" for same-realm applicants and "Name-Realm"
+-- for cross-realm. Coerce to the DB's "Name-Realm" format (realm always
+-- whitespace-stripped) so LookupPlayer matches either case.
+local function NormalizeLFGName(raw)
+    if not raw or raw == "" then return nil end
+    local dashIdx = raw:find("-")
+    if dashIdx then
+        local nm = raw:sub(1, dashIdx - 1)
+        local rl = raw:sub(dashIdx + 1):gsub("%s+", "")
+        return nm .. "-" .. rl
+    end
+    local realm = GetNormalizedRealmName() or ""
+    return raw .. "-" .. realm:gsub("%s+", "")
+end
+
 -- ── Tooltip Rendering ───────────────────────────────────────────────────────
 --
 -- We previously called SetFont on GameTooltipTextRight<N> to render the
@@ -188,12 +203,11 @@ end)
 local function OnLFGApplicantEnter(self)
     if UmbraSettings and not UmbraSettings.showLFG then return end
 
+    -- applicantID is on the parent button. For memberIdx, current retail
+    -- doesn't SetID on the member frame (GetID returns 0), so we find our
+    -- slot in parent.Members by identity.
     local parent = self:GetParent()
     local applicantID = parent and parent.applicantID
-    print(string.format("|cff8a2be2[Umbra]|r parent=%s applicantID=%s Members=%s",
-        tostring(parent and parent:GetName() or "?"),
-        tostring(applicantID),
-        tostring(parent and parent.Members)))
     if not applicantID or not parent.Members then return end
 
     local memberIdx
@@ -203,19 +217,12 @@ local function OnLFGApplicantEnter(self)
             break
         end
     end
-    print(string.format("|cff8a2be2[Umbra]|r memberIdx=%s membersLen=%d",
-        tostring(memberIdx), #parent.Members))
     if not memberIdx then return end
 
     local name = C_LFGList.GetApplicantMemberInfo(applicantID, memberIdx)
-    print(string.format("|cff8a2be2[Umbra]|r name=%s", tostring(name)))
     if not name then return end
 
-    local data = LookupPlayer(name)
-    print(string.format("|cff8a2be2[Umbra]|r lookup=%s dbSize=%s",
-        data and ("FOUND " .. (data.grade or "?")) or "NIL",
-        Umbra_Database and "ok" or "NIL"))
-
+    local data = LookupPlayer(NormalizeLFGName(name))
     if data then
         AddUmbraTooltip(GameTooltip, data)
         GameTooltip:Show()
@@ -259,7 +266,7 @@ local function OnLFGSearchResultEnter(self)
     local leaderName = searchResultInfo.leaderName
     if not leaderName then return end
 
-    local data = LookupPlayer(leaderName)
+    local data = LookupPlayer(NormalizeLFGName(leaderName))
 
     if data then
         AddUmbraTooltip(GameTooltip, data)
@@ -364,7 +371,7 @@ local function UpdateApplicantGrades()
             if member then
                 local name = C_LFGList.GetApplicantMemberInfo(button.applicantID, i)
                 if name then
-                    local data = LookupPlayer(name)
+                    local data = LookupPlayer(NormalizeLFGName(name))
                     if data then
                         if not member.UmbraGrade then
                             member.UmbraGrade = member:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
