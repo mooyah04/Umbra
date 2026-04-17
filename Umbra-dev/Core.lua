@@ -187,12 +187,16 @@ end)
 
 local function OnLFGApplicantEnter(self)
     if UmbraSettings and not UmbraSettings.showLFG then return end
-    if not self.applicantID or not self.memberIdx then return end
 
-    local name, class, localizedClass, level, itemLevel, honorLevel,
-          tank, healer, damage, assignedRole, relationship, dungeonScore,
-          pvpItemLevel = C_LFGList.GetApplicantMemberInfo(self.applicantID, self.memberIdx)
+    -- Blizzard puts applicantID on the parent button and uses the frame's
+    -- own GetID() as memberIdx. Reading them off `self` directly (as we
+    -- used to) returned nil on every hover.
+    local parent = self:GetParent()
+    local applicantID = parent and parent.applicantID
+    local memberIdx = self:GetID()
+    if not applicantID or not memberIdx or memberIdx == 0 then return end
 
+    local name = C_LFGList.GetApplicantMemberInfo(applicantID, memberIdx)
     if not name then return end
 
     -- Name comes as "Player-Realm" from the API
