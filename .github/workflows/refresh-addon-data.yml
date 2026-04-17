@@ -1,14 +1,20 @@
 name: Refresh addon data
 
 # Regenerates Umbra/UmbraData.lua (and the public zips) from the live API
-# every 6 hours so the addon download always contains recent scoring data.
+# every hour so the addon download always contains recent scoring data.
 # The addon itself has no network — users see whatever data was bundled in
 # their installed zip, so the zip needs to stay fresh on our side.
+#
+# Hourly is deliberately tight: early-adopter UX is "I ran a key, when do
+# my friends see it?" and a worst-case 6h lag made that feel broken.
+# Hourly brings worst-case to 60 min, avg ~30 min. Most hourly runs will
+# be no-op commits (no players graded in the last hour) which GH Actions
+# handles fine.
 
 on:
   schedule:
-    # Every 6 hours at :05 past the hour (offset from top-of-hour cron spikes).
-    - cron: "5 */6 * * *"
+    # Every hour at :05 past (offset from top-of-hour cron spikes).
+    - cron: "5 * * * *"
   workflow_dispatch:  # allow manual trigger from the Actions tab
 
 permissions:

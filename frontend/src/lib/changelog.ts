@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-17",
+    title: "In-game tooltip data refreshes every hour (was 6)",
+    category: "improved",
+    body:
+      "The addon's bundled grade data now gets rebuilt every hour instead of every 6. If your friend just got graded and they're running keys with you, they'll show up in tooltips sooner — worst case 60 min, average 30. Same download URL; just grab a fresh Umbra.zip if you want the latest.",
+  },
+  {
+    date: "2026-04-17",
     title: "Player-driven grading — scoring happens on demand",
     category: "improved",
     body:
