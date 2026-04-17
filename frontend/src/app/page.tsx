@@ -1,7 +1,12 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
-import { ADDON_DOWNLOAD_URL, getStatsSummary, getTopPlayers } from "@/lib/api";
+import {
+  ADDON_DOWNLOAD_URL,
+  WAGO_ADDON_URL,
+  getStatsSummary,
+  getTopPlayers,
+} from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
 import { specIconUrl } from "@/lib/wow-assets";
 import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
@@ -331,10 +336,7 @@ export default async function Home() {
           </span>
         </Link>
 
-        <a
-          href={ADDON_DOWNLOAD_URL}
-          className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-8 group relative overflow-hidden"
-        >
+        <div className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-8 group relative overflow-hidden">
           <span className="material-symbols-outlined absolute top-6 right-6 text-primary text-5xl opacity-20 group-hover:opacity-40 transition-opacity">
             extension
           </span>
@@ -350,16 +352,33 @@ export default async function Home() {
             Umbra grade, role, and category breakdown. Auto combat-logs
             your M+ keys. Plays nicely with Raider.IO.
           </p>
-          <span className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary">
-            Download Umbra.zip
-            <span className="material-symbols-outlined text-sm">
-              download
-            </span>
-          </span>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a
+              href={ADDON_DOWNLOAD_URL}
+              className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:brightness-110 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">
+                download
+              </span>
+              Download Umbra.zip
+            </a>
+            <a
+              href={WAGO_ADDON_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border border-primary/40 text-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:bg-primary/10 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">
+                open_in_new
+              </span>
+              Install via Wago
+            </a>
+          </div>
           <p className="font-[family-name:var(--font-label)] text-[10px] text-on-primary-container/60 mt-3">
-            Unzip into World of Warcraft/_retail_/Interface/AddOns/
+            Direct download unzips into World of Warcraft/_retail_/Interface/AddOns/.
+            Wago auto-updates through supported addon managers.
           </p>
-        </a>
+        </div>
       </section>
 
       {/* ── Footer ── */}

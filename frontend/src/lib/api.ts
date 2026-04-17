@@ -12,6 +12,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
  *  elements so every click gets logged via a 302 through the backend. */
 export const ADDON_DOWNLOAD_URL = `${API_URL}/api/addon/download`;
 
+/** Public Wago listing. Auto-updates via addon managers that sync Wago. */
+export const WAGO_ADDON_URL = "https://addons.wago.io/addons/umbra-1Mo9iQjb";
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
