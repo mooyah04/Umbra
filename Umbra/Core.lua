@@ -116,11 +116,13 @@ local function AddUmbraTooltip(tooltip, data)
     local roleIcon = ROLE_ICONS[role] or ""
     local roleName = ROLE_NAMES[role] or "DPS"
 
-    -- Spec/role on left, grade on right. Bold-bracketed grade gives it
-    -- visual emphasis without SetFont — safe for tooltip line recycling.
+    -- Spec/role on left, grade on right. Grade color alone carries the
+    -- visual emphasis — no SetFont so this is safe for tooltip line
+    -- recycling (previously ran into text-region font leaks onto other
+    -- addons' tooltips when we used SetFont).
     tooltip:AddDoubleLine(
         roleIcon .. " " .. GREY .. (data.spec or roleName) .. "|r",
-        gradeColor .. "[ " .. data.grade .. " ]|r"
+        gradeColor .. data.grade .. "|r"
     )
 
     local spec = data.spec or "Spec"
