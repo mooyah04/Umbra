@@ -206,7 +206,16 @@ local function OnTooltipSetUnit(tooltip)
     local data = LookupPlayer(fullName)
 
     if data then
-        AddUmbraTooltip(tooltip, data)
+        -- Defer a frame so Raider.IO (and anyone else hooking the same
+        -- tooltip data type) finishes first and we append below them.
+        -- Good-neighbour policy: Umbra is the newcomer; don't steal
+        -- the top spot.
+        C_Timer.After(0, function()
+            if tooltip:IsShown() then
+                AddUmbraTooltip(tooltip, data)
+                tooltip:Show()
+            end
+        end)
     end
 end
 

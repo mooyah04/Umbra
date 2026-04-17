@@ -2,6 +2,26 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.2] - 2026-04-17
+
+### Fixed
+- LFG applicant tooltip was silently not appending the Umbra section.
+  Three-layer bug: our OnEnter attach relied on a scroll callback that
+  doesn't fire on initial render; `self:GetID()` returns 0 on member
+  frames in current retail (we now find the member by identity in
+  `parent.Members`); and the LFG API returns just "Name" for same-realm
+  applicants while our DB keys are "Name-Realm" (normalized at the call
+  site). Same fix applies to the search-result (group leader) tooltip.
+
+### Changed
+- LFG hover tooltip now renders *below* Raider.IO (deferred via
+  `C_Timer.After(0)`) in a compact 3-row layout: primary output
+  (Damage vs spec / Healing vs spec), Casts/min, Cooldown Usage. The
+  world-hover tooltip still shows the full breakdown.
+- World hover tooltip also deferred so Umbra renders below Raider.IO
+  there too. Good-neighbour policy: Umbra is the newcomer and shouldn't
+  steal the top-of-tooltip slot.
+
 ## [0.3.1] - 2026-04-17
 
 ### Added

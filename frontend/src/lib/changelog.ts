@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-17",
+    title: "Umbra grades now appear on LFG tooltips (below Raider.IO)",
+    category: "fixed",
+    body:
+      "Hovering an applicant or a group leader in the Group Finder now shows the Umbra grade and a compact 3-row stat breakdown: primary output (Damage or Healing vs your spec), casts per minute, and cooldown usage. Sits below Raider.IO when it's installed, so both addons coexist instead of fighting for the same spot. Same treatment for the world-hover tooltip. Grab the latest Umbra.zip to pick up the fix.",
+  },
+  {
+    date: "2026-04-17",
     title: "Addon: 'Open full profile on wowumbra.gg' button",
     category: "new",
     body:
