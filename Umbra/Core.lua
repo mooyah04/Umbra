@@ -38,33 +38,36 @@ local ROLE_ICONS = {
     dps = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
 }
 
--- Stat labels are built dynamically using the player's spec name
+-- Stat labels = exactly the categories that feed the composite grade.
+-- Keep in sync with backend ROLE_WEIGHTS + lua_writer ROLE_EXPORT_FIELDS.
+-- Display-only fields (dps_ilvl, timed_pct) aren't shown here because
+-- they don't contribute to the grade, and the tooltip is tight on space.
 local function GetStatLabels(role, spec)
     spec = spec or "Spec"
     if role == "tank" then
         return {
-            { key = "dps_perf", label = "Overall vs " .. spec },
-            { key = "dps_ilvl", label = "iLvl vs " .. spec },
+            { key = "dps_perf", label = "Damage vs " .. spec },
             { key = "utility", label = "Utility/Kicks" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Casts/min" },
         }
     elseif role == "healer" then
         return {
-            { key = "throughput", label = "HPS vs " .. spec },
+            { key = "throughput", label = "Healing vs " .. spec },
             { key = "dps_perf", label = "Healer DPS" },
-            { key = "dps_ilvl", label = "iLvl vs " .. spec },
             { key = "utility", label = "Utility/Dispels" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Casts/min" },
         }
     else
         return {
-            { key = "dps_perf", label = "Overall vs " .. spec },
-            { key = "dps_ilvl", label = "iLvl vs " .. spec },
+            { key = "dps_perf", label = "Damage vs " .. spec },
             { key = "utility", label = "Utility/Kicks" },
             { key = "survivability", label = "Survivability" },
             { key = "cd_usage", label = "Cooldown Usage" },
+            { key = "cpm", label = "Casts/min" },
         }
     end
 end
