@@ -925,66 +925,6 @@
       "name": "Ursin"
     },
     {
-      "slug": "us-auxiliary-70",
-      "name": "US Auxiliary 70"
-    },
-    {
-      "slug": "us1a-account-realm",
-      "name": "US1A Account Realm"
-    },
-    {
-      "slug": "us1b-account-realm",
-      "name": "US1B Account Realm"
-    },
-    {
-      "slug": "us2a-account-realm",
-      "name": "US2A Account Realm"
-    },
-    {
-      "slug": "us2b-account-realm",
-      "name": "US2B Account Realm"
-    },
-    {
-      "slug": "us3a-account-realm-old-au",
-      "name": "US3A Account Realm OLD AU"
-    },
-    {
-      "slug": "us3b-account-realm",
-      "name": "US3B Account Realm"
-    },
-    {
-      "slug": "us4a-account-realm",
-      "name": "US4A Account Realm"
-    },
-    {
-      "slug": "us4b-account-realm",
-      "name": "US4B Account Realm"
-    },
-    {
-      "slug": "us5a-account-realm",
-      "name": "US5A Account Realm"
-    },
-    {
-      "slug": "us5b-account-realm",
-      "name": "US5B Account Realm"
-    },
-    {
-      "slug": "us6a-account-realm",
-      "name": "US6A Account Realm"
-    },
-    {
-      "slug": "us6b-account-realm",
-      "name": "US6B Account Realm"
-    },
-    {
-      "slug": "us7a-account-realm",
-      "name": "US7A Account Realm"
-    },
-    {
-      "slug": "us7b-account-realm",
-      "name": "US7B Account Realm"
-    },
-    {
       "slug": "uther",
       "name": "Uther"
     },
@@ -1465,70 +1405,6 @@
     {
       "slug": "eredar",
       "name": "Eredar"
-    },
-    {
-      "slug": "eu-arena-pass-csbg",
-      "name": "EU Arena Pass CSBG"
-    },
-    {
-      "slug": "eu-arena-pass-csbg-2",
-      "name": "EU Arena Pass CSBG 2"
-    },
-    {
-      "slug": "eu-auxiliary-70",
-      "name": "EU Auxiliary 70"
-    },
-    {
-      "slug": "eu1a-account-realm",
-      "name": "EU1A Account Realm"
-    },
-    {
-      "slug": "eu1b-account-realm",
-      "name": "EU1B Account Realm"
-    },
-    {
-      "slug": "eu2a-account-realm",
-      "name": "EU2A Account Realm"
-    },
-    {
-      "slug": "eu2b-account-realm",
-      "name": "EU2B Account Realm"
-    },
-    {
-      "slug": "eu3a-account-realm",
-      "name": "EU3A Account Realm"
-    },
-    {
-      "slug": "eu3b-account-realm",
-      "name": "EU3B Account Realm"
-    },
-    {
-      "slug": "eu4a-account-realm",
-      "name": "EU4A Account Realm"
-    },
-    {
-      "slug": "eu4b-account-realm",
-      "name": "EU4B Account Realm"
-    },
-    {
-      "slug": "eu5a-account-realm",
-      "name": "EU5A Account Realm"
-    },
-    {
-      "slug": "eu5b-account-realm",
-      "name": "EU5B Account Realm"
-    },
-    {
-      "slug": "eu6a-account-realm",
-      "name": "EU6A Account Realm"
-    },
-    {
-      "slug": "eu6b-account-realm",
-      "name": "EU6B Account Realm"
-    },
-    {
-      "slug": "eu7abgru",
-      "name": "EU7A-BG-RU"
     },
     {
       "slug": "eversong",
@@ -2229,26 +2105,6 @@
       "name": "Hyjal"
     },
     {
-      "slug": "kr-auxiliary-70",
-      "name": "KR Auxiliary 70"
-    },
-    {
-      "slug": "kr1a-account-realm",
-      "name": "KR1A Account Realm"
-    },
-    {
-      "slug": "kr1b-account-realm",
-      "name": "KR1B Account Realm"
-    },
-    {
-      "slug": "kr2a-account-realm",
-      "name": "KR2A Account Realm"
-    },
-    {
-      "slug": "kr2b-account-realm",
-      "name": "KR2B Account Realm"
-    },
-    {
       "slug": "malfurion",
       "name": "Malfurion"
     },
@@ -2311,22 +2167,6 @@
       "name": "Frostmane"
     },
     {
-      "slug": "gmsupport-tw201",
-      "name": "GMSupport TW2-01"
-    },
-    {
-      "slug": "gmsupport-tw202",
-      "name": "GMSupport TW2-02"
-    },
-    {
-      "slug": "gmsupport-tw203",
-      "name": "GMSupport TW2-03"
-    },
-    {
-      "slug": "gmsupport-tw204",
-      "name": "GMSupport TW2-04"
-    },
-    {
       "slug": "hellscream",
       "name": "Hellscream"
     },
@@ -2385,22 +2225,6 @@
     {
       "slug": "sundown-marsh",
       "name": "Sundown Marsh"
-    },
-    {
-      "slug": "tw-auxiliary-170",
-      "name": "TW Auxiliary 170"
-    },
-    {
-      "slug": "tw2a-account-realm",
-      "name": "TW2A Account Realm"
-    },
-    {
-      "slug": "tw2b-account-realm",
-      "name": "TW2B Account Realm"
-    },
-    {
-      "slug": "tw3a-account-realm",
-      "name": "TW3A Account Realm"
     },
     {
       "slug": "whisperwind",

@@ -33,10 +33,31 @@ REGIONS = ["us", "eu", "kr", "tw"]
 # characters on.
 _INSTANCE_RE = re.compile(r"-INST(?:-[A-Z]+)?$")
 _RDB_RE = re.compile(r"^RDB[\s-]")
+# Matches internal BG/Auxiliary/etc realms like "EU7A-BG-RU".
+_INTERNAL_CODE_RE = re.compile(r"^(?:US|EU|KR|TW|CN)\d+[A-Z]-")
+
+# Substrings that appear only in Blizzard's internal / non-player realms.
+# Case-insensitive. Anchored-ish (case-sensitive 'Account Realm' etc helps
+# avoid false positives on realms that just happen to contain the word).
+_INTERNAL_MARKERS = (
+    "Account Realm",
+    "Auxiliary",
+    "Arena Pass",
+    "GMSupport",
+)
 
 
 def _is_player_realm(name: str) -> bool:
-    return not (_INSTANCE_RE.search(name) or _RDB_RE.match(name))
+    if _INSTANCE_RE.search(name):
+        return False
+    if _RDB_RE.match(name):
+        return False
+    if _INTERNAL_CODE_RE.match(name):
+        return False
+    for marker in _INTERNAL_MARKERS:
+        if marker in name:
+            return False
+    return True
 
 # Repo-root relative. This script lives at backend/scripts/, so output is
 # at ../../frontend/public/realms.json.
