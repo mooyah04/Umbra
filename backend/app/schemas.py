@@ -251,6 +251,20 @@ class BugReportRequest(BaseModel):
         return v
 
 
+class BugReportStatusUpdate(BaseModel):
+    """Admin-only status change for a bug report."""
+    status: str = Field(..., max_length=20)
+
+    @field_validator("status", mode="after")
+    @classmethod
+    def _valid_status(cls, v: str) -> str:
+        if v not in ("new", "triaged", "resolved", "wontfix"):
+            raise ValueError(
+                "status must be one of: new, triaged, resolved, wontfix"
+            )
+        return v
+
+
 class BugReportResponse(BaseModel):
     id: int
     created_at: datetime

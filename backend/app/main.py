@@ -25,6 +25,7 @@ from app.validators import ValidationError, validate_player_identity
 from app.schemas import (
     BugReportRequest,
     BugReportResponse,
+    BugReportStatusUpdate,
     ClaimRequest,
     ClaimResponse,
     HistoryPoint,
@@ -375,6 +376,36 @@ def list_bug_reports(
             for r in rows
         ],
     }
+
+
+@app.patch(
+    "/api/admin/bug-reports/{report_id}",
+    dependencies=[Depends(require_api_key)],
+)
+def update_bug_report_status(
+    report_id: int,
+    payload: BugReportStatusUpdate,
+    session: Session = Depends(get_session),
+):
+    """Admin-only: update a bug report's triage status."""
+    row = session.get(BugReport, report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Bug report not found")
+    row.status = payload.status
+    session.commit()
+    session.refresh(row)
+    return BugReportResponse(
+        id=row.id,
+        created_at=row.created_at,
+        source=row.source,
+        status=row.status,
+        submitter_name=row.submitter_name,
+        submitter_email=row.submitter_email,
+        summary=row.summary,
+        details=row.details,
+        page_url=row.page_url,
+        user_agent=row.user_agent,
+    ).model_dump(mode="json")
 
 
 @app.get("/api/player/{region}/{realm}/{name}", response_model=PlayerScoreResponse)

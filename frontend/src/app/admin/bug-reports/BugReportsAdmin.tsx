@@ -200,7 +200,20 @@ export default function BugReportsAdmin() {
       {reports && reports.length > 0 && (
         <ul className="space-y-3">
           {reports.map((r) => (
-            <ReportRow key={r.id} r={r} />
+            <ReportRow
+              key={r.id}
+              r={r}
+              apiKey={apiKey}
+              onStatusChange={(newStatus) => {
+                setReports((prev) =>
+                  prev
+                    ? prev.map((row) =>
+                        row.id === r.id ? { ...row, status: newStatus } : row,
+                      )
+                    : prev,
+                );
+              }}
+            />
           ))}
         </ul>
       )}
@@ -208,8 +221,57 @@ export default function BugReportsAdmin() {
   );
 }
 
-function ReportRow({ r }: { r: BugReport }) {
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "new", label: "New" },
+  { value: "triaged", label: "Triaged" },
+  { value: "resolved", label: "Resolved" },
+  { value: "wontfix", label: "Won't fix" },
+];
+
+function ReportRow({
+  r,
+  apiKey,
+  onStatusChange,
+}: {
+  r: BugReport;
+  apiKey: string;
+  onStatusChange: (status: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const updateStatus = async (newStatus: string) => {
+    if (newStatus === r.status || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    // Optimistic — flip locally immediately, revert on failure.
+    const previousStatus = r.status;
+    onStatusChange(newStatus);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/bug-reports/${r.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+      if (!res.ok) {
+        onStatusChange(previousStatus);
+        setSaveError(`Update failed (${res.status})`);
+      }
+    } catch (e) {
+      onStatusChange(previousStatus);
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const statusColor =
     {
       new: "text-primary bg-primary/10 border-primary/30",
@@ -258,6 +320,38 @@ function ReportRow({ r }: { r: BugReport }) {
       </button>
       {expanded && (
         <div className="px-5 pb-5 pt-2 border-t border-outline-variant/10 space-y-3">
+          <div>
+            <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">
+              Set Status
+            </p>
+            <div className="flex gap-2 flex-wrap items-center">
+              {STATUS_OPTIONS.map((opt) => {
+                const active = opt.value === r.status;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => updateStatus(opt.value)}
+                    disabled={saving || active}
+                    className={`font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-3 py-1.5 rounded border transition-all ${
+                      active
+                        ? "bg-primary text-on-primary border-primary cursor-default"
+                        : "bg-surface-container text-on-surface-variant border-outline-variant/20 hover:border-primary hover:text-primary"
+                    } ${saving ? "opacity-50" : ""}`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+              {saving && (
+                <span className="text-on-surface-variant text-xs italic">
+                  Saving...
+                </span>
+              )}
+              {saveError && (
+                <span className="text-red-400 text-xs">{saveError}</span>
+              )}
+            </div>
+          </div>
           {(r.submitter_name || r.submitter_email) && (
             <Field
               label="Submitter"
