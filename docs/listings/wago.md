@@ -37,23 +37,26 @@ lives in the `/umbra` panel and on [wowumbra.gg](https://wowumbra.gg).
 
 ## The short version
 
-- **Tooltips everywhere** — world, LFG list, applicant popup. Umbra's
-  grade appears inline.
-- **`/umbra` stats panel** — 3D model, role + spec + ilvl, big
+- **Tooltips everywhere.** World, LFG list, applicant popup. Umbra's
+  grade appears inline and renders below Raider.IO when RIO is
+  installed. For LFG hovers the layout is compact: primary output,
+  casts/min, cooldown usage.
+- **`/umbra` stats panel.** 3D model, role + spec + ilvl, big
   color-coded grade, per-category bars.
-- **`/combatlog` handled for you** — flips on at key start, off 8s
+- **`/combatlog` handled for you.** Flips on at key start, off 8s
   after the key ends. Plays nicely with Archon (the WCL uploader).
 - **No network.** The addon doesn't phone home. Grade data is baked
   into a static Lua file rebuilt hourly on the server.
-- **Open on web** — button on the panel that shows your full profile
+- **Open on web.** Button on the panel that shows your full profile
   URL for a one-step copy-paste to the browser (WoW sandboxes
   browser opens).
 
 ## Why another rating addon?
 
 Raider.IO measures completion. Umbra measures performance inside
-those completions. They complement each other — when both are
-installed the LFG surfaces RIO, and Umbra extends the tooltip.
+those completions. They complement each other: when both are
+installed the LFG surfaces RIO's data up top, and Umbra extends the
+tooltip below it.
 
 Tanks and healers carry full weight in the composite, not the
 ceremonial 5% other rating systems hand them. Tanks are scored on
@@ -69,7 +72,7 @@ damage percentile + kicks + deaths. Full methodology is public:
    the official WCL uploader. Turn on Live Logging. Point it at your
    WoW Logs folder. Hit Go.
 3. Run keys. Archon uploads automatically.
-4. Look yourself up on [wowumbra.gg](https://wowumbra.gg) — that
+4. Look yourself up on [wowumbra.gg](https://wowumbra.gg). That
    triggers the first ingest. After that you're in the database and
    refresh hourly.
 
@@ -78,9 +81,9 @@ Your grade appears in tooltips the next time the addon data rebuilds
 
 ## Commands
 
-- `/umbra` — open the panel
-- `/umbralog status` — check logging state
-- `/umbralog on` / `/umbralog off` — toggle auto combat logging
+- `/umbra`: open the panel
+- `/umbralog status`: check logging state
+- `/umbralog on` / `/umbralog off`: toggle auto combat logging
 
 ## Links
 

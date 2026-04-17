@@ -33,7 +33,7 @@ performance, grading, warcraftlogs, wcl
 
 Mythic+ performance grades on tooltips, in the Group Finder, and in a
 personal stats panel. Hover any player in the world and you see what
-their Warcraft Logs history says about how they actually play — not
+their Warcraft Logs history says about how they actually play. Not
 just their item level or a completion score, but damage percentile,
 kicks landed, deaths taken, cooldowns pressed.
 
@@ -41,10 +41,11 @@ kicks landed, deaths taken, cooldowns pressed.
 
 - **Tooltips.** Hover any player in-game and a line appears on the
   tooltip: "WoWUmbra.gg: B+ Tank" or similar. Color-coded by grade.
-- **Group Finder badges.** When you're pugging, each applicant shows
-  their Umbra grade inline next to their name. Vet at a glance. Plays
-  nicely with Raider.IO — we give up the badge slot if RIO is
-  installed.
+- **Group Finder tooltips.** Hover an applicant (or a group leader in
+  the search list) and a compact Umbra section appears below
+  Raider.IO's. Primary output, casts/min, cooldown usage. Vet at a
+  glance. If Raider.IO isn't installed, each applicant also gets an
+  inline grade badge next to their name.
 - **/umbra panel.** Type `/umbra` in chat to open a stats panel for
   your own character. 3D model, role, spec, item level, the big tier
   color-coded grade, plus per-category breakdown (DPS percentile,
@@ -100,10 +101,10 @@ the mismatch.
 
 ## Commands
 
-- `/umbra` — open the stats panel
-- `/umbralog status` — check combat log state
-- `/umbralog off` — disable auto combat logging
-- `/umbralog on` — re-enable it
+- `/umbra`: open the stats panel
+- `/umbralog status`: check combat log state
+- `/umbralog off`: disable auto combat logging
+- `/umbralog on`: re-enable it
 
 ## Links
 
@@ -117,6 +118,9 @@ the mismatch.
 
 Latest changes in `CHANGELOG.md`. Highlights:
 
+- 0.3.3: LFG applicant tooltip fixed (was silently blank on current
+  retail frame structure). World and LFG tooltips now render below
+  Raider.IO when it's installed, in a compact 3-row format for LFG.
 - 0.3.1: "Open full profile on wowumbra.gg" button on the panel.
   Readable D/F grade colors.
 - 0.3.0: Redesigned `/umbra` panel with 3D character model, minimap

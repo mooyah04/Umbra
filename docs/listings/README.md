@@ -1,8 +1,9 @@
 # Addon listing prep (CurseForge + Wago)
 
-Prep material for the public launch on CurseForge and Wago. Nothing
-here is published yet. **Hold on actually submitting until the RPGLogs
-outreach reply lands** (see `memory/project_rpglogs_outreach.md`).
+Prep material for the public launch on CurseForge and Wago. RPGLogs
+reply landed 2026-04-17: sildri green-lit commercialization conditional
+on user-initiated scoring only, which the addon already honors. **We
+are clear to submit** — see `submission-runbook.md` for the step-by-step.
 
 ## Status
 
@@ -12,16 +13,16 @@ outreach reply lands** (see `memory/project_rpglogs_outreach.md`).
 | Long description | me | done (`curseforge.md`) |
 | Wago listing copy | me | done (`wago.md`) |
 | `.toc` metadata (Version / X-Website / X-License / IconTexture) | me | done (in repo) |
-| `## Version:` bump to 0.3.1 | me | done |
+| Version bump (currently 0.3.3) | me | done |
 | Updated CHANGELOG.md | me | done |
 | README points to Archon | me | done |
-| **Screenshots (see shot-list below)** | Logan | todo |
-| Project icon (256x256 PNG) | Logan | done — `icon.png` (1024x1024, stylized U with purple lightning / energy core on dark) |
-| License file at repo root (MIT) | me | todo when pushing |
-| CurseForge account + Curse-Project-ID | Logan | todo (blocked on submission) |
-| Wago account + Wago-ID | Logan | todo (blocked on submission) |
-| RPGLogs reply received | Logan | **BLOCKING — email sent 2026-04-17** |
-| Actual submission | Logan | blocked on above |
+| Screenshots | Logan + me | done (`screenshots/01-04` + bonus `05`) |
+| Project icon (256x256 PNG) | Logan | done (`icon.png` 1024x1024) |
+| License file at repo root (MIT) | me | done |
+| RPGLogs commercialization approval | - | done (sildri, 2026-04-17) |
+| CurseForge account + Curse-Project-ID | Logan | todo |
+| Wago account + Wago-ID | Logan | todo |
+| Actual submission | Logan | ready to run |
 
 ## Screenshot shot-list
 
@@ -91,20 +92,10 @@ In-game the addon still uses Blizzard's
 `Interface\Icons\spell_shadow_twilight` — that's fine for the minimap
 button and panel header, they have to be Blizzard-atlas paths.
 
-## Submission checklist (when RPGLogs greenlights)
+## Submission
 
-Run these in order:
+Step-by-step runbook: [`submission-runbook.md`](submission-runbook.md).
 
-1. Create LICENSE file (MIT) at repo root. Commit + push.
-2. Tag the commit: `git tag v0.3.1 && git push --tags`.
-3. Build the release zip: `python scripts/build-addon-zip.py`.
-4. CurseForge: create project, upload zip, paste `curseforge.md` into
-   the description field. Paste short description into the card
-   blurb. Upload 4 screenshots + icon. Submit for approval.
-5. Wago: same flow, paste `wago.md` content into the description
-   field.
-6. Once both are approved, paste the resulting IDs into the `.toc`:
-   - `## X-Curse-Project-ID: <numeric id>`
-   - `## X-Wago-ID: <alphanumeric id>`
-   Commit + push.
-7. Add a changelog entry for site users.
+Short version: tag the current commit (`v0.3.3`), create a CurseForge
+project with this folder's copy + screenshots + icon, repeat for Wago,
+paste the assigned IDs back into `Umbra.toc`, commit.
