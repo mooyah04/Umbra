@@ -16,7 +16,7 @@ outreach reply lands** (see `memory/project_rpglogs_outreach.md`).
 | Updated CHANGELOG.md | me | done |
 | README points to Archon | me | done |
 | **Screenshots (see shot-list below)** | Logan | todo |
-| Project icon (256x256 PNG) | either | todo |
+| Project icon (256x256 PNG) | Logan | done — `icon.png` (512x512, stylized U with purple energy on dark) |
 | License file at repo root (MIT) | me | todo when pushing |
 | CurseForge account + Curse-Project-ID | Logan | todo (blocked on submission) |
 | Wago account + Wago-ID | Logan | todo (blocked on submission) |
@@ -81,11 +81,14 @@ Both pull from the same feature list but phrase it for each audience.
 
 ## Icon
 
-256x256 PNG. The addon currently uses Blizzard's
-`Interface\Icons\spell_shadow_twilight` in-game, but CurseForge needs
-a standalone icon file. Option A: repurpose the site's favicon / purple
-analytics icon at a larger size. Option B: we make a minimalist
-"U" mark in the site's purple (`#8a2be2`) on dark. Either works.
+`icon.png` in this folder. 512x512, stylized "U" in the site's purple
+with an energy flare behind it on a dark backdrop. Reads well on both
+CurseForge (white page chrome) and Wago (dark page chrome). Upload as
+the project icon during submission.
+
+In-game the addon still uses Blizzard's
+`Interface\Icons\spell_shadow_twilight` — that's fine for the minimap
+button and panel header, they have to be Blizzard-atlas paths.
 
 ## Submission checklist (when RPGLogs greenlights)
 
