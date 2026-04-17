@@ -60,6 +60,24 @@ local function GetStatLabels(role, spec)
     end
 end
 
+-- Compact labels for the LFG hover (space-sensitive). Shows primary
+-- output + casts/min + cooldown usage — the three stats that matter
+-- most for a "will they carry or drag" recruitment read.
+local function GetCompactStatLabels(role, spec)
+    spec = spec or "Spec"
+    local primaryKey, primaryLabel
+    if role == "healer" then
+        primaryKey, primaryLabel = "throughput", "Healing vs " .. spec
+    else
+        primaryKey, primaryLabel = "dps_perf", "Damage vs " .. spec
+    end
+    return {
+        { key = primaryKey, label = primaryLabel },
+        { key = "cpm", label = "Casts/min" },
+        { key = "cd_usage", label = "Cooldown Usage" },
+    }
+end
+
 -- ── Database Lookup ─────────────────────────────────────────────────────────
 
 local function LookupPlayer(fullName)
@@ -86,6 +104,21 @@ local function GetFullName(name, realm)
     return name .. "-" .. realm:gsub("%s+", "")
 end
 
+-- The LFG API returns "Name" for same-realm applicants and "Name-Realm"
+-- for cross-realm. Coerce to the DB's "Name-Realm" format (realm always
+-- whitespace-stripped) so LookupPlayer matches either case.
+local function NormalizeLFGName(raw)
+    if not raw or raw == "" then return nil end
+    local dashIdx = raw:find("-")
+    if dashIdx then
+        local nm = raw:sub(1, dashIdx - 1)
+        local rl = raw:sub(dashIdx + 1):gsub("%s+", "")
+        return nm .. "-" .. rl
+    end
+    local realm = GetNormalizedRealmName() or ""
+    return raw .. "-" .. realm:gsub("%s+", "")
+end
+
 -- ── Tooltip Rendering ───────────────────────────────────────────────────────
 --
 -- We previously called SetFont on GameTooltipTextRight<N> to render the
@@ -98,7 +131,7 @@ end
 -- No shared state mutation, no leaks. We can revisit a fancy display
 -- later using a custom FontString we own — but that's a bigger refactor.
 
-local function AddUmbraTooltip(tooltip, data)
+local function AddUmbraTooltip(tooltip, data, compact)
     tooltip:AddLine(" ")
 
     local gradeColor = GetGradeColor(data.grade)
@@ -116,7 +149,8 @@ local function AddUmbraTooltip(tooltip, data)
     )
 
     local spec = data.spec or "Spec"
-    local stats = GetStatLabels(role, spec)
+    local stats = compact and GetCompactStatLabels(role, spec)
+                          or GetStatLabels(role, spec)
     for _, stat in ipairs(stats) do
         local value = data[stat.key]
         if value then
@@ -187,20 +221,38 @@ end)
 
 local function OnLFGApplicantEnter(self)
     if UmbraSettings and not UmbraSettings.showLFG then return end
-    if not self.applicantID or not self.memberIdx then return end
 
-    local name, class, localizedClass, level, itemLevel, honorLevel,
-          tank, healer, damage, assignedRole, relationship, dungeonScore,
-          pvpItemLevel = C_LFGList.GetApplicantMemberInfo(self.applicantID, self.memberIdx)
+    -- applicantID is on the parent button. For memberIdx, current retail
+    -- doesn't SetID on the member frame (GetID returns 0), so we find our
+    -- slot in parent.Members by identity.
+    local parent = self:GetParent()
+    local applicantID = parent and parent.applicantID
+    if not applicantID or not parent.Members then return end
 
+    local memberIdx
+    for i, m in ipairs(parent.Members) do
+        if m == self then
+            memberIdx = i
+            break
+        end
+    end
+    if not memberIdx then return end
+
+    local name = C_LFGList.GetApplicantMemberInfo(applicantID, memberIdx)
     if not name then return end
 
-    -- Name comes as "Player-Realm" from the API
-    local data = LookupPlayer(name)
-
+    local data = LookupPlayer(NormalizeLFGName(name))
     if data then
-        AddUmbraTooltip(GameTooltip, data)
-        GameTooltip:Show()
+        -- Defer one frame so we append AFTER Raider.IO (and anyone else
+        -- hooking the same OnEnter). The IsOwned() + IsShown() guards
+        -- make sure we don't inject into a stale tooltip if the user
+        -- moves off before the next tick.
+        C_Timer.After(0, function()
+            if GameTooltip:IsOwned(self) and GameTooltip:IsShown() then
+                AddUmbraTooltip(GameTooltip, data, true)
+                GameTooltip:Show()
+            end
+        end)
     end
 end
 
@@ -241,11 +293,16 @@ local function OnLFGSearchResultEnter(self)
     local leaderName = searchResultInfo.leaderName
     if not leaderName then return end
 
-    local data = LookupPlayer(leaderName)
+    local data = LookupPlayer(NormalizeLFGName(leaderName))
 
     if data then
-        AddUmbraTooltip(GameTooltip, data)
-        GameTooltip:Show()
+        -- Defer so we append below Raider.IO's additions on the same frame.
+        C_Timer.After(0, function()
+            if GameTooltip:IsOwned(self) and GameTooltip:IsShown() then
+                AddUmbraTooltip(GameTooltip, data, true)
+                GameTooltip:Show()
+            end
+        end)
     end
 end
 
@@ -280,6 +337,32 @@ local function HasRaiderIO()
         return IsAddOnLoaded("RaiderIO")
     end
     return false
+end
+
+-- Ensure every currently-visible applicant member frame has our OnEnter
+-- attached. Called from the UpdateResults hook below. We used to rely on
+-- scrollBox:RegisterCallback("OnDataRangeChanged", ...) for this, but that
+-- doesn't fire for the initial render — so hooks never attached and the
+-- tooltip silently did nothing.
+--
+-- Kept separate from UpdateApplicantGrades on purpose: badges bail out
+-- when Raider.IO is installed (to avoid pixel-fighting for the same
+-- spot), but the tooltip should still enrich regardless — RIO and Umbra
+-- happily coexist in the tooltip body.
+local function AttachApplicantHoverHooks()
+    local appViewer = LFGListFrame and LFGListFrame.ApplicationViewer
+    local scrollBox = appViewer and appViewer.ScrollBox
+    if not scrollBox then return end
+    scrollBox:ForEachFrame(function(button)
+        if button and button.Members then
+            for _, member in pairs(button.Members) do
+                if member and not member._umbraHooked then
+                    member:HookScript("OnEnter", OnLFGApplicantEnter)
+                    member._umbraHooked = true
+                end
+            end
+        end
+    end)
 end
 
 local function UpdateApplicantGrades()
@@ -320,7 +403,7 @@ local function UpdateApplicantGrades()
             if member then
                 local name = C_LFGList.GetApplicantMemberInfo(button.applicantID, i)
                 if name then
-                    local data = LookupPlayer(name)
+                    local data = LookupPlayer(NormalizeLFGName(name))
                     if data then
                         if not member.UmbraGrade then
                             member.UmbraGrade = member:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -369,6 +452,7 @@ local function TryHookApplicantUpdateResults()
     local viewer = LFGListFrame and LFGListFrame.ApplicationViewer
     if viewer and type(viewer.UpdateResults) == "function" then
         hooksecurefunc(viewer, "UpdateResults", UpdateApplicantGrades)
+        hooksecurefunc(viewer, "UpdateResults", AttachApplicantHoverHooks)
         _applicantUpdateResultsHooked = true
     end
 end
