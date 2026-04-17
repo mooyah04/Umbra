@@ -65,3 +65,17 @@ body {
   font-family: var(--font-body);
   min-height: 100dvh;
 }
+
+/* Render native controls (select popups, scrollbars, date pickers) in
+   dark mode. Without this, browsers default the <select> option panel
+   to white-bg + grey-text on a dark page, which is ~unreadable. */
+html {
+  color-scheme: dark;
+}
+
+/* Belt-and-braces for browsers that don't fully honor color-scheme on
+   <option> elements. Match the select's host surface. */
+select option {
+  background-color: var(--color-surface-container-highest);
+  color: var(--color-foreground);
+}
