@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-17",
+    title: "Player-driven grading — scoring happens on demand",
+    category: "improved",
+    body:
+      "We no longer auto-grade every character we can find. Instead, new grades appear when someone actually searches a character (or when logs come in from the addon via Warcraft Logs). Already-graded players still get their scores refreshed on the normal schedule. Keeps our data-fetch budget focused on people who want their grade, not on building a giant unused mirror of WCL.",
+  },
+  {
+    date: "2026-04-17",
     title: "D and F grades now have their own colors",
     category: "fixed",
     body:

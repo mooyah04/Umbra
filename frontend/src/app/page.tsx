@@ -159,20 +159,32 @@ export default async function Home() {
             num="01"
             title="Install the addon"
             icon="extension"
-            body="Drop the Umbra/ folder into Interface/AddOns. It auto-enables Advanced Combat Logging and toggles /combatlog on when your M+ key starts."
+            body="Drop the Umbra/ folder into Interface/AddOns. It auto-enables Advanced Combat Logging and toggles /combatlog on when your M+ key starts — you don't have to remember."
           />
           <StepCard
             num="02"
             title="Upload to Warcraft Logs"
             icon="cloud_upload"
-            body="The official Warcraft Logs Uploader picks up your log file automatically. No extra steps — your logs are already feeding our data pipeline."
+            body="Run the official Warcraft Logs Uploader alongside WoW. It watches your combatlog folder and uploads every M+ key automatically — that's what we read from."
           />
           <StepCard
             num="03"
-            title="Get your grade"
+            title="Search yourself here"
             icon="insights"
-            body="Search any character on the homepage. We parse every run, score each category, and show you the raw numbers behind the grade — no black box."
+            body="Search your character on the homepage. We pull your logs from Warcraft Logs, score every category, and show the raw numbers behind the grade. First look-up takes a few seconds — after that it's cached."
           />
+        </div>
+        <div className="mt-6 bg-surface-container-high rounded-xl p-5 border-l-2 border-primary/40">
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.2em] text-primary mb-2">
+            Player-driven scoring
+          </p>
+          <p className="text-on-surface-variant text-sm leading-relaxed">
+            We grade characters on demand — not by scraping Warcraft Logs at
+            scale. If you want your grade to appear,{" "}
+            <span className="text-on-surface">install the addon and run your keys</span>{" "}
+            (your logs will be there already, via the standard WCL Uploader),
+            then search yourself. That&apos;s the whole flow.
+          </p>
         </div>
       </section>
 

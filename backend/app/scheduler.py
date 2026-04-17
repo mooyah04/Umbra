@@ -20,7 +20,7 @@ from sqlalchemy import or_, select
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import Player
+from app.models import Player, PlayerScore
 from app.pipeline.ingest import ingest_player
 
 logger = logging.getLogger(__name__)
@@ -37,30 +37,43 @@ def _region_filter_list() -> list[str]:
 
 
 def _pick_stale_players(limit: int, stale_after_seconds: int) -> list[tuple[str, str, str]]:
-    """Return up to `limit` (name, realm, region) tuples for players whose
-    last_ingested_at is older than the cutoff.
+    """Return up to `limit` (name, realm, region) tuples for already-graded
+    players whose last_ingested_at is older than the cutoff.
+
+    **Refresh-only policy** (2026-04-17): we intentionally exclude
+    Blizzard-leaderboard-discovered stubs that have never been graded.
+    Scoring new players at scale burns the WCL budget on characters
+    nobody has asked about; instead, new grades now only appear when
+    someone searches a character on the site or uploads their addon-
+    recorded combat logs via Warcraft Logs. This keeps the WCL budget
+    available for active users while still refreshing players who are
+    already in the graded set to keep their scores current.
+
+    Filter: Player must have at least one PlayerScore row (i.e. has been
+    graded at least once). Brand-new stubs from the Blizzard crawler
+    stay in the DB as search-primables but don't consume scheduler WCL
+    until someone actually looks them up.
 
     Order:
-      1. `discovered_keystone_level` DESC, nulls last — prefer high-tier
-         leaderboard stubs over the long tail when WCL budget is tight.
-      2. `last_ingested_at` ASC, nulls first — among peers at the same
-         tier, serve never-ingested stubs before re-sweeps, and the
-         stalest re-sweeps before fresher ones.
+      1. `discovered_keystone_level` DESC, nulls last — high-tier
+         players get refreshed first when budget is tight.
+      2. `last_ingested_at` ASC, nulls first — stalest first.
 
     If `SCHEDULER_REGION_FILTER` is set, only players in those regions are
-    eligible — useful for prioritizing a single region (EU for internal
-    testing) while leaving non-matching stubs in the queue for later.
+    eligible.
     """
     cutoff = datetime.utcnow() - timedelta(seconds=stale_after_seconds)
     region_whitelist = _region_filter_list()
+    graded_player_ids = select(PlayerScore.player_id).distinct()
     with SessionLocal() as session:
         stmt = (
             select(Player.name, Player.realm, Player.region)
             .where(
+                Player.id.in_(graded_player_ids),
                 or_(
                     Player.last_ingested_at.is_(None),
                     Player.last_ingested_at < cutoff,
-                )
+                ),
             )
             .order_by(
                 Player.discovered_keystone_level.desc().nullslast(),
