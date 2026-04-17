@@ -188,12 +188,12 @@ end)
 local function OnLFGApplicantEnter(self)
     if UmbraSettings and not UmbraSettings.showLFG then return end
 
-    -- applicantID lives on the parent button. memberIdx used to come from
-    -- self:GetID(), but in current retail Blizzard doesn't assign an ID to
-    -- member frames (GetID returns 0), so we find our slot in the parent's
-    -- Members array by identity instead.
     local parent = self:GetParent()
     local applicantID = parent and parent.applicantID
+    print(string.format("|cff8a2be2[Umbra]|r parent=%s applicantID=%s Members=%s",
+        tostring(parent and parent:GetName() or "?"),
+        tostring(applicantID),
+        tostring(parent and parent.Members)))
     if not applicantID or not parent.Members then return end
 
     local memberIdx
@@ -203,13 +203,19 @@ local function OnLFGApplicantEnter(self)
             break
         end
     end
+    print(string.format("|cff8a2be2[Umbra]|r memberIdx=%s membersLen=%d",
+        tostring(memberIdx), #parent.Members))
     if not memberIdx then return end
 
     local name = C_LFGList.GetApplicantMemberInfo(applicantID, memberIdx)
+    print(string.format("|cff8a2be2[Umbra]|r name=%s", tostring(name)))
     if not name then return end
 
-    -- Name comes as "Player-Realm" from the API
     local data = LookupPlayer(name)
+    print(string.format("|cff8a2be2[Umbra]|r lookup=%s dbSize=%s",
+        data and ("FOUND " .. (data.grade or "?")) or "NIL",
+        Umbra_Database and "ok" or "NIL"))
+
     if data then
         AddUmbraTooltip(GameTooltip, data)
         GameTooltip:Show()
