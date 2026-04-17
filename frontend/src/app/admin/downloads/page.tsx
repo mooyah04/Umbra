@@ -1,32 +1,29 @@
-import BugReportsAdmin from "./BugReportsAdmin";
+import DownloadsAdmin from "./DownloadsAdmin";
 import AdminNav from "@/components/AdminNav";
 
 export const metadata = {
-  title: "Bug Reports Admin | WoWUmbra",
-  description: "Internal triage view for incoming bug reports.",
+  title: "Download Stats Admin | WoWUmbra",
+  description: "Internal view of addon download counts.",
   robots: { index: false, follow: false },
 };
 
-export default function BugReportsAdminPage() {
+export default function DownloadsAdminPage() {
   return (
     <main className="min-h-screen pt-32 pb-24 px-6 md:px-12 max-w-6xl mx-auto">
       <AdminNav />
       <header className="mb-8">
         <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-          Admin · Triage
+          Admin : Downloads
         </p>
         <h1 className="font-[family-name:var(--font-headline)] font-extrabold text-4xl md:text-5xl tracking-tighter text-on-surface">
-          BUG REPORTS
+          ADDON DOWNLOADS
         </h1>
         <p className="text-on-surface-variant text-sm mt-3">
-          Requires the admin API key. Key is stored in{" "}
-          <code className="bg-surface-container-high px-2 py-0.5 rounded">
-            localStorage
-          </code>{" "}
-          on this device only.
+          Total downloads over time, plus recent windows and unique-IP sanity
+          checks against bot reload loops.
         </p>
       </header>
-      <BugReportsAdmin />
+      <DownloadsAdmin />
     </main>
   );
 }
