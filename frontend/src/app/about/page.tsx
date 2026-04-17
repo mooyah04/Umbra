@@ -291,6 +291,62 @@ export default function AboutPage() {
         </Link>
       </section>
 
+      {/* Community / growth */}
+      <section className="mb-20">
+        <div className="bg-surface-container-high rounded-xl p-8 md:p-12">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-4">
+            How Umbra grows
+          </p>
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-4xl tracking-tighter text-on-surface mb-6">
+            THE MORE OF YOU USE IT,{" "}
+            <span className="text-primary italic">THE BETTER IT GETS.</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-on-surface-variant leading-relaxed mb-8">
+            <p>
+              Every grade on wowumbra.gg exists because a player uploaded
+              their combat logs via Archon. We can&apos;t scrape WCL for
+              everyone, and we don&apos;t want to. The only way a tooltip
+              fills in for a new player is someone looking them up on the
+              site, or them running keys with the addon and Archon active.
+              So the database grows at exactly the rate players are willing
+              to be seen.
+            </p>
+            <p>
+              That makes this a network-effect tool. The more of your guild,
+              your Discord, and your pug circle install Umbra, the more LFG
+              applicants arrive with a grade already attached, and the more
+              vetting becomes a glance instead of an interview. There is no
+              ad budget. There is no marketing team. There is you, a free
+              addon, and a free site.
+            </p>
+          </div>
+
+          <div className="border-t border-outline-variant/20 pt-6">
+            <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-4">
+              Four ways you can help Umbra grow
+            </p>
+            <ul className="space-y-3">
+              {GROWTH_ASKS.map((a) => (
+                <li
+                  key={a.title}
+                  className="flex gap-3 text-on-surface-variant text-sm leading-relaxed"
+                >
+                  <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">
+                    {a.icon}
+                  </span>
+                  <span>
+                    <span className="text-on-surface font-semibold">
+                      {a.title}.
+                    </span>{" "}
+                    {a.body}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* What's next */}
       <section className="mb-20">
         <div className="bg-gradient-to-br from-primary-container to-surface-container-highest rounded-xl p-10 md:p-14 relative overflow-hidden">
@@ -406,5 +462,30 @@ const COMMITMENTS = [
   {
     title: "Open roadmap, open tradeoffs",
     body: "We ship changelogs and we write up the scoring changes we make, including the ones that hurt our own characters. Category weights and benchmarks change when the data proves the old ones wrong.",
+  },
+];
+
+/** Four concrete actions a reader can take right now to help the
+ *  network-effect side of the product grow. Ordered smallest ask first. */
+const GROWTH_ASKS = [
+  {
+    icon: "extension",
+    title: "Install the addon",
+    body: "Run your keys with Archon uploading. Your grade populates within the hour and every LFG tooltip you touch gets one more graded name.",
+  },
+  {
+    icon: "share",
+    title: "Share your /umbra panel",
+    body: 'When your raid or guild asks how a key went, drop a screenshot of the panel. A concrete grade and category breakdown lands harder than "it was fine."',
+  },
+  {
+    icon: "link",
+    title: "Link your profile when someone questions your play",
+    body: "The grade is designed to be argued with. Make it public and the conversation moves from opinions to evidence. If your grade is wrong, we want to hear it.",
+  },
+  {
+    icon: "group",
+    title: "Tell one person who would care",
+    body: "A friend who pushes keys. A guildmate trying to climb. A pug that surprised you. This is the only marketing that actually works for a free addon.",
   },
 ];
