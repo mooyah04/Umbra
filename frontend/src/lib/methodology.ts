@@ -36,7 +36,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     label: "Healing Throughput",
     summary: "How much you healed relative to other healers of your spec.",
     description:
-      "WCL percentile for HPS against same-spec healers in this M+ zone. A high score here reflects actually healing — throughput — separate from your utility and damage.",
+      "WCL percentile for HPS against same-spec healers in this M+ zone. A high score here reflects actually healing (throughput), separate from your utility and damage.",
     howToImprove:
       "Low throughput on high keys usually means either the tank is taking unnecessary damage (addressable via CC/kicks) or you're not using your group heals on CD.",
     roles: ["healer"],
@@ -60,7 +60,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     description:
       "Three signals: how often you died, how much of your damage taken came from ability IDs we know are avoidable, and how much healing you consumed relative to the group. Tanks aren't penalized for healing received (they're supposed to tank). Deaths caused by avoidable abilities cost extra.",
     howToImprove:
-      "Audit your Details damage-taken log after a wipe — if one ability hit you for >15% of your total intake, look up the mechanic on Wowhead and you'll usually find the out.",
+      "Audit your Details damage-taken log after a wipe. If one ability hit you for >15% of your total intake, look up the mechanic on Wowhead and you'll usually find the out.",
     roles: ["dps", "healer", "tank"],
     icon: "shield",
   },
@@ -69,7 +69,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     label: "Cooldown Usage",
     summary: "Did you press your major cooldowns on schedule?",
     description:
-      "For each of your spec's major CDs we compute expected uses based on fight duration, then compare against actual casts. Talent-optional CDs are excluded — we don't penalize you for not taking a specific talent. Missing only one CD drops your score; hoarding defensives or offensives is a common sub-grade cause.",
+      "For each of your spec's major CDs we compute expected uses based on fight duration, then compare against actual casts. Talent-optional CDs are excluded: we don't penalize you for not taking a specific talent. Missing only one CD drops your score; hoarding defensives or offensives is a common sub-grade cause.",
     howToImprove:
       "Bind your majors prominently. If you're sitting a 2-minute CD through a 30-minute key, that's 10+ minutes of wasted throughput.",
     roles: ["dps", "healer", "tank"],
@@ -78,9 +78,9 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
   {
     key: "casts_per_minute",
     label: "Casts Per Minute",
-    summary: "Activity level — are you pressing buttons?",
+    summary: "Activity level: are you pressing buttons?",
     description:
-      "Total casts divided by fight duration, scored against role and spec benchmarks. We use spec-specific thresholds — a 25 CPM Marksmanship Hunter is doing great, a 25 CPM Fury Warrior is struggling. Low CPM usually means rotation gaps, bad positioning, or AFK on a mechanic.",
+      "Total casts divided by fight duration, scored against role and spec benchmarks. We use spec-specific thresholds: a 25 CPM Marksmanship Hunter is doing great, a 25 CPM Fury Warrior is struggling. Low CPM usually means rotation gaps, bad positioning, or AFK on a mechanic.",
     howToImprove:
       "Check your Details timeline for long gaps between casts. Often these map to movement, mechanics, or a dead target (precast before the pull ends).",
     roles: ["dps", "healer", "tank"],
@@ -91,7 +91,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     label: "Key Timing",
     summary: "A ±8 bonus based on whether your keys actually timed.",
     description:
-      "M+ is a team activity. We apply a ±8-point modifier to the composite based on your weighted timing rate — higher keys count more. Timing everything adds 8; 50% timed is neutral; 0% timed subtracts 8. It's not per-player, it's the group's result, and that's intentional: you can't be a great M+ player while your runs deplete.",
+      "M+ is a team activity. We apply a ±8-point modifier to the composite based on your weighted timing rate, where higher keys count more. Timing everything adds 8; 50% timed is neutral; 0% timed subtracts 8. It's not per-player, it's the group's result, and that's intentional: you can't be a great M+ player while your runs deplete.",
     howToImprove:
       "Route quality and group cohesion matter as much as personal play. Practice dungeons in lower keys, study route creators like MDT/Quazii, and communicate pulls.",
     roles: ["dps", "healer", "tank"],
@@ -112,7 +112,7 @@ export function getCategoriesForRole(
   return CATEGORY_EXPLANATIONS.filter((c) => c.roles.includes(r));
 }
 
-/** Role weight breakdown — must match backend ROLE_WEIGHTS. Kept in sync manually. */
+/** Role weight breakdown: must match backend ROLE_WEIGHTS. Kept in sync manually. */
 export const ROLE_WEIGHT_PROFILES: Record<
   "dps" | "healer" | "tank",
   Array<{ key: string; weight: number }>
@@ -184,7 +184,7 @@ export const DIFFERENTIATORS = [
   {
     title: "Fair across roles",
     body:
-      "Most rating systems quietly weight toward DPS output. Our tank and healer grades reflect tanking and healing — survivability and utility carry real weight, not the ceremonial 5% other tools give them.",
+      "Most rating systems quietly weight toward DPS output. Our tank and healer grades reflect tanking and healing: survivability and utility carry real weight, not the ceremonial 5% other tools give them.",
   },
   {
     title: "Per-dungeon + pull-by-pull",

@@ -1,5 +1,5 @@
 /**
- * Run narrative — turns a stored RunResponse into 3-5 sentences of plain
+ * Run narrative: turns a stored RunResponse into 3-5 sentences of plain
  * English that explain what stood out. No new data fetched; entirely
  * derived from stats we already have. Later levels (B: event timeline,
  * C: AI coach) will slot in below or replace this.
@@ -25,7 +25,7 @@ export function generateRunNarrative(run: RunResponse): string[] {
     out.push(`You timed ${dungeon} +${run.keystone_level} in ${duration}.`);
   } else {
     out.push(
-      `You ran ${dungeon} +${run.keystone_level} in ${duration} — the key depleted.`,
+      `You ran ${dungeon} +${run.keystone_level} in ${duration}. The key depleted.`,
     );
   }
 
@@ -34,15 +34,15 @@ export function generateRunNarrative(run: RunResponse): string[] {
     const pct = (run.avoidable_damage_taken / run.damage_taken_total) * 100;
     if (pct < 3) {
       out.push(
-        `Clean on mechanics — only ${pct.toFixed(1)}% of damage taken was avoidable.`,
+        `Clean on mechanics: only ${pct.toFixed(1)}% of damage taken was avoidable.`,
       );
     } else if (pct >= 12) {
       out.push(
-        `Took ${formatNumber(run.avoidable_damage_taken)} avoidable damage — that's ${pct.toFixed(0)}% of total damage received, which is a lot of "stuff you could have sidestepped".`,
+        `Took ${formatNumber(run.avoidable_damage_taken)} avoidable damage. That's ${pct.toFixed(0)}% of total damage received, which is a lot of "stuff you could have sidestepped".`,
       );
     } else {
       out.push(
-        `Took ${formatNumber(run.avoidable_damage_taken)} avoidable damage (${pct.toFixed(0)}% of total) — manageable but leaves room to tighten up.`,
+        `Took ${formatNumber(run.avoidable_damage_taken)} avoidable damage (${pct.toFixed(0)}% of total). Manageable but leaves room to tighten up.`,
       );
     }
   }
@@ -55,20 +55,20 @@ export function generateRunNarrative(run: RunResponse): string[] {
       out.push(`Strong kick discipline: ${run.interrupts} interrupts${critNote}.`);
     } else if (run.interrupts >= 8) {
       out.push(
-        `${run.interrupts} interrupts — solid, but top players in this key range push 15+ per run.`,
+        `${run.interrupts} interrupts: solid, but top players in this key range push 15+ per run.`,
       );
     } else if (run.interrupts < 5) {
       out.push(
-        `Only ${run.interrupts} interrupt${run.interrupts === 1 ? "" : "s"} — worth auditing kick rotations or covering casters yourself.`,
+        `Only ${run.interrupts} interrupt${run.interrupts === 1 ? "" : "s"}. Worth auditing kick rotations or covering casters yourself.`,
       );
     }
   } else {
-    // Healer utility — dispels + CC
+    // Healer utility: dispels + CC
     if (run.dispels >= 10) {
       out.push(`Heavy dispel load: ${run.dispels} cleanses carried the group.`);
     } else if (run.dispels === 0) {
       out.push(
-        `No dispels recorded — if this dungeon had magic/poison/disease on players, something got missed.`,
+        `No dispels recorded. If this dungeon had magic/poison/disease on players, something got missed.`,
       );
     }
   }
@@ -80,24 +80,24 @@ export function generateRunNarrative(run: RunResponse): string[] {
     );
   } else if (run.cooldown_usage_pct > 0 && run.cooldown_usage_pct < 50) {
     out.push(
-      `Only ${Math.round(run.cooldown_usage_pct)}% cooldown usage — sitting on majors is the fastest way to lose a grade tier.`,
+      `Only ${Math.round(run.cooldown_usage_pct)}% cooldown usage. Sitting on majors is the fastest way to lose a grade tier.`,
     );
   }
 
   // ── Deaths: the closing beat ────────────────────────────────────────
   if (run.deaths === 0) {
-    out.push(`Zero deaths — clean run all the way.`);
+    out.push(`Zero deaths. Clean run all the way.`);
   } else if (run.deaths === 1) {
     if (run.avoidable_deaths && run.avoidable_deaths > 0) {
       out.push(`One death, to an avoidable ability.`);
     } else {
-      out.push(`One death — most timed keys survive a single slip.`);
+      out.push(`One death. Most timed keys survive a single slip.`);
     }
   } else {
     const avoidable = run.avoidable_deaths ?? null;
     if (avoidable !== null && avoidable > 0) {
       out.push(
-        `${run.deaths} deaths, ${avoidable} of them to avoidable mechanics — staying alive is the #1 thing that would lift this grade.`,
+        `${run.deaths} deaths, ${avoidable} of them to avoidable mechanics. Staying alive is the #1 thing that would lift this grade.`,
       );
     } else {
       out.push(`${run.deaths} deaths in a key this level adds up fast on the timer.`);

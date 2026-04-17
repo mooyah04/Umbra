@@ -30,7 +30,7 @@ export default async function Home() {
           LOOK UP <span className="text-primary italic">ANY PLAYER.</span>
         </h2>
         <p className="max-w-2xl text-on-surface-variant text-lg mb-8">
-          One composite grade per character — built from your combat-log
+          One composite grade per character, built from your combat-log
           evidence, tuned for the current season, and explained piece by piece.
         </p>
         <SearchBar />
@@ -119,7 +119,7 @@ export default async function Home() {
           </h3>
           <p className="text-on-surface-variant leading-relaxed max-w-3xl mb-6">
             WoWUmbra.gg is brand new. The grading system learns from the logs
-            our community feeds it — the more diverse the keys, specs, and
+            our community feeds it. The more diverse the keys, specs, and
             compositions we see, the sharper every category gets. If you run
             Mythic+, drop the addon in and play normally. That&apos;s it. Your
             logs help tune benchmarks that will grade every player who comes
@@ -159,7 +159,7 @@ export default async function Home() {
             num="01"
             title="Install the addon"
             icon="extension"
-            body="Drop the Umbra/ folder into Interface/AddOns. It auto-enables Advanced Combat Logging and toggles /combatlog on when your M+ key starts — you don't have to remember."
+            body="Drop the Umbra/ folder into Interface/AddOns. It auto-enables Advanced Combat Logging and toggles /combatlog on when your M+ key starts. You don't have to remember."
           />
           <StepCard
             num="02"
@@ -180,7 +180,7 @@ export default async function Home() {
                   , the official Warcraft Logs uploader. Turn on{" "}
                   <span className="text-on-surface">Live Logging</span>, point
                   it at your WoW log folder, hit <em>Go</em>, and run your
-                  keys — every M+ uploads automatically.
+                  keys. Every M+ uploads automatically.
                 </p>
               </>
             }
@@ -189,7 +189,7 @@ export default async function Home() {
             num="03"
             title="Search yourself here"
             icon="insights"
-            body="Search your character on the homepage. We pull your logs from Warcraft Logs, score every category, and show the raw numbers behind the grade. First look-up takes a few seconds — after that it's cached."
+            body="Search your character on the homepage. We pull your logs from Warcraft Logs, score every category, and show the raw numbers behind the grade. First look-up takes a few seconds. After that it's cached."
           />
         </div>
         <div className="mt-6 bg-surface-container-high rounded-xl p-5 border-l-2 border-primary/40">
@@ -197,7 +197,7 @@ export default async function Home() {
             Player-driven scoring
           </p>
           <p className="text-on-surface-variant text-sm leading-relaxed">
-            We grade characters on demand — not by scraping Warcraft Logs at
+            We grade characters on demand, not by scraping Warcraft Logs at
             scale. If you want your grade to appear,{" "}
             <span className="text-on-surface">install the addon and run your keys</span>{" "}
             (your logs will be there already, via{" "}
@@ -253,7 +253,7 @@ export default async function Home() {
             GRADES MATCH <span className="text-primary italic">REALITY</span>
           </h3>
           <p className="text-on-surface-variant mt-3 max-w-3xl leading-relaxed">
-            Every grade is a summary of the log evidence — nothing more, nothing
+            Every grade is a summary of the log evidence. Nothing more, nothing
             less. Three anonymized examples from our live dataset. Names and
             realms stripped; the numbers are real.
           </p>
@@ -287,7 +287,7 @@ export default async function Home() {
             grade="S"
             role="Tank"
             roleDescriptor="A Prot Paladin"
-            summary="High survivability, generous utility, and crucially — pushes high keys in time. Every category lights up."
+            summary="High survivability, generous utility, and crucially, pushes high keys in time. Every category lights up."
             stats={[
               { label: "Key level range", value: "+11 to +14" },
               { label: "Interrupts / dungeon", value: "11.7" },

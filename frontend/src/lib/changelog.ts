@@ -1,5 +1,5 @@
 /**
- * Public changelog — user-visible changes to the site, the scoring
+ * Public changelog: user-visible changes to the site, the scoring
  * engine, and the addon. Keep entries concise and written for players,
  * not engineers: say what changed from their perspective, skip internal
  * refactors. Newest first.
@@ -20,11 +20,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "In-game tooltip data refreshes every hour (was 6)",
     category: "improved",
     body:
-      "The addon's bundled grade data now gets rebuilt every hour instead of every 6. If your friend just got graded and they're running keys with you, they'll show up in tooltips sooner — worst case 60 min, average 30. Same download URL; just grab a fresh Umbra.zip if you want the latest.",
+      "The addon's bundled grade data now gets rebuilt every hour instead of every 6. If your friend just got graded and they're running keys with you, they'll show up in tooltips sooner: worst case 60 min, average 30. Same download URL; just grab a fresh Umbra.zip if you want the latest.",
   },
   {
     date: "2026-04-17",
-    title: "Player-driven grading — scoring happens on demand",
+    title: "Player-driven grading: scoring happens on demand",
     category: "improved",
     body:
       "We no longer auto-grade every character we can find. Instead, new grades appear when someone actually searches a character (or when logs come in from the addon via Warcraft Logs). Already-graded players still get their scores refreshed on the normal schedule. Keeps our data-fetch budget focused on people who want their grade, not on building a giant unused mirror of WCL.",
@@ -34,28 +34,28 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "D and F grades now have their own colors",
     category: "fixed",
     body:
-      "Before, D tier rendered as plain white and F blended into grey body text — you could miss a bad grade at a glance. D is now amber, F is red. Everything else keeps its WoW-item-quality color (S orange, A purple, B blue, C green).",
+      "Before, D tier rendered as plain white and F blended into grey body text, so you could miss a bad grade at a glance. D is now amber, F is red. Everything else keeps its WoW-item-quality color (S orange, A purple, B blue, C green).",
   },
   {
     date: "2026-04-17",
     title: "'Grades match reality' homepage section",
     category: "new",
     body:
-      "New section with three anonymized real-data examples showing what the stats look like behind an F, a D, and an S grade. No names — just numbers. Shows that the grade is a summary of the log evidence, not a black box.",
+      "New section with three anonymized real-data examples showing what the stats look like behind an F, a D, and an S grade. No names, just numbers. Shows that the grade is a summary of the log evidence, not a black box.",
   },
   {
     date: "2026-04-17",
     title: "Leaderboard taken down for now",
     category: "improved",
     body:
-      "Publicly ranking named players isn't consistent with Umbra's anti-toxicity stance, so we've removed the leaderboard from the nav and the homepage. Your player page still shows your own grade and breakdown — that's what the product is actually for.",
+      "Publicly ranking named players isn't consistent with Umbra's anti-toxicity stance, so we've removed the leaderboard from the nav and the homepage. Your player page still shows your own grade and breakdown. That's what the product is actually for.",
   },
   {
     date: "2026-04-17",
     title: "Timed runs no longer mislabeled as depleted",
     category: "fixed",
     body:
-      "Some timed keys (especially +1 / +2 / +3 chest runs) were showing up as depleted on your run list. The underlying field we read had a different meaning than we thought — switched to the authoritative one. Existing affected runs get corrected on the next refresh.",
+      "Some timed keys (especially +1 / +2 / +3 chest runs) were showing up as depleted on your run list. The underlying field we read had a different meaning than we thought, so we switched to the authoritative one. Existing affected runs get corrected on the next refresh.",
   },
   {
     date: "2026-04-17",
@@ -76,7 +76,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "No more silent freezes on cold player lookups",
     category: "improved",
     body:
-      "Clicking an uncached player on a run page used to sometimes hang quietly for a minute. Now you see an 'Analyzing this player' state immediately while the backend ingests in the background — you can come back to the page in a moment and it'll be graded.",
+      "Clicking an uncached player on a run page used to sometimes hang quietly for a minute. Now you see an 'Analyzing this player' state immediately while the backend ingests in the background. You can come back to the page in a moment and it'll be graded.",
   },
   {
     date: "2026-04-17",
@@ -90,7 +90,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Pull-by-pull run breakdowns",
     category: "new",
     body:
-      "Click any run on a player page → Full Breakdown. See what happened pull by pull — the kicks you hit, the avoidable damage you ate, the pulls you died in — aggregated per ability so the whole dungeon reads in 30 seconds.",
+      "Click any run on a player page → Full Breakdown. See what happened pull by pull: the kicks you hit, the avoidable damage you ate, the pulls you died in, aggregated per ability so the whole dungeon reads in 30 seconds.",
   },
   {
     date: "2026-04-16",
@@ -111,7 +111,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Homepage 'Recently Graded' carousel",
     category: "improved",
     body:
-      "Horizontal scroll-snap carousel instead of the old grid — shows more players in less vertical space, feels more alive.",
+      "Horizontal scroll-snap carousel instead of the old grid. Shows more players in less vertical space, feels more alive.",
   },
   {
     date: "2026-04-16",
@@ -122,7 +122,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: "2026-04-16",
-    title: "Scoring Pass 3 — correctness + calibration",
+    title: "Scoring Pass 3: correctness + calibration",
     category: "fixed",
     body:
       "Fixed a percentile-handling bug where unranked runs were silently counting as 100 for damage/healing output. Rebalanced CPM benchmarks (they were pegging at 100 for many specs), bumped healer survivability weight, and softened the tank interrupt denominator to be fair to route-dependent pulls.",
@@ -132,11 +132,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Auto-discovery of EU players",
     category: "new",
     body:
-      "We now pull Blizzard's Mythic Keystone leaderboards for EU realms and auto-queue discovered players for ingest. You don't have to search yourself first to show up — running keys is enough.",
+      "We now pull Blizzard's Mythic Keystone leaderboards for EU realms and auto-queue discovered players for ingest. You don't have to search yourself first to show up. Running keys is enough.",
   },
   {
     date: "2026-04-16",
-    title: "Addon 0.3.0 — two-column /umbra panel",
+    title: "Addon 0.3.0: two-column /umbra panel",
     category: "new",
     body:
       "Redesigned stats panel: 3D character model + big tier-colored grade on the left, live settings sidebar on the right. Minimap button (shift-drag to reposition). In-panel toggles for tooltip grades, LFG grades, auto /combatlog, panel scale + alpha.",
@@ -146,7 +146,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "All 8 Midnight S1 dungeons have verified data",
     category: "improved",
     body:
-      "Avoidable-damage ability lists and critical-kick lists for every dungeon now sourced from a cross-log sampler that reads top speed runs — not hand-curated. Scoring for survivability and utility categories finally reflects real dungeon mechanics.",
+      "Avoidable-damage ability lists and critical-kick lists for every dungeon now sourced from a cross-log sampler that reads top speed runs, not hand-curated. Scoring for survivability and utility categories finally reflects real dungeon mechanics.",
   },
   {
     date: "2026-04-15",
@@ -160,7 +160,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Addon log auto-toggle fixed",
     category: "fixed",
     body:
-      "Addon 0.2.1 — auto `/combatlog` correctly starts when a key inserts (no more cutting out at the countdown), and the 8-second end-flush guarantees WCL records the keystone time.",
+      "Addon 0.2.1: auto `/combatlog` correctly starts when a key inserts (no more cutting out at the countdown), and the 8-second end-flush guarantees WCL records the keystone time.",
   },
   {
     date: "2026-04-15",

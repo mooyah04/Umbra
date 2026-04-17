@@ -84,7 +84,7 @@ export default function BugReportForm() {
           required
           minLength={3}
           maxLength={200}
-          placeholder="Short description — what broke?"
+          placeholder="Short description: what broke?"
           className="w-full bg-surface-container-high rounded-md px-3 py-2 text-on-surface placeholder:text-on-surface-variant/60 border border-outline-variant/20 focus:border-primary/50 focus:outline-none"
         />
       </Field>

@@ -35,12 +35,12 @@ async function fetchApi<T>(
   path: string,
   freshness: number | "no-store" = 60,
 ): Promise<T> {
-  // Per-endpoint cache freshness. Server components use Next's ISR —
+  // Per-endpoint cache freshness. Server components use Next's ISR:
   // responses are served from cache for `freshness` seconds, then
   // stale-served once while the background regen runs.
   //
   // Pass "no-store" for routes where the first-visit stale window
-  // is unacceptable — player profiles after a force re-ingest, etc.
+  // is unacceptable (player profiles after a force re-ingest, etc.).
   // Makes every request hit the backend; still fast because the
   // backend caches scored data in PlayerScore.
   const init: RequestInit =
@@ -198,7 +198,7 @@ export async function claimPlayer(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError(
         408,
-        "The request timed out. Warcraft Logs may be rate-limiting us — try again in a minute.",
+        "The request timed out. Warcraft Logs may be rate-limiting us. Try again in a minute.",
       );
     }
     throw err;

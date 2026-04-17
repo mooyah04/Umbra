@@ -5,7 +5,7 @@ import {
 } from "@/lib/methodology";
 
 export const metadata = {
-  title: "Methodology — WoWUmbra.gg",
+  title: "Methodology | WoWUmbra.gg",
   description:
     "How the Umbra grading system works: role-aware category weights, keystone-level weighting, timing modifier, and what each category actually measures.",
 };
@@ -43,8 +43,8 @@ export default function MethodologyPage() {
         </h1>
         <p className="max-w-3xl mx-auto text-lg text-on-surface-variant leading-relaxed">
           Every Umbra grade is a composite of five or six weighted categories,
-          adjusted by how many of your keys you timed. Weights change by role
-          — a tank and a DPS player aren&apos;t graded on the same things. The
+          adjusted by how many of your keys you timed. Weights change by role:
+          a tank and a DPS player aren&apos;t graded on the same things. The
           whole engine is documented here so there&apos;s no black box.
         </p>
       </section>
@@ -61,7 +61,7 @@ export default function MethodologyPage() {
           <p className="mt-3 text-on-surface-variant max-w-3xl">
             Category scores are 0-100 and feed the composite at these weights.
             Rows that don&apos;t apply to a role (e.g. healing throughput for
-            a tank) are simply absent — the remaining weights redistribute.
+            a tank) are simply absent. The remaining weights redistribute.
           </p>
         </div>
         <div className="overflow-x-auto bg-surface-container-high rounded-xl">
@@ -174,7 +174,7 @@ export default function MethodologyPage() {
             Inside each category, per-run scores are weight-averaged by
             keystone level. A +15 carries about 3× the weight of a +5.
             That&apos;s because pushing higher keys is the actual measure of
-            skill — the scoring engine rewards it directly instead of asking
+            skill. The scoring engine rewards it directly instead of asking
             us to infer it after the fact.
           </p>
         </div>
@@ -188,7 +188,7 @@ export default function MethodologyPage() {
           <p className="text-on-surface-variant leading-relaxed">
             We track keys timed as a displayed stat, but it doesn&apos;t feed
             the composite. Pushing a +18 that fails timing is a harder run
-            than one-shotting a +5 — scoring timing would punish the
+            than one-shotting a +5; scoring timing would punish the
             correct direction. Mythic+ keys are also resettable, so timing
             is gameable. The key level is already rewarded inside every
             category via per-run weighting.
@@ -223,7 +223,7 @@ export default function MethodologyPage() {
           </h3>
           <p className="text-on-surface-variant leading-relaxed">
             Click any run and we show it pull-by-pull: your kicks, the
-            avoidable damage you ate, the pulls you died in — aggregated
+            avoidable damage you ate, the pulls you died in, aggregated
             per ability (&quot;took 3 hits from Dread Pulse, 840k total&quot;)
             so it reads as a recap, not a raw log. No one else in the
             ecosystem does this.
@@ -251,7 +251,7 @@ export default function MethodologyPage() {
             critical.
           </p>
           <p className="text-on-surface-variant leading-relaxed">
-            That&apos;s it — no editorial curation, no favoritism toward any
+            That&apos;s it. No editorial curation, no favoritism toward any
             class or spec. When a new season&apos;s data rolls in, the
             lists update. When we add a new dungeon, we re-sample. The
             endpoint that generates these lists is the same one our

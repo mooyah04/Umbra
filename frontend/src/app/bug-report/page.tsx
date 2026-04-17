@@ -1,7 +1,7 @@
 import BugReportForm from "@/components/BugReportForm";
 
 export const metadata = {
-  title: "Report a Bug — WoWUmbra",
+  title: "Report a Bug | WoWUmbra",
   description: "Send us a bug report from the website or the addon.",
 };
 

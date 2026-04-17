@@ -3,7 +3,7 @@ import Nav from "@/components/Nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WoWUmbra.gg — M+ Performance Grading",
+  title: "WoWUmbra.gg | M+ Performance Grading",
   description:
     "Deep-audit performance grading for World of Warcraft Mythic+. Search players, analyze runs, and track improvement.",
 };

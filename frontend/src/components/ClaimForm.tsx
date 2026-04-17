@@ -60,7 +60,7 @@ export default function ClaimForm({ name, realm, region }: Props) {
       <p className="text-on-surface-variant text-sm mb-4 leading-relaxed">
         Warcraft Logs sometimes returns the wrong character when multiple
         players share a name. Paste a WCL report URL (or the 16-character
-        code) from any M+ run that included your character — we'll identify
+        code) from any M+ run that included your character. We'll identify
         you from that log directly.
       </p>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">

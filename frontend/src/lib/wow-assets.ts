@@ -1,11 +1,11 @@
 /**
- * External WoW asset URLs. We don't bundle Blizzard artwork — we link to
+ * External WoW asset URLs. We don't bundle Blizzard artwork. We link to
  * Wowhead's CDN (wow.zamimg.com) which serves class icons + spell icons
  * publicly and is the standard for WoW fan sites. No auth / API key
  * required.
  *
  * If we later want 3D character portraits we'd have to integrate with
- * Blizzard's official Game Data API (OAuth client credentials) — that's
+ * Blizzard's official Game Data API (OAuth client credentials). That's
  * a separate, bigger workstream.
  */
 
@@ -126,7 +126,7 @@ export function specIconUrl(specName: string | null | undefined, classId: number
  * Melee vs ranged DPS classifier for the Recent Runs party columns.
  * Specs not listed default to ranged. Augmentation is treated as
  * ranged since it operates at caster distance. Frost is ambiguous
- * (DK = melee, Mage = ranged) — resolve via class_id.
+ * (DK = melee, Mage = ranged). Resolve via class_id.
  */
 const MELEE_SPECS = new Set<string>([
   "Arms", "Fury",

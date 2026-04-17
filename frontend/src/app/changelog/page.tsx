@@ -2,9 +2,9 @@ import Link from "next/link";
 import { CHANGELOG, type ChangelogCategory } from "@/lib/changelog";
 
 export const metadata = {
-  title: "Changelog — WoWUmbra.gg",
+  title: "Changelog | WoWUmbra.gg",
   description:
-    "What's changed on WoWUmbra.gg — new features, improvements, fixes. Newest first.",
+    "What's changed on WoWUmbra.gg: new features, improvements, fixes. Newest first.",
 };
 
 // 6 hour ISR — changelog is edited by hand and doesn't need to be live.

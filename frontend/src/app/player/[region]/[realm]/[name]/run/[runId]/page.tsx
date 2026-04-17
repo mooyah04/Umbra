@@ -214,7 +214,7 @@ export default async function RunDetailPage({ params }: Props) {
                         {deathEvents.map((d, idx) => (
                           <li key={idx} className="text-xs text-on-surface-variant leading-relaxed">
                             <span className="text-error font-semibold">{d.ability_name}</span>
-                            {" — "}
+                            {", "}
                             <span className="text-on-surface">{d.pullLabel}</span>
                             {" at "}
                             <span className="font-[family-name:var(--font-label)] tabular-nums">{formatClock(d.t)}</span>

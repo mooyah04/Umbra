@@ -381,7 +381,7 @@ const WHAT_WE_PROVIDE = [
   {
     icon: "refresh",
     title: "Fresh data without a manual refresh",
-    body: "Run a key, upload via Archon (the official WCL uploader — the addon handles combat logging), and look yourself up on the site to trigger ingest immediately. Already-graded characters keep getting refreshed on the hour, so scores stay current as you play.",
+    body: "Run a key, upload via Archon (the official WCL uploader; the addon handles combat logging), and look yourself up on the site to trigger ingest immediately. Already-graded characters keep getting refreshed on the hour, so scores stay current as you play.",
   },
 ];
 

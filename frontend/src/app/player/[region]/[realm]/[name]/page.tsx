@@ -146,7 +146,7 @@ export default async function PlayerProfilePage({ params }: Props) {
         </p>
         <p className="text-on-surface-variant mb-8 max-w-xl mx-auto leading-relaxed">
           {isRetryable
-            ? "We just kicked off an ingest from Warcraft Logs. Give it a minute and reload — most characters finish in 20-40 seconds."
+            ? "We just kicked off an ingest from Warcraft Logs. Give it a minute and reload. Most characters finish in 20-40 seconds."
             : reason === "wcl_not_found"
             ? "This character doesn't have any combat logs on warcraftlogs.com yet. Download our addon, run a Mythic+ key, and your logs will feed the grading system automatically."
             : "Something went wrong loading this profile. Try again in a moment or head back to search."}
@@ -392,7 +392,7 @@ export default async function PlayerProfilePage({ params }: Props) {
             <p className="text-on-surface-variant leading-relaxed">
               {profile.total_runs === 0
                 ? "We found your character on Warcraft Logs, but there aren't any Mythic+ runs on file yet. Download the addon, run a key with Advanced Combat Logging on, and your grade will land here automatically."
-                : `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far — three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`}
+                : `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far; three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`}
             </p>
           </div>
           <a

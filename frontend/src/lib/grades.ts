@@ -1,4 +1,4 @@
-/** Grade display helpers — colors match the WoW addon exactly. */
+/** Grade display helpers. Colors match the WoW addon exactly. */
 
 export type Grade =
   | "S+" | "S"

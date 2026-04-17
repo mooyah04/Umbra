@@ -1,7 +1,7 @@
 import BugReportsAdmin from "./BugReportsAdmin";
 
 export const metadata = {
-  title: "Bug Reports Admin — WoWUmbra",
+  title: "Bug Reports Admin | WoWUmbra",
   description: "Internal triage view for incoming bug reports.",
   robots: { index: false, follow: false },
 };

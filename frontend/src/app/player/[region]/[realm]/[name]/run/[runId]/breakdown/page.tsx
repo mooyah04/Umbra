@@ -52,7 +52,7 @@ export default async function RunBreakdownPage({ params }: Props) {
           {dungeonName(run.encounter_id)} +{run.keystone_level}
         </h1>
         <p className="text-on-surface-variant">
-          Deeper per-run analysis — what&apos;s built and what&apos;s coming.
+          Deeper per-run analysis. What&apos;s built and what&apos;s coming.
         </p>
       </header>
 
@@ -93,7 +93,7 @@ export default async function RunBreakdownPage({ params }: Props) {
           </h2>
           <p className="text-on-surface-variant text-sm">
             {pulls.length} pulls tracked. Each one shows your kicks,
-            the damage you took, and whether you died — aggregated so
+            the damage you took, and whether you died, aggregated so
             you can scan the whole dungeon in under a minute.
           </p>
           <ol className="space-y-3 pt-2">
@@ -115,7 +115,7 @@ export default async function RunBreakdownPage({ params }: Props) {
             What we&apos;re building here
           </h2>
           <p className="text-on-surface-variant text-sm">
-            No event timeline available for this run yet — either it&apos;s
+            No event timeline available for this run yet. Either it&apos;s
             below the +8 threshold we track, or it was ingested before this
             feature went live. Newer runs will populate automatically.
           </p>
