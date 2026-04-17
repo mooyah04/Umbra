@@ -206,24 +206,28 @@ local function OnTooltipSetUnit(tooltip)
     local data = LookupPlayer(fullName)
 
     if data then
-        -- Defer a frame so Raider.IO (and anyone else hooking the same
-        -- tooltip data type) finishes first and we append below them.
-        -- Good-neighbour policy: Umbra is the newcomer; don't steal
-        -- the top spot.
-        C_Timer.After(0, function()
-            if tooltip:IsShown() then
-                AddUmbraTooltip(tooltip, data)
-                tooltip:Show()
-            end
-        end)
+        AddUmbraTooltip(tooltip, data)
     end
 end
 
-TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
-    if tooltip == GameTooltip then
-        if UmbraSettings and not UmbraSettings.showTooltips then return end
-        OnTooltipSetUnit(tooltip)
-    end
+-- Register the post-call one second after login. TooltipDataProcessor
+-- runs post-calls in registration order, so by waiting out the initial
+-- addon-load burst we end up registering AFTER Raider.IO (and any other
+-- tooltip addon loaded at startup) and append below their lines.
+--
+-- Per-frame deferral inside the post-call doesn't work: unit tooltips
+-- refresh continuously (HP/buff ticks), each refresh rebuilds the
+-- tooltip body, and a next-frame AddLine gets immediately cleared by
+-- the next refresh — caused visible flicker. Delayed registration
+-- avoids that because our AddLine runs synchronously inside every
+-- refresh, same as Blizzard's + RIO's lines.
+C_Timer.After(1, function()
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
+        if tooltip == GameTooltip then
+            if UmbraSettings and not UmbraSettings.showTooltips then return end
+            OnTooltipSetUnit(tooltip)
+        end
+    end)
 end)
 
 -- ── LFG Applicant Tooltip (hover over applicants in Group Finder) ───────────

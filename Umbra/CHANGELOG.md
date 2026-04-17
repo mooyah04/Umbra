@@ -2,6 +2,18 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.3] - 2026-04-17
+
+### Fixed
+- World-hover tooltip flickering in 0.3.2. Deferring the `AddLine` by
+  one frame meant each of Blizzard's continuous tooltip refreshes would
+  clear our deferred line before it could re-fire, causing visible
+  appear/disappear cycles. Replaced the per-hover defer with a delayed
+  post-call registration at login (1s after load) so we naturally
+  register *after* Raider.IO. Post-calls run in registration order, so
+  we still append below Raider.IO without any per-frame deferral.
+  LFG tooltip keeps its defer (no continuous refresh there).
+
 ## [0.3.2] - 2026-04-17
 
 ### Fixed
