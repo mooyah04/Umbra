@@ -97,15 +97,10 @@ export default function SearchBar() {
           placeholder="Enter Name-Realm-Region (e.g. Elonmunk-Tarren Mill-EU)"
           className="bg-transparent border-none focus:ring-0 focus:outline-none w-full font-[family-name:var(--font-label)] text-lg md:text-xl placeholder:text-on-surface-variant/40 text-on-surface"
         />
-        {loading ? (
+        {loading && (
           <span className="font-[family-name:var(--font-label)] text-xs text-on-surface-variant">
             ...
           </span>
-        ) : (
-          <kbd className="hidden md:flex items-center gap-1 font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant border border-outline-variant px-2 py-1 rounded">
-            <span className="material-symbols-outlined text-sm">keyboard_command_key</span>
-            K
-          </kbd>
         )}
       </div>
 
