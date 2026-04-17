@@ -60,6 +60,24 @@ local function GetStatLabels(role, spec)
     end
 end
 
+-- Compact labels for the LFG hover (space-sensitive). Shows primary
+-- output + casts/min + cooldown usage — the three stats that matter
+-- most for a "will they carry or drag" recruitment read.
+local function GetCompactStatLabels(role, spec)
+    spec = spec or "Spec"
+    local primaryKey, primaryLabel
+    if role == "healer" then
+        primaryKey, primaryLabel = "throughput", "Healing vs " .. spec
+    else
+        primaryKey, primaryLabel = "dps_perf", "Damage vs " .. spec
+    end
+    return {
+        { key = primaryKey, label = primaryLabel },
+        { key = "cpm", label = "Casts/min" },
+        { key = "cd_usage", label = "Cooldown Usage" },
+    }
+end
+
 -- ── Database Lookup ─────────────────────────────────────────────────────────
 
 local function LookupPlayer(fullName)
@@ -113,7 +131,7 @@ end
 -- No shared state mutation, no leaks. We can revisit a fancy display
 -- later using a custom FontString we own — but that's a bigger refactor.
 
-local function AddUmbraTooltip(tooltip, data)
+local function AddUmbraTooltip(tooltip, data, compact)
     tooltip:AddLine(" ")
 
     local gradeColor = GetGradeColor(data.grade)
@@ -131,7 +149,8 @@ local function AddUmbraTooltip(tooltip, data)
     )
 
     local spec = data.spec or "Spec"
-    local stats = GetStatLabels(role, spec)
+    local stats = compact and GetCompactStatLabels(role, spec)
+                          or GetStatLabels(role, spec)
     for _, stat in ipairs(stats) do
         local value = data[stat.key]
         if value then
@@ -224,8 +243,16 @@ local function OnLFGApplicantEnter(self)
 
     local data = LookupPlayer(NormalizeLFGName(name))
     if data then
-        AddUmbraTooltip(GameTooltip, data)
-        GameTooltip:Show()
+        -- Defer one frame so we append AFTER Raider.IO (and anyone else
+        -- hooking the same OnEnter). The IsOwned() + IsShown() guards
+        -- make sure we don't inject into a stale tooltip if the user
+        -- moves off before the next tick.
+        C_Timer.After(0, function()
+            if GameTooltip:IsOwned(self) and GameTooltip:IsShown() then
+                AddUmbraTooltip(GameTooltip, data, true)
+                GameTooltip:Show()
+            end
+        end)
     end
 end
 
@@ -269,8 +296,13 @@ local function OnLFGSearchResultEnter(self)
     local data = LookupPlayer(NormalizeLFGName(leaderName))
 
     if data then
-        AddUmbraTooltip(GameTooltip, data)
-        GameTooltip:Show()
+        -- Defer so we append below Raider.IO's additions on the same frame.
+        C_Timer.After(0, function()
+            if GameTooltip:IsOwned(self) and GameTooltip:IsShown() then
+                AddUmbraTooltip(GameTooltip, data, true)
+                GameTooltip:Show()
+            end
+        end)
     end
 end
 
