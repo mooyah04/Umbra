@@ -208,13 +208,14 @@ local STAT_ORDER_FOR_ROLE = {
     tank   = { "dps_perf", "dps_ilvl", "utility", "survivability", "cd_usage", "cpm", "timed_pct" },
 }
 
+-- Match Core.lua + frontend/lib/grades.ts. D is amber (#ffcc00), F is red (#ff3030).
 local GRADE_COLORS = {
     ["S+"] = {1, 0.5, 0}, ["S"] = {1, 0.5, 0},
     ["A+"] = {0.64, 0.21, 0.93}, ["A"] = {0.64, 0.21, 0.93}, ["A-"] = {0.64, 0.21, 0.93},
     ["B+"] = {0, 0.44, 0.87}, ["B"] = {0, 0.44, 0.87}, ["B-"] = {0, 0.44, 0.87},
     ["C+"] = {0.12, 1, 0}, ["C"] = {0.12, 1, 0}, ["C-"] = {0.12, 1, 0},
-    ["D+"] = {1, 1, 1}, ["D"] = {1, 1, 1}, ["D-"] = {1, 1, 1},
-    ["F"] = {0.62, 0.62, 0.62}, ["F-"] = {0.62, 0.62, 0.62},
+    ["D+"] = {1, 0.8, 0}, ["D"] = {1, 0.8, 0}, ["D-"] = {1, 0.8, 0},
+    ["F"] = {1, 0.19, 0.19}, ["F-"] = {1, 0.19, 0.19},
 }
 
 -- Bar / value colors tuned to the wowumbra.gg palette:
@@ -311,6 +312,80 @@ local rowStartY = -184
 for i = 1, 8 do
     statRows[i] = CreateStatRow(UmbraFrame, rowStartY - (i - 1) * (ROW_HEIGHT + 6))
 end
+
+-- ── "Open on web" button ───────────────────────────────────────────────────
+-- WoW sandboxes URL opening, so the button doesn't launch a browser directly.
+-- It shows a small popup with a read-only, pre-selected EditBox containing
+-- the player's wowumbra.gg profile URL. User does Ctrl-C, alt-tabs, and
+-- pastes in their browser. Lowest-friction we can do inside the client.
+
+local function _buildProfileUrl()
+    -- Region: prefer the portal CVar (returns "us", "eu", "kr", "tw", "cn").
+    -- Falls back to "us" if the CVar isn't available (custom clients, etc).
+    local region = (GetCVar and GetCVar("portal")) or "us"
+    region = tostring(region):lower()
+
+    -- Realm: use the normalized form (no spaces, mixed case stripped in the
+    -- site's URL handling). GetNormalizedRealmName matches how the Lua
+    -- database keys players.
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName() or GetRealmName()
+    realm = realm or "Unknown"
+
+    local name = UnitName("player") or "Unknown"
+
+    -- URL-encode spaces and non-ASCII. The site decodes realm/name on the
+    -- server side, so a permissive escape is fine.
+    local function urlEncode(s)
+        return (s:gsub("([^%w%-_.~])", function(c)
+            return string.format("%%%02X", string.byte(c))
+        end))
+    end
+
+    return string.format(
+        "https://wowumbra.gg/player/%s/%s/%s",
+        urlEncode(region),
+        urlEncode(realm),
+        urlEncode(name)
+    )
+end
+
+-- Register a popup dialog once. Shown via StaticPopup_Show("UMBRA_OPEN_ON_WEB").
+StaticPopupDialogs["UMBRA_OPEN_ON_WEB"] = {
+    text = "Copy this URL and open it in your browser:",
+    button1 = CLOSE,
+    hasEditBox = true,
+    editBoxWidth = 320,
+    OnShow = function(self)
+        local eb = self.editBox or self.EditBox
+        if not eb then return end
+        eb:SetText(_buildProfileUrl())
+        eb:HighlightText()
+        eb:SetFocus()
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- Footer button anchored to the bottom of the left column.
+local openWebBtn = CreateFrame("Button", nil, UmbraFrame, "UIPanelButtonTemplate")
+openWebBtn:SetSize(200, 22)
+openWebBtn:SetPoint("BOTTOM", UmbraFrame, "BOTTOMLEFT", LEFT_COL_WIDTH / 2, 14)
+openWebBtn:SetText("Open full profile on wowumbra.gg")
+openWebBtn:SetScript("OnClick", function()
+    StaticPopup_Show("UMBRA_OPEN_ON_WEB")
+end)
+openWebBtn:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:AddLine("|cffffffffWoW|r|cff8a2be2Umbra|r|cffffffff.gg|r")
+    GameTooltip:AddLine("Shows your full profile URL in a popup.", 1, 1, 1)
+    GameTooltip:AddLine("WoW can't open browsers, so copy + paste.", 0.7, 0.7, 0.7)
+    GameTooltip:Show()
+end)
+openWebBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
 -- ── Refresh ─────────────────────────────────────────────────────────────────
 
