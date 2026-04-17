@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-17",
+    title: "Addon: 'Open full profile on wowumbra.gg' button",
+    category: "new",
+    body:
+      "New button at the bottom of the /umbra panel. Click it and we show a popup with your full profile URL pre-selected. Ctrl-C, alt-tab to your browser, paste. WoW sandboxes browser opens so we can't launch the page directly, but this is one keystroke away.",
+  },
+  {
+    date: "2026-04-17",
     title: "In-game tooltip data refreshes every hour (was 6)",
     category: "improved",
     body:
