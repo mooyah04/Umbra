@@ -7,6 +7,24 @@ export const metadata: Metadata = {
   title: "WoWUmbra.gg | M+ Performance Grading",
   description:
     "Deep-audit performance grading for World of Warcraft Mythic+. Search players, analyze runs, and track improvement.",
+  // Next.js auto-detects app/icon.png + app/apple-icon.png +
+  // app/opengraph-image.png by filename; the openGraph block below just
+  // fills in the social-preview fields that aren't derivable from file
+  // conventions (site name, title, etc).
+  openGraph: {
+    type: "website",
+    siteName: "WoWUmbra.gg",
+    title: "WoWUmbra.gg | M+ Performance Grading",
+    description:
+      "Deep-audit performance grading for World of Warcraft Mythic+.",
+    url: "https://wowumbra.gg",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WoWUmbra.gg | M+ Performance Grading",
+    description:
+      "Deep-audit performance grading for World of Warcraft Mythic+.",
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ADDON_DOWNLOAD_URL } from "@/lib/api";
 
@@ -7,7 +8,14 @@ export default function Nav() {
       {/* Desktop TopAppBar */}
       <header className="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#0e0e0e]">
         <Link href="/" className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary">analytics</span>
+          <Image
+            src="/logo.png"
+            alt="WoWUmbra.gg"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+            priority
+          />
           <h1 className="text-2xl font-black text-primary tracking-tighter italic font-[family-name:var(--font-headline)] uppercase">
             WoWUmbra<span className="text-on-surface">.gg</span>
           </h1>

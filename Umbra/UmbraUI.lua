@@ -42,8 +42,9 @@ closeBtn:SetPoint("TOPRIGHT", UmbraFrame, "TOPRIGHT", -2, -2)
 local headerIcon = UmbraFrame:CreateTexture(nil, "ARTWORK")
 headerIcon:SetSize(26, 26)
 headerIcon:SetPoint("TOPLEFT", UmbraFrame, "TOPLEFT", 14, -12)
-headerIcon:SetTexture("Interface\\Icons\\spell_shadow_twilight")
-headerIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+headerIcon:SetTexture("Interface\\AddOns\\Umbra\\textures\\logo.tga")
+-- Our logo fills the texture (no square-icon trim needed), so use the
+-- default full 0..1 coords instead of the spell-icon border crop.
 
 local titleText = UmbraFrame:CreateFontString(nil, "OVERLAY")
 titleText:SetPoint("LEFT", headerIcon, "RIGHT", 8, 0)
@@ -684,9 +685,10 @@ minimapBtn:SetMovable(true)
 local mbIcon = minimapBtn:CreateTexture(nil, "BACKGROUND")
 mbIcon:SetSize(20, 20)
 mbIcon:SetPoint("CENTER")
-mbIcon:SetTexture("Interface\\Icons\\spell_shadow_twilight")
-mbIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-mbIcon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+mbIcon:SetTexture("Interface\\AddOns\\Umbra\\textures\\logo.tga")
+-- Our logo is already round-friendly on a dark backdrop, and applying
+-- the portrait alpha mask to it crops the outer glow. Skip both the
+-- square-border trim coords and the mask.
 
 -- Ring border.
 local mbBorder = minimapBtn:CreateTexture(nil, "OVERLAY")
