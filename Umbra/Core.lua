@@ -13,8 +13,8 @@ local function GetGradeColor(grade)
     elseif grade == "A+" or grade == "A" or grade == "A-" then return "|cffa335ee"  -- purple (epic)
     elseif grade == "B+" or grade == "B" or grade == "B-" then return "|cff0070dd"  -- blue (rare)
     elseif grade == "C+" or grade == "C" or grade == "C-" then return "|cff1eff00"  -- green (uncommon)
-    elseif grade == "D+" or grade == "D" or grade == "D-" then return "|cffffffff"  -- white (common)
-    else return "|cff9d9d9d"  -- grey (poor)
+    elseif grade == "D+" or grade == "D" or grade == "D-" then return "|cffffcc00"  -- amber (caution)
+    else return "|cffff3030"  -- red (failing)
     end
 end
 

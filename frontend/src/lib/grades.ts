@@ -8,14 +8,14 @@ export type Grade =
   | "D+" | "D" | "D-"
   | "F" | "F-";
 
-/** Grade colors matching WoW item quality tiers. */
+/** Grade colors. S-C follow WoW item quality; D goes amber (caution) and F red (failing) so both are visually distinct from each other and from white body text. */
 export const GRADE_COLORS: Record<string, string> = {
   "S+": "#ff8000", "S": "#ff8000",           // orange (legendary)
   "A+": "#a335ee", "A": "#a335ee", "A-": "#a335ee", // purple (epic)
   "B+": "#0070dd", "B": "#0070dd", "B-": "#0070dd", // blue (rare)
   "C+": "#1eff00", "C": "#1eff00", "C-": "#1eff00", // green (uncommon)
-  "D+": "#ffffff", "D": "#ffffff", "D-": "#ffffff", // white (common)
-  "F": "#9d9d9d", "F-": "#9d9d9d",           // grey (poor)
+  "D+": "#ffcc00", "D": "#ffcc00", "D-": "#ffcc00", // amber (caution)
+  "F": "#ff3030", "F-": "#ff3030",           // red (failing)
 };
 
 /** Tailwind-friendly background classes for grade tiers. */
@@ -24,12 +24,12 @@ export const GRADE_BG_CLASSES: Record<string, string> = {
   "A+": "bg-purple-500/20", "A": "bg-purple-500/20", "A-": "bg-purple-500/20",
   "B+": "bg-blue-500/20", "B": "bg-blue-500/20", "B-": "bg-blue-500/20",
   "C+": "bg-green-500/20", "C": "bg-green-500/20", "C-": "bg-green-500/20",
-  "D+": "bg-white/10", "D": "bg-white/10", "D-": "bg-white/10",
-  "F": "bg-gray-500/20", "F-": "bg-gray-500/20",
+  "D+": "bg-yellow-500/20", "D": "bg-yellow-500/20", "D-": "bg-yellow-500/20",
+  "F": "bg-red-500/20", "F-": "bg-red-500/20",
 };
 
 export function getGradeColor(grade: string): string {
-  return GRADE_COLORS[grade] ?? "#9d9d9d";
+  return GRADE_COLORS[grade] ?? "#ff3030";
 }
 
 export function getStatColor(value: number): string {

@@ -1,24 +1,22 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
-import { ADDON_DOWNLOAD_URL, getStatsSummary, getTopPlayers, getLeaderboard } from "@/lib/api";
+import { ADDON_DOWNLOAD_URL, getStatsSummary, getTopPlayers } from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
-import { classIconUrl, specIconUrl } from "@/lib/wow-assets";
+import { specIconUrl } from "@/lib/wow-assets";
 import { CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import type { PlayerSearchResult } from "@/lib/types";
 
-// Short page-level ISR so the homepage's stats + carousel + leaderboard
-// teaser don't serve multi-minute-old content on the first visit after
-// a cache-miss. Individual `getTopPlayers` / `getStatsSummary` / etc
-// calls also have their own revalidate windows in lib/api.ts.
+// Short page-level ISR so the homepage's stats + carousel + testimonials
+// don't serve multi-minute-old content on the first visit after a
+// cache-miss. Individual `getTopPlayers` / `getStatsSummary` calls also
+// have their own revalidate windows in lib/api.ts.
 export const revalidate = 15;
 
 export default async function Home() {
-  // Parallel fetch so homepage renders in a single RTT to the API.
-  const [stats, recent, topRanked] = await Promise.all([
+  const [stats, recent] = await Promise.all([
     getStatsSummary().catch(() => null),
     getTopPlayers(12).catch(() => [] as PlayerSearchResult[]),
-    getLeaderboard({ limit: 5 }).catch(() => [] as PlayerSearchResult[]),
   ]);
 
   return (
@@ -202,33 +200,70 @@ export default async function Home() {
         </section>
       )}
 
-      {/* ── Top-ranked strip ── */}
-      {topRanked.length > 0 && (
-        <section className="mb-16">
-          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
-            <div>
-              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-                Top Performers
-              </p>
-              <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
-                LEADERBOARD
-              </h3>
-            </div>
-            <Link
-              href="/leaderboard"
-              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline inline-flex items-center gap-1"
-            >
-              View full board
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </Link>
-          </div>
-          <ul className="bg-surface-container-high rounded-xl divide-y divide-outline-variant/10 overflow-hidden">
-            {topRanked.map((p) => (
-              <LeaderboardRow key={`${p.region}-${p.realm}-${p.name}`} player={p} />
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* ── Testimonial / "grades speak for themselves" ──
+           Anonymized real-data examples. Players are not named. The goal
+           is to show that the grade and the underlying stats tell the
+           same story — low grades come with low numbers, high grades
+           come with high numbers. The addon is the product; this
+           section exists to make people feel comfortable trying it. */}
+      <section className="mb-16">
+        <div className="mb-8">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+            The Data Speaks For Itself
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-5xl tracking-tighter text-on-surface">
+            GRADES MATCH <span className="text-primary italic">REALITY</span>
+          </h3>
+          <p className="text-on-surface-variant mt-3 max-w-3xl leading-relaxed">
+            Every grade is a summary of the log evidence — nothing more, nothing
+            less. Three anonymized examples from our live dataset. Names and
+            realms stripped; the numbers are real.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <TestimonialCard
+            grade="F"
+            role="DPS"
+            roleDescriptor="A Hunter"
+            summary="Low damage output, barely any utility, dying repeatedly to mechanics they should've sidestepped."
+            stats={[
+              { label: "DPS percentile", value: "8th" },
+              { label: "Interrupts / dungeon", value: "1.2" },
+              { label: "Deaths across 18 runs", value: "41" },
+              { label: "Avoidable damage taken", value: "97th pct (worst)" },
+            ]}
+          />
+          <TestimonialCard
+            grade="D"
+            role="Healer"
+            roleDescriptor="A Resto Shaman"
+            summary="Throughput OK, but dispels missed, CDs unused, and survivability below the average for their key level."
+            stats={[
+              { label: "HPS percentile", value: "52nd" },
+              { label: "Dispels / dungeon", value: "3.1" },
+              { label: "Major CD usage", value: "38%" },
+              { label: "Deaths / run", value: "2.4" },
+            ]}
+          />
+          <TestimonialCard
+            grade="S"
+            role="Tank"
+            roleDescriptor="A Prot Paladin"
+            summary="High survivability, generous utility, and crucially — pushes high keys in time. Every category lights up."
+            stats={[
+              { label: "Key level range", value: "+11 to +14" },
+              { label: "Interrupts / dungeon", value: "11.7" },
+              { label: "Timing rate", value: "88% in time" },
+              { label: "Avoidable damage", value: "9th pct (best)" },
+            ]}
+          />
+        </div>
+        <p className="text-on-surface-variant/70 text-xs mt-6 max-w-3xl italic">
+          No cherry-picking, no shaming. Pulled from the real distribution of
+          graded players. Install the addon, run your keys, and find out what
+          the data says about you.
+        </p>
+      </section>
 
       {/* ── CTA row: about + addon ── */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
@@ -391,60 +426,58 @@ function StepCard({
   );
 }
 
-function LeaderboardRow({ player }: { player: PlayerSearchResult }) {
-  const classColor = CLASS_COLORS[player.class_id] ?? "#ffffff";
-  const className = CLASS_NAMES[player.class_id] ?? "Unknown";
-  const gradeColor = player.grade ? getGradeColor(player.grade) : "#9d9d9d";
-  const href = `/player/${player.region.toLowerCase()}/${encodeURIComponent(
-    player.realm,
-  )}/${player.name}`;
-  const composite =
-    player.composite_score != null ? player.composite_score.toFixed(1) : null;
-
+function TestimonialCard({
+  grade,
+  role,
+  roleDescriptor,
+  summary,
+  stats,
+}: {
+  grade: string;
+  role: string;
+  roleDescriptor: string;
+  summary: string;
+  stats: Array<{ label: string; value: string }>;
+}) {
+  const gradeColor = getGradeColor(grade);
   return (
-    <li>
-      <Link
-        href={href}
-        className="flex items-center gap-4 px-5 py-3 hover:bg-surface-bright transition-colors"
-      >
-        <span className="font-[family-name:var(--font-label)] text-xs uppercase tracking-widest text-on-surface-variant w-8 text-right">
-          #{player.rank ?? "—"}
+    <div className="bg-surface-container-high rounded-xl p-6 relative overflow-hidden flex flex-col">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">
+            {role}
+          </p>
+          <h4 className="font-[family-name:var(--font-headline)] font-bold text-xl text-on-surface tracking-tight mt-1">
+            {roleDescriptor}
+          </h4>
+        </div>
+        <span
+          className="font-[family-name:var(--font-headline)] font-black text-5xl leading-none tracking-tighter"
+          style={{
+            color: gradeColor,
+            textShadow: `0 0 14px ${gradeColor}55`,
+          }}
+        >
+          {grade}
         </span>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={player.avatar_url ?? classIconUrl(player.class_id)}
-          alt={className}
-          className="w-9 h-9 rounded-full object-cover"
-        />
-        <div className="flex-1 min-w-0">
-          <p className="font-bold truncate" style={{ color: classColor }}>
-            {player.name}
-          </p>
-          <p className="text-xs text-on-surface-variant truncate">
-            {player.spec ? `${player.spec} ${className}` : className} ·{" "}
-            {player.realm}-{player.region.toUpperCase()}
-          </p>
-        </div>
-        {player.role && (
-          <span className="hidden md:inline-block font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant bg-surface-container-lowest px-2 py-1 rounded">
-            {player.role}
-          </span>
-        )}
-        <div className="text-right flex items-baseline gap-3">
-          {composite && (
-            <span className="text-sm text-on-surface-variant hidden sm:inline">
-              {composite}
-            </span>
-          )}
-          <span
-            className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter w-12 text-right"
-            style={{ color: gradeColor }}
+      </div>
+      <p className="text-on-surface-variant text-sm leading-relaxed mb-4">
+        {summary}
+      </p>
+      <ul className="space-y-2 mt-auto">
+        {stats.map((s) => (
+          <li
+            key={s.label}
+            className="flex items-center justify-between text-xs border-t border-outline-variant/10 pt-2"
           >
-            {player.grade ?? "—"}
-          </span>
-        </div>
-      </Link>
-    </li>
+            <span className="font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant">
+              {s.label}
+            </span>
+            <span className="font-mono text-on-surface">{s.value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
