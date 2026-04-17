@@ -262,7 +262,7 @@ export default async function Home() {
           <TestimonialCard
             grade="F"
             role="DPS"
-            roleDescriptor="A Hunter"
+            roleDescriptor="Hunter"
             summary="Low damage output, barely any utility, dying repeatedly to mechanics they should've sidestepped."
             stats={[
               { label: "DPS percentile", value: "8th" },
@@ -274,7 +274,7 @@ export default async function Home() {
           <TestimonialCard
             grade="D"
             role="Healer"
-            roleDescriptor="A Resto Shaman"
+            roleDescriptor="Resto Shaman"
             summary="Throughput OK, but dispels missed, CDs unused, and survivability below the average for their key level."
             stats={[
               { label: "HPS percentile", value: "52nd" },
@@ -286,7 +286,7 @@ export default async function Home() {
           <TestimonialCard
             grade="S"
             role="Tank"
-            roleDescriptor="A Prot Paladin"
+            roleDescriptor="Prot Paladin"
             summary="High survivability, generous utility, and crucially, pushes high keys in time. Every category lights up."
             stats={[
               { label: "Key level range", value: "+11 to +14" },
