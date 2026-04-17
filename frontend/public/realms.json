@@ -85,22 +85,6 @@
       "name": "Arygos"
     },
     {
-      "slug": "au2a3inst",
-      "name": "AU2A3-INST"
-    },
-    {
-      "slug": "au2a3instsl",
-      "name": "AU2A3-INST-SL"
-    },
-    {
-      "slug": "au2a4inst",
-      "name": "AU2A4-INST"
-    },
-    {
-      "slug": "au2a4instsl",
-      "name": "AU2A4-INST-SL"
-    },
-    {
       "slug": "auchindoun",
       "name": "Auchindoun"
     },
@@ -729,10 +713,6 @@
       "name": "Ravenholdt"
     },
     {
-      "slug": "rdb-us",
-      "name": "RDB US"
-    },
-    {
       "slug": "rexxar",
       "name": "Rexxar"
     },
@@ -953,336 +933,48 @@
       "name": "US1A Account Realm"
     },
     {
-      "slug": "us1a1inst",
-      "name": "US1A1-INST"
-    },
-    {
-      "slug": "us1a1instbfa",
-      "name": "US1A1-INST-BFA"
-    },
-    {
-      "slug": "us1a2inst",
-      "name": "US1A2-INST"
-    },
-    {
-      "slug": "us1a2instbfa",
-      "name": "US1A2-INST-BFA"
-    },
-    {
-      "slug": "us1a3inst",
-      "name": "US1A3-INST"
-    },
-    {
-      "slug": "us1a3instbfa",
-      "name": "US1A3-INST-BFA"
-    },
-    {
-      "slug": "us1a4inst",
-      "name": "US1A4-INST"
-    },
-    {
-      "slug": "us1a4instsl",
-      "name": "US1A4-INST-SL"
-    },
-    {
       "slug": "us1b-account-realm",
       "name": "US1B Account Realm"
-    },
-    {
-      "slug": "us1b1inst",
-      "name": "US1B1-INST"
-    },
-    {
-      "slug": "us1b1instbfa",
-      "name": "US1B1-INST-BFA"
-    },
-    {
-      "slug": "us1b2inst",
-      "name": "US1B2-INST"
-    },
-    {
-      "slug": "us1b2instbfa",
-      "name": "US1B2-INST-BFA"
-    },
-    {
-      "slug": "us1b3inst",
-      "name": "US1B3-INST"
-    },
-    {
-      "slug": "us1b3instbfa",
-      "name": "US1B3-INST-BFA"
-    },
-    {
-      "slug": "us1b4inst",
-      "name": "US1B4-INST"
-    },
-    {
-      "slug": "us1b4instsl",
-      "name": "US1B4-INST-SL"
     },
     {
       "slug": "us2a-account-realm",
       "name": "US2A Account Realm"
     },
     {
-      "slug": "us2a1inst",
-      "name": "US2A1-INST"
-    },
-    {
-      "slug": "us2a1instbfa",
-      "name": "US2A1-INST-BFA"
-    },
-    {
-      "slug": "us2a2inst",
-      "name": "US2A2-INST"
-    },
-    {
-      "slug": "us2a2instbfa",
-      "name": "US2A2-INST-BFA"
-    },
-    {
-      "slug": "us2a3inst",
-      "name": "US2A3-INST"
-    },
-    {
-      "slug": "us2a3instbfa",
-      "name": "US2A3-INST-BFA"
-    },
-    {
-      "slug": "us2a4inst",
-      "name": "US2A4-INST"
-    },
-    {
-      "slug": "us2a4instsl",
-      "name": "US2A4-INST-SL"
-    },
-    {
       "slug": "us2b-account-realm",
       "name": "US2B Account Realm"
-    },
-    {
-      "slug": "us2b1inst",
-      "name": "US2B1-INST"
-    },
-    {
-      "slug": "us2b1instbfa",
-      "name": "US2B1-INST-BFA"
-    },
-    {
-      "slug": "us2b2inst",
-      "name": "US2B2-INST"
-    },
-    {
-      "slug": "us2b2instbfa",
-      "name": "US2B2-INST-BFA"
-    },
-    {
-      "slug": "us2b3inst",
-      "name": "US2B3-INST"
-    },
-    {
-      "slug": "us2b3instbfa",
-      "name": "US2B3-INST-BFA"
-    },
-    {
-      "slug": "us2b4inst",
-      "name": "US2B4-INST"
-    },
-    {
-      "slug": "us2b4instsl",
-      "name": "US2B4-INST-SL"
     },
     {
       "slug": "us3a-account-realm-old-au",
       "name": "US3A Account Realm OLD AU"
     },
     {
-      "slug": "us3a1inst",
-      "name": "US3A1-INST"
-    },
-    {
-      "slug": "us3a1instbfa",
-      "name": "US3A1-INST-BFA"
-    },
-    {
-      "slug": "us3a2inst",
-      "name": "US3A2-INST"
-    },
-    {
-      "slug": "us3a2instbfa",
-      "name": "US3A2-INST-BFA"
-    },
-    {
-      "slug": "us3a3inst",
-      "name": "US3A3-INST"
-    },
-    {
-      "slug": "us3a3instbfa",
-      "name": "US3A3-INST-BFA"
-    },
-    {
-      "slug": "us3a4inst",
-      "name": "US3A4-INST"
-    },
-    {
-      "slug": "us3a4instsl",
-      "name": "US3A4-INST-SL"
-    },
-    {
       "slug": "us3b-account-realm",
       "name": "US3B Account Realm"
-    },
-    {
-      "slug": "us3b1inst",
-      "name": "US3B1-INST"
-    },
-    {
-      "slug": "us3b1instbfa",
-      "name": "US3B1-INST-BFA"
-    },
-    {
-      "slug": "us3b2inst",
-      "name": "US3B2-INST"
-    },
-    {
-      "slug": "us3b2instbfa",
-      "name": "US3B2-INST-BFA"
-    },
-    {
-      "slug": "us3b3inst",
-      "name": "US3B3-INST"
-    },
-    {
-      "slug": "us3b3instbfa",
-      "name": "US3B3-INST-BFA"
-    },
-    {
-      "slug": "us3b4inst",
-      "name": "US3B4-INST"
-    },
-    {
-      "slug": "us3b4instsl",
-      "name": "US3B4-INST-SL"
     },
     {
       "slug": "us4a-account-realm",
       "name": "US4A Account Realm"
     },
     {
-      "slug": "us4a1inst",
-      "name": "US4A1-INST"
-    },
-    {
-      "slug": "us4a1instbfa",
-      "name": "US4A1-INST-BFA"
-    },
-    {
-      "slug": "us4a2inst",
-      "name": "US4A2-INST"
-    },
-    {
-      "slug": "us4a2instbfa",
-      "name": "US4A2-INST-BFA"
-    },
-    {
-      "slug": "us4a3inst",
-      "name": "US4A3-INST"
-    },
-    {
-      "slug": "us4a3instbfa",
-      "name": "US4A3-INST-BFA"
-    },
-    {
-      "slug": "us4a4inst",
-      "name": "US4A4-INST"
-    },
-    {
-      "slug": "us4a4instsl",
-      "name": "US4A4-INST-SL"
-    },
-    {
       "slug": "us4b-account-realm",
       "name": "US4B Account Realm"
-    },
-    {
-      "slug": "us4b1inst",
-      "name": "US4B1-INST"
-    },
-    {
-      "slug": "us4b1instbfa",
-      "name": "US4B1-INST-BFA"
-    },
-    {
-      "slug": "us4b2inst",
-      "name": "US4B2-INST"
-    },
-    {
-      "slug": "us4b2instbfa",
-      "name": "US4B2-INST-BFA"
-    },
-    {
-      "slug": "us4b3inst",
-      "name": "US4B3-INST"
-    },
-    {
-      "slug": "us4b3instbfa",
-      "name": "US4B3-INST-BFA"
-    },
-    {
-      "slug": "us4b4inst",
-      "name": "US4B4-INST"
-    },
-    {
-      "slug": "us4b4instsl",
-      "name": "US4B4-INST-SL"
     },
     {
       "slug": "us5a-account-realm",
       "name": "US5A Account Realm"
     },
     {
-      "slug": "us5a1inst",
-      "name": "US5A1-INST"
-    },
-    {
-      "slug": "us5a2inst",
-      "name": "US5A2-INST"
-    },
-    {
       "slug": "us5b-account-realm",
       "name": "US5B Account Realm"
-    },
-    {
-      "slug": "us5b1inst",
-      "name": "US5B1-INST"
-    },
-    {
-      "slug": "us5b2inst",
-      "name": "US5B2-INST"
     },
     {
       "slug": "us6a-account-realm",
       "name": "US6A Account Realm"
     },
     {
-      "slug": "us6a1inst",
-      "name": "US6A1-INST"
-    },
-    {
-      "slug": "us6a2inst",
-      "name": "US6A2-INST"
-    },
-    {
       "slug": "us6b-account-realm",
       "name": "US6B Account Realm"
-    },
-    {
-      "slug": "us6b1inst",
-      "name": "US6B1-INST"
-    },
-    {
-      "slug": "us6b2inst",
-      "name": "US6B2-INST"
     },
     {
       "slug": "us7a-account-realm",
@@ -1291,30 +983,6 @@
     {
       "slug": "us7b-account-realm",
       "name": "US7B Account Realm"
-    },
-    {
-      "slug": "us7b1inst",
-      "name": "US7B1-INST"
-    },
-    {
-      "slug": "us7b2inst",
-      "name": "US7B2-INST"
-    },
-    {
-      "slug": "us8a1inst",
-      "name": "US8A1-INST"
-    },
-    {
-      "slug": "us8a2inst",
-      "name": "US8A2-INST"
-    },
-    {
-      "slug": "us8b1inst",
-      "name": "US8B1-INST"
-    },
-    {
-      "slug": "us8b2inst",
-      "name": "US8B2-INST"
     },
     {
       "slug": "uther",
@@ -1815,356 +1483,52 @@
       "name": "EU1A Account Realm"
     },
     {
-      "slug": "eu1a1inst",
-      "name": "EU1A1-INST"
-    },
-    {
-      "slug": "eu1a2inst",
-      "name": "EU1A2-INST"
-    },
-    {
       "slug": "eu1b-account-realm",
       "name": "EU1B Account Realm"
-    },
-    {
-      "slug": "eu1b1inst",
-      "name": "EU1B1-INST"
-    },
-    {
-      "slug": "eu1b2inst",
-      "name": "EU1B2-INST"
     },
     {
       "slug": "eu2a-account-realm",
       "name": "EU2A Account Realm"
     },
     {
-      "slug": "eu2a1inst",
-      "name": "EU2A1-INST"
-    },
-    {
-      "slug": "eu2a2inst",
-      "name": "EU2A2-INST"
-    },
-    {
       "slug": "eu2b-account-realm",
       "name": "EU2B Account Realm"
-    },
-    {
-      "slug": "eu2b1inst",
-      "name": "EU2B1-INST"
-    },
-    {
-      "slug": "eu2b2inst",
-      "name": "EU2B2-INST"
     },
     {
       "slug": "eu3a-account-realm",
       "name": "EU3A Account Realm"
     },
     {
-      "slug": "eu3a1inst",
-      "name": "EU3A1-INST"
-    },
-    {
-      "slug": "eu3a2inst",
-      "name": "EU3A2-INST"
-    },
-    {
       "slug": "eu3b-account-realm",
       "name": "EU3B Account Realm"
-    },
-    {
-      "slug": "eu3b1inst",
-      "name": "EU3B1-INST"
-    },
-    {
-      "slug": "eu3b2inst",
-      "name": "EU3B2-INST"
     },
     {
       "slug": "eu4a-account-realm",
       "name": "EU4A Account Realm"
     },
     {
-      "slug": "eu4a1inst",
-      "name": "EU4A1-INST"
-    },
-    {
-      "slug": "eu4a1instbfa",
-      "name": "EU4A1-INST-BFA"
-    },
-    {
-      "slug": "eu4a2inst",
-      "name": "EU4A2-INST"
-    },
-    {
-      "slug": "eu4a2instbfa",
-      "name": "EU4A2-INST-BFA"
-    },
-    {
-      "slug": "eu4a3inst",
-      "name": "EU4A3-INST"
-    },
-    {
-      "slug": "eu4a3instbfa",
-      "name": "EU4A3-INST-BFA"
-    },
-    {
-      "slug": "eu4a4inst",
-      "name": "EU4A4-INST"
-    },
-    {
-      "slug": "eu4a4instsl",
-      "name": "EU4A4-INST-SL"
-    },
-    {
       "slug": "eu4b-account-realm",
       "name": "EU4B Account Realm"
-    },
-    {
-      "slug": "eu4b1inst",
-      "name": "EU4B1-INST"
-    },
-    {
-      "slug": "eu4b1instbfa",
-      "name": "EU4B1-INST-BFA"
-    },
-    {
-      "slug": "eu4b2inst",
-      "name": "EU4B2-INST"
-    },
-    {
-      "slug": "eu4b2instbfa",
-      "name": "EU4B2-INST-BFA"
-    },
-    {
-      "slug": "eu4b3inst",
-      "name": "EU4B3-INST"
-    },
-    {
-      "slug": "eu4b3instbfa",
-      "name": "EU4B3-INST-BFA"
-    },
-    {
-      "slug": "eu4b4inst",
-      "name": "EU4B4-INST"
-    },
-    {
-      "slug": "eu4b4instsl",
-      "name": "EU4B4-INST-SL"
     },
     {
       "slug": "eu5a-account-realm",
       "name": "EU5A Account Realm"
     },
     {
-      "slug": "eu5a1inst",
-      "name": "EU5A1-INST"
-    },
-    {
-      "slug": "eu5a1instbfa",
-      "name": "EU5A1-INST-BFA"
-    },
-    {
-      "slug": "eu5a2inst",
-      "name": "EU5A2-INST"
-    },
-    {
-      "slug": "eu5a2instbfa",
-      "name": "EU5A2-INST-BFA"
-    },
-    {
-      "slug": "eu5a3inst",
-      "name": "EU5A3-INST"
-    },
-    {
-      "slug": "eu5a3instbfa",
-      "name": "EU5A3-INST-BFA"
-    },
-    {
-      "slug": "eu5a4inst",
-      "name": "EU5A4-INST"
-    },
-    {
-      "slug": "eu5a4instsl",
-      "name": "EU5A4-INST-SL"
-    },
-    {
       "slug": "eu5b-account-realm",
       "name": "EU5B Account Realm"
-    },
-    {
-      "slug": "eu5b1inst",
-      "name": "EU5B1-INST"
-    },
-    {
-      "slug": "eu5b1instbfa",
-      "name": "EU5B1-INST-BFA"
-    },
-    {
-      "slug": "eu5b2inst",
-      "name": "EU5B2-INST"
-    },
-    {
-      "slug": "eu5b2instbfa",
-      "name": "EU5B2-INST-BFA"
-    },
-    {
-      "slug": "eu5b3inst",
-      "name": "EU5B3-INST"
-    },
-    {
-      "slug": "eu5b3instbfa",
-      "name": "EU5B3-INST-BFA"
-    },
-    {
-      "slug": "eu5b4inst",
-      "name": "EU5B4-INST"
-    },
-    {
-      "slug": "eu5b4instsl",
-      "name": "EU5B4-INST-SL"
     },
     {
       "slug": "eu6a-account-realm",
       "name": "EU6A Account Realm"
     },
     {
-      "slug": "eu6a1inst",
-      "name": "EU6A1-INST"
-    },
-    {
-      "slug": "eu6a1instbfa",
-      "name": "EU6A1-INST-BFA"
-    },
-    {
-      "slug": "eu6a2inst",
-      "name": "EU6A2-INST"
-    },
-    {
-      "slug": "eu6a2instbfa",
-      "name": "EU6A2-INST-BFA"
-    },
-    {
-      "slug": "eu6a3inst",
-      "name": "EU6A3-INST"
-    },
-    {
-      "slug": "eu6a3instbfa",
-      "name": "EU6A3-INST-BFA"
-    },
-    {
-      "slug": "eu6a4inst",
-      "name": "EU6A4-INST"
-    },
-    {
-      "slug": "eu6a4instsl",
-      "name": "EU6A4-INST-SL"
-    },
-    {
       "slug": "eu6b-account-realm",
       "name": "EU6B Account Realm"
     },
     {
-      "slug": "eu6b1inst",
-      "name": "EU6B1-INST"
-    },
-    {
-      "slug": "eu6b1instbfa",
-      "name": "EU6B1-INST-BFA"
-    },
-    {
-      "slug": "eu6b2inst",
-      "name": "EU6B2-INST"
-    },
-    {
-      "slug": "eu6b2instbfa",
-      "name": "EU6B2-INST-BFA"
-    },
-    {
-      "slug": "eu6b3inst",
-      "name": "EU6B3-INST"
-    },
-    {
-      "slug": "eu6b3instbfa",
-      "name": "EU6B3-INST-BFA"
-    },
-    {
-      "slug": "eu6b4inst",
-      "name": "EU6B4-INST"
-    },
-    {
-      "slug": "eu6b4instsl",
-      "name": "EU6B4-INST-SL"
-    },
-    {
       "slug": "eu7abgru",
       "name": "EU7A-BG-RU"
-    },
-    {
-      "slug": "eu7a1inst",
-      "name": "EU7A1-INST"
-    },
-    {
-      "slug": "eu7a1instbfa",
-      "name": "EU7A1-INST-BFA"
-    },
-    {
-      "slug": "eu7a2inst",
-      "name": "EU7A2-INST"
-    },
-    {
-      "slug": "eu7a2instbfa",
-      "name": "EU7A2-INST-BFA"
-    },
-    {
-      "slug": "eu7a3inst",
-      "name": "EU7A3-INST"
-    },
-    {
-      "slug": "eu7a3instbfa",
-      "name": "EU7A3-INST-BFA"
-    },
-    {
-      "slug": "eu7a4inst",
-      "name": "EU7A4-INST"
-    },
-    {
-      "slug": "eu7a4instsl",
-      "name": "EU7A4-INST-SL"
-    },
-    {
-      "slug": "eu7b1inst",
-      "name": "EU7B1-INST"
-    },
-    {
-      "slug": "eu7b1instbfa",
-      "name": "EU7B1-INST-BFA"
-    },
-    {
-      "slug": "eu7b2inst",
-      "name": "EU7B2-INST"
-    },
-    {
-      "slug": "eu7b2instbfa",
-      "name": "EU7B2-INST-BFA"
-    },
-    {
-      "slug": "eu7b3inst",
-      "name": "EU7B3-INST"
-    },
-    {
-      "slug": "eu7b3instbfa",
-      "name": "EU7B3-INST-BFA"
-    },
-    {
-      "slug": "eu7b4inst",
-      "name": "EU7B4-INST"
-    },
-    {
-      "slug": "eu7b4instsl",
-      "name": "EU7B4-INST-SL"
     },
     {
       "slug": "eversong",
@@ -2547,10 +1911,6 @@
       "name": "Razuvious"
     },
     {
-      "slug": "rdb-eu",
-      "name": "RDB EU"
-    },
-    {
       "slug": "rexxar",
       "name": "Rexxar"
     },
@@ -2877,80 +2237,16 @@
       "name": "KR1A Account Realm"
     },
     {
-      "slug": "kr1a1inst",
-      "name": "KR1A1-INST"
-    },
-    {
-      "slug": "kr1a1instbfa",
-      "name": "KR1A1-INST-BFA"
-    },
-    {
-      "slug": "kr1a2inst",
-      "name": "KR1A2-INST"
-    },
-    {
-      "slug": "kr1a2instbfa",
-      "name": "KR1A2-INST-BFA"
-    },
-    {
-      "slug": "kr1a3inst",
-      "name": "KR1A3-INST"
-    },
-    {
-      "slug": "kr1a3instbfa",
-      "name": "KR1A3-INST-BFA"
-    },
-    {
-      "slug": "kr1a4inst",
-      "name": "KR1A4-INST"
-    },
-    {
-      "slug": "kr1a4instbfa",
-      "name": "KR1A4-INST-BFA"
-    },
-    {
       "slug": "kr1b-account-realm",
       "name": "KR1B Account Realm"
-    },
-    {
-      "slug": "kr1b1inst",
-      "name": "KR1B1-INST"
-    },
-    {
-      "slug": "kr1b2inst",
-      "name": "KR1B2-INST"
-    },
-    {
-      "slug": "kr1b3inst",
-      "name": "KR1B3-INST"
-    },
-    {
-      "slug": "kr1b4inst",
-      "name": "KR1B4-INST"
     },
     {
       "slug": "kr2a-account-realm",
       "name": "KR2A Account Realm"
     },
     {
-      "slug": "kr2a1inst",
-      "name": "KR2A1-INST"
-    },
-    {
-      "slug": "kr2a2inst",
-      "name": "KR2A2-INST"
-    },
-    {
       "slug": "kr2b-account-realm",
       "name": "KR2B Account Realm"
-    },
-    {
-      "slug": "kr2b1inst",
-      "name": "KR2B1-INST"
-    },
-    {
-      "slug": "kr2b2inst",
-      "name": "KR2B2-INST"
     },
     {
       "slug": "malfurion",
@@ -2959,10 +2255,6 @@
     {
       "slug": "norgannon",
       "name": "Norgannon"
-    },
-    {
-      "slug": "rdb-kr",
-      "name": "RDB KR"
     },
     {
       "slug": "rexxar",
@@ -3071,10 +2363,6 @@
       "name": "Quel'dorei"
     },
     {
-      "slug": "rdb-tw",
-      "name": "RDB TW"
-    },
-    {
       "slug": "shadowmoon",
       "name": "Shadowmoon"
     },
@@ -3107,76 +2395,12 @@
       "name": "TW2A Account Realm"
     },
     {
-      "slug": "tw2a1inst",
-      "name": "TW2A1-INST"
-    },
-    {
-      "slug": "tw2a1instbfa",
-      "name": "TW2A1-INST-BFA"
-    },
-    {
-      "slug": "tw2a1instdft",
-      "name": "TW2A1-INST-DFT"
-    },
-    {
-      "slug": "tw2a2inst",
-      "name": "TW2A2-INST"
-    },
-    {
-      "slug": "tw2a2instbfa",
-      "name": "TW2A2-INST-BFA"
-    },
-    {
-      "slug": "tw2a2instdft",
-      "name": "TW2A2-INST-DFT"
-    },
-    {
-      "slug": "tw2a3inst",
-      "name": "TW2A3-INST"
-    },
-    {
-      "slug": "tw2a3instbfa",
-      "name": "TW2A3-INST-BFA"
-    },
-    {
-      "slug": "tw2a3instdft",
-      "name": "TW2A3-INST-DFT"
-    },
-    {
-      "slug": "tw2a4inst",
-      "name": "TW2A4-INST"
-    },
-    {
-      "slug": "tw2a4instbfa",
-      "name": "TW2A4-INST-BFA"
-    },
-    {
-      "slug": "tw2a4instdft",
-      "name": "TW2A4-INST-DFT"
-    },
-    {
       "slug": "tw2b-account-realm",
       "name": "TW2B Account Realm"
     },
     {
-      "slug": "tw2b1inst",
-      "name": "TW2B1-INST"
-    },
-    {
-      "slug": "tw2b2inst",
-      "name": "TW2B2-INST"
-    },
-    {
       "slug": "tw3a-account-realm",
       "name": "TW3A Account Realm"
-    },
-    {
-      "slug": "tw3a1inst",
-      "name": "TW3A1-INST"
-    },
-    {
-      "slug": "tw3a2inst",
-      "name": "TW3A2-INST"
     },
     {
       "slug": "whisperwind",

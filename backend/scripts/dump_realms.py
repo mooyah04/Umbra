@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 
 import httpx
@@ -25,6 +26,18 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 REGIONS = ["us", "eu", "kr", "tw"]
+
+# Blizzard's /data/wow/realm/index includes internal instance-server realms
+# and data-build realms nobody plays on. Exclude them by name pattern so the
+# frontend's server dropdown only shows realms players can actually create
+# characters on.
+_INSTANCE_RE = re.compile(r"-INST(?:-[A-Z]+)?$")
+_RDB_RE = re.compile(r"^RDB[\s-]")
+
+
+def _is_player_realm(name: str) -> bool:
+    return not (_INSTANCE_RE.search(name) or _RDB_RE.match(name))
+
 # Repo-root relative. This script lives at backend/scripts/, so output is
 # at ../../frontend/public/realms.json.
 OUTPUT_PATH = Path(__file__).resolve().parents[2] / "frontend" / "public" / "realms.json"
@@ -55,7 +68,7 @@ def _fetch_realms(client: httpx.Client, token: str, region: str) -> list[dict]:
     entries = [
         {"slug": r["slug"], "name": r["name"]}
         for r in realms
-        if r.get("slug") and r.get("name")
+        if r.get("slug") and r.get("name") and _is_player_realm(r["name"])
     ]
     entries.sort(key=lambda r: r["name"].casefold())
     return entries
