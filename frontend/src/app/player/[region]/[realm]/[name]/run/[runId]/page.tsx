@@ -4,7 +4,13 @@ import { formatNumber, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import { generateRunNarrative } from "@/lib/narrative";
-import type { PartyMember } from "@/lib/types";
+import type {
+  PartyMember,
+  Pull,
+  PullEvent,
+  PullEventType,
+  PullVerdict,
+} from "@/lib/types";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string; runId: string }>;
@@ -35,6 +41,8 @@ export default async function RunDetailPage({ params }: Props) {
   const durationSec = Math.floor((run.duration % 60000) / 1000);
   const cpm = run.duration > 0 ? ((run.casts_total / (run.duration / 60000))).toFixed(1) : "0";
   const narrative = generateRunNarrative(run);
+  const pulls = run.pulls ?? null;
+  const wclUrl = `https://www.warcraftlogs.com/reports/${run.wcl_report_id}?fight=${run.fight_id}`;
 
   const deathEvents = (run.pulls ?? []).flatMap((p) =>
     p.events
@@ -101,13 +109,6 @@ export default async function RunDetailPage({ params }: Props) {
             <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl md:text-2xl tracking-tighter uppercase text-on-surface italic">
               Run Recap
             </h3>
-            <Link
-              href={`${playerPath}/run/${runId}/breakdown`}
-              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:text-on-surface transition-colors inline-flex items-center gap-1 border border-primary/40 hover:border-primary rounded-md px-3 py-1.5"
-            >
-              Full Breakdown
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </Link>
           </div>
           <ul className="space-y-2">
             {narrative.map((line, i) => (
@@ -312,6 +313,66 @@ export default async function RunDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Pull-by-pull breakdown — used to live on a separate /breakdown
+          page, merged inline so the full story of the run is on one
+          page. Only rendered when we actually have pull data (Level B
+          ingest, +8 and up). */}
+      {pulls && pulls.length > 0 && (
+        <section className="space-y-4">
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary">
+            Pull-by-Pull Breakdown
+          </p>
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
+            What happened, pull by pull
+          </h2>
+          <p className="text-on-surface-variant text-sm">
+            {pulls.length} pulls tracked. Each one shows your kicks,
+            the damage you took, and whether you died, aggregated so
+            you can scan the whole dungeon in under a minute.
+          </p>
+          <ol className="space-y-3 pt-2">
+            {pulls.map((p) => (
+              <PullCard key={p.i} pull={p} />
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {/* Roadmap fallback when the run doesn't have pull data (e.g. +7
+          or below, or ingested before Level B launched). */}
+      {(!pulls || pulls.length === 0) && (
+        <section className="space-y-4">
+          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
+            Pull-by-Pull Breakdown
+          </p>
+          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
+            Not available for this run
+          </h2>
+          <p className="text-on-surface-variant text-sm">
+            We only capture per-pull event timelines on keys +8 and
+            higher. Your run doesn&apos;t have that data on file — either
+            it was below that threshold or it was ingested before this
+            feature went live. Newer runs will populate automatically.
+          </p>
+        </section>
+      )}
+
+      {/* Raw log on WCL — secondary surface at the bottom, not a gate. */}
+      <section className="text-center pt-6 border-t border-outline-variant/10">
+        <a
+          href={wclUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest"
+        >
+          <span className="material-symbols-outlined text-sm">open_in_new</span>
+          Open the raw report on warcraftlogs.com
+        </a>
+        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant/60 mt-2">
+          Report {run.wcl_report_id} &middot; fight {run.fight_id}
+        </p>
+      </section>
     </main>
   );
 }
@@ -430,4 +491,165 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="text-on-surface text-sm font-medium">{value}</span>
     </div>
   );
+}
+
+/** One pull → one card with a header, verdict pill, and aggregated
+ *  per-ability event summaries. Dense so the whole dungeon reads in
+ *  ~30 seconds. */
+function PullCard({ pull }: { pull: Pull }) {
+  const duration = pull.end_t - pull.start_t;
+  const verdict = VERDICT_CONFIG[pull.verdict];
+  const grouped = groupEvents(pull.events);
+
+  return (
+    <li
+      className="bg-surface-container rounded-xl overflow-hidden border-l-4"
+      style={{ borderLeftColor: verdict.color }}
+    >
+      <div className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap border-b border-outline-variant/15">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest text-on-surface/70 tabular-nums">
+            Pull {String(pull.i).padStart(2, "0")}
+          </span>
+          <span className="font-[family-name:var(--font-body)] font-semibold text-on-surface truncate">
+            {pull.label}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs font-[family-name:var(--font-label)] uppercase tracking-widest">
+          <span className="text-on-surface-variant tabular-nums">
+            {formatSeconds(pull.start_t)}–{formatSeconds(pull.end_t)}
+            {" "}
+            <span className="opacity-70">({Math.round(duration)}s)</span>
+          </span>
+          <span
+            className="px-2.5 py-1 rounded font-bold"
+            style={{
+              backgroundColor: `${verdict.color}33`,
+              color: verdict.color,
+            }}
+          >
+            {verdict.label}
+          </span>
+        </div>
+      </div>
+      <div className="px-5 py-3 space-y-1">
+        {grouped.length === 0 ? (
+          <p className="text-xs text-on-surface-variant italic">
+            Nothing notable happened here.
+          </p>
+        ) : (
+          grouped.map((g, i) => <EventSummaryLine key={i} summary={g} />)
+        )}
+      </div>
+    </li>
+  );
+}
+
+interface EventSummary {
+  type: PullEventType;
+  label: string;
+  count: number;
+  total: number | null;
+}
+
+function groupEvents(events: PullEvent[]): EventSummary[] {
+  const out: EventSummary[] = [];
+
+  const dmgMap = new Map<number, EventSummary>();
+  for (const ev of events) {
+    if (ev.type !== "avoidable_damage") continue;
+    const existing = dmgMap.get(ev.ability_id);
+    if (existing) {
+      existing.count += 1;
+      existing.total = (existing.total ?? 0) + (ev.amount ?? 0);
+    } else {
+      dmgMap.set(ev.ability_id, {
+        type: "avoidable_damage",
+        label: ev.ability_name,
+        count: 1,
+        total: ev.amount ?? 0,
+      });
+    }
+  }
+  const dmgSorted = [...dmgMap.values()].sort(
+    (a, b) => (b.total ?? 0) - (a.total ?? 0),
+  );
+
+  const kickMap = new Map<number, EventSummary>();
+  for (const ev of events) {
+    if (ev.type !== "critical_interrupt") continue;
+    const existing = kickMap.get(ev.ability_id);
+    if (existing) existing.count += 1;
+    else
+      kickMap.set(ev.ability_id, {
+        type: "critical_interrupt",
+        label: ev.ability_name,
+        count: 1,
+        total: null,
+      });
+  }
+  const kickSorted = [...kickMap.values()].sort((a, b) => b.count - a.count);
+
+  const deaths: EventSummary[] = events
+    .filter((e) => e.type === "death")
+    .map((ev) => ({
+      type: "death" as const,
+      label: ev.ability_name,
+      count: 1,
+      total: ev.amount,
+    }));
+
+  out.push(...deaths, ...dmgSorted, ...kickSorted);
+  return out;
+}
+
+function EventSummaryLine({ summary }: { summary: EventSummary }) {
+  const color = EVENT_COLOR[summary.type];
+  const sentence = buildSentence(summary);
+
+  return (
+    <p className="text-sm font-[family-name:var(--font-body)] text-on-surface leading-relaxed flex gap-2.5 items-start">
+      <span
+        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      {sentence}
+    </p>
+  );
+}
+
+function buildSentence(s: EventSummary): string {
+  switch (s.type) {
+    case "death":
+      return s.total
+        ? `Died to ${s.label} — ${formatNumber(s.total)} damage.`
+        : `Died to ${s.label}.`;
+    case "avoidable_damage":
+      return s.count === 1
+        ? `Took ${formatNumber(s.total ?? 0)} from ${s.label}.`
+        : `Took ${s.count} hits from ${s.label} (${formatNumber(s.total ?? 0)} total).`;
+    case "critical_interrupt":
+      return s.count === 1
+        ? `Kicked ${s.label}.`
+        : `Kicked ${s.label} ×${s.count}.`;
+  }
+}
+
+const EVENT_COLOR: Record<PullEventType, string> = {
+  avoidable_damage: "#fbbf24",
+  critical_interrupt: "#22d3ee",
+  death: "#f87171",
+};
+
+const VERDICT_CONFIG: Record<PullVerdict, { color: string; label: string }> = {
+  clean: { color: "#34d399", label: "Clean" },
+  took_hits: { color: "#fbbf24", label: "Took Hits" },
+  wipe: { color: "#f87171", label: "Wipe" },
+};
+
+function formatSeconds(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
