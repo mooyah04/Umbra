@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ADDON_DOWNLOAD_URL } from "@/lib/api";
+import InstallButtons from "@/components/InstallButtons";
 
 export default function Nav() {
   return (
@@ -41,13 +41,9 @@ export default function Nav() {
               Methodology
             </Link>
           </nav>
-          <a
-            href={ADDON_DOWNLOAD_URL}
-            className="hidden md:inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-4 py-2 rounded hover:brightness-110 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">download</span>
-            Download Addon
-          </a>
+          <div className="hidden md:block">
+            <InstallButtons size="sm" />
+          </div>
         </div>
       </header>
 

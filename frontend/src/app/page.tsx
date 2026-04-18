@@ -1,10 +1,8 @@
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
+import InstallButtons from "@/components/InstallButtons";
 import {
-  ADDON_DOWNLOAD_URL,
-  CURSEFORGE_ADDON_URL,
-  WAGO_ADDON_URL,
   getStatsSummary,
   getTopPlayers,
 } from "@/lib/api";
@@ -40,13 +38,9 @@ export default async function Home() {
           evidence, tuned for the current season, and explained piece by piece.
         </p>
         <SearchBar />
-        <a
-          href={ADDON_DOWNLOAD_URL}
-          className="md:hidden mt-5 inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all"
-        >
-          <span className="material-symbols-outlined text-sm">download</span>
-          Download Addon
-        </a>
+        <div className="md:hidden mt-5">
+          <InstallButtons size="md" />
+        </div>
         <p className="mt-6 font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.2em] text-on-surface-variant">
           Indexed:{" "}
           <span className="text-primary">
@@ -132,13 +126,7 @@ export default async function Home() {
             after you.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <a
-              href={ADDON_DOWNLOAD_URL}
-              className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-sm">download</span>
-              Download Addon
-            </a>
+            <InstallButtons size="md" />
             <Link
               href="/methodology"
               className="font-[family-name:var(--font-label)] text-xs uppercase tracking-widest text-primary hover:underline inline-flex items-center gap-1"
@@ -353,42 +341,10 @@ export default async function Home() {
             Umbra grade, role, and category breakdown. Auto combat-logs
             your M+ keys. Plays nicely with Raider.IO.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-            <a
-              href={ADDON_DOWNLOAD_URL}
-              className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:brightness-110 transition-all"
-            >
-              <span className="material-symbols-outlined text-sm">
-                download
-              </span>
-              Download Umbra.zip
-            </a>
-            <a
-              href={CURSEFORGE_ADDON_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 border border-primary/40 text-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:bg-primary/10 transition-all"
-            >
-              <span className="material-symbols-outlined text-sm">
-                open_in_new
-              </span>
-              Install via CurseForge
-            </a>
-            <a
-              href={WAGO_ADDON_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 border border-primary/40 text-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:bg-primary/10 transition-all"
-            >
-              <span className="material-symbols-outlined text-sm">
-                open_in_new
-              </span>
-              Install via Wago
-            </a>
-          </div>
+          <InstallButtons size="lg" />
           <p className="font-[family-name:var(--font-label)] text-[10px] text-on-primary-container/60 mt-3">
-            Direct download unzips into World of Warcraft/_retail_/Interface/AddOns/.
-            CurseForge and Wago auto-update through supported addon managers.
+            Install through CurseForge or Wago — both update Umbra
+            automatically alongside your other addons.
           </p>
         </div>
       </section>
@@ -409,10 +365,20 @@ export default async function Home() {
             About
           </Link>
           <a
-            href={ADDON_DOWNLOAD_URL}
+            href="https://www.curseforge.com/wow/addons/umbra"
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
           >
-            Download Addon
+            CurseForge
+          </a>
+          <a
+            href="https://addons.wago.io/addons/umbra-1Mo9iQjb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Wago
           </a>
           <Link
             href="/changelog"

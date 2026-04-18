@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ADDON_DOWNLOAD_URL, ApiError, getPlayerProfile } from "@/lib/api";
+import { ApiError, getPlayerProfile } from "@/lib/api";
 import { getGradeColor, getStatColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
@@ -12,6 +12,7 @@ import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import DungeonBreakdown from "@/components/DungeonBreakdown";
+import InstallButtons from "@/components/InstallButtons";
 import ParseButton from "@/components/ParseButton";
 import RefreshButton from "@/components/RefreshButton";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
@@ -169,17 +170,7 @@ export default async function PlayerProfilePage({ params }: Props) {
           >
             Return to Search
           </Link>
-          {reason === "wcl_not_found" && (
-            <a
-              href={ADDON_DOWNLOAD_URL}
-              className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2"
-            >
-              Download Addon
-              <span className="material-symbols-outlined text-sm">
-                download
-              </span>
-            </a>
-          )}
+          {reason === "wcl_not_found" && <InstallButtons size="md" />}
         </div>
         {reason === "wcl_not_found" && (
           <div className="mt-10">
@@ -474,13 +465,7 @@ export default async function PlayerProfilePage({ params }: Props) {
                 : `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far; three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`}
             </p>
           </div>
-          <a
-            href={ADDON_DOWNLOAD_URL}
-            className="bg-primary text-on-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:brightness-110 transition-all inline-flex items-center gap-2 flex-shrink-0"
-          >
-            Download Addon
-            <span className="material-symbols-outlined text-sm">download</span>
-          </a>
+          <InstallButtons size="md" className="flex-shrink-0" />
         </section>
       )}
 
