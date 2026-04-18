@@ -1,0 +1,159 @@
+name: Daily auto-release
+
+# Runs once a day. If Umbra/UmbraData.lua has changed since the last
+# semver tag, bumps the patch version, commits, tags, and packages the
+# addon to CurseForge + Wago. Scheduled so CF/Wago users' bundled data
+# staleness is capped at ~24h without any human overhead.
+#
+# Why: WoW addons can't fetch data over HTTP at runtime, so the only
+# way to push fresh grades to manager-installed users is to ship a new
+# release with the data embedded. We already rebuild the direct-download
+# zip hourly; this extends that freshness to CF/Wago on a daily cadence.
+#
+# Scheduling note: runs at 08:10 UTC, five minutes after the hourly
+# data-refresh workflow's 08:05 run. Ensures we release the freshest
+# data of the morning.
+#
+# Inlines the release flow from release.yml (checkout, stage Umbra/ as
+# its own git checkout, run BigWigs packager). The packager step is
+# duplicated intentionally: pushing a tag from within a GHA workflow
+# using GITHUB_TOKEN does NOT trigger other workflows (a GitHub loop-
+# protection rule), so we can't rely on release.yml firing on the tag
+# this job pushes. Simpler to inline than to manage a PAT.
+
+on:
+  schedule:
+    - cron: "10 8 * * *"  # 08:10 UTC daily
+  workflow_dispatch:      # allow manual trigger from the Actions tab
+
+permissions:
+  contents: write  # commit the version bump, push the tag
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  autorelease:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for git describe --tags
+          persist-credentials: true
+
+      - name: Decide whether to release
+        id: decide
+        run: |
+          set -euo pipefail
+
+          LAST_TAG=$(git describe --tags --abbrev=0 --match='v*' 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "No prior semver tag found; refusing to auto-release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Only release if the bundled data has moved since the last tag.
+          # Avoids cutting empty patch bumps on days with no new grades.
+          if git diff --quiet "$LAST_TAG" HEAD -- Umbra/UmbraData.lua; then
+            echo "No UmbraData.lua changes since $LAST_TAG; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          VERSION=${LAST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          NEW_TAG="v${NEW_VERSION}"
+          DATE=$(date -u +%Y-%m-%d)
+
+          echo "Bumping $LAST_TAG -> $NEW_TAG"
+          {
+            echo "skip=false"
+            echo "last_tag=$LAST_TAG"
+            echo "new_tag=$NEW_TAG"
+            echo "new_version=$NEW_VERSION"
+            echo "date=$DATE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Apply version + changelog bump
+        if: steps.decide.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+
+          NEW_VERSION="${{ steps.decide.outputs.new_version }}"
+          DATE="${{ steps.decide.outputs.date }}"
+
+          sed -i "s/^## Version: .*/## Version: ${NEW_VERSION}/" Umbra/Umbra.toc
+          sed -i "s/^## Version: .*/## Version: ${NEW_VERSION}/" Umbra-dev/Umbra.toc
+
+          # Prepend a new entry above the first existing ## heading.
+          awk -v v="$NEW_VERSION" -v d="$DATE" '
+            /^## / && !inserted {
+              print "## [" v "] - " d
+              print ""
+              print "### Changed"
+              print "- Bundled grade data refreshed (automated daily release)."
+              print ""
+              inserted = 1
+            }
+            { print }
+          ' Umbra/CHANGELOG.md > Umbra/CHANGELOG.md.new
+          mv Umbra/CHANGELOG.md.new Umbra/CHANGELOG.md
+
+      - name: Rebuild public zips
+        if: steps.decide.outputs.skip == 'false'
+        run: python scripts/build-addon-zip.py
+
+      - name: Commit, tag, push
+        if: steps.decide.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+
+          NEW_TAG="${{ steps.decide.outputs.new_tag }}"
+          LAST_TAG="${{ steps.decide.outputs.last_tag }}"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          git add Umbra/Umbra.toc Umbra-dev/Umbra.toc Umbra/CHANGELOG.md \
+                  frontend/public/Umbra.zip frontend/public/Umbra-dev.zip
+
+          git commit -m "Auto-release ${NEW_TAG}: daily data refresh
+
+          Patch bump from ${LAST_TAG} to push fresh bundled UmbraData.lua
+          to CurseForge + Wago users. Scheduled daily automation; no code
+          changes.
+          "
+
+          git tag "${NEW_TAG}"
+          git push origin master "${NEW_TAG}"
+
+      - name: Stage Umbra/ as a standalone git checkout for packager
+        if: steps.decide.outputs.skip == 'false'
+        # Mirrors release.yml's staging step. Packager's file discovery
+        # uses git ls-files, which in a monorepo returns every tracked
+        # file. Fresh single-commit git repo inside Umbra/ scopes it to
+        # just addon files.
+        run: |
+          set -euo pipefail
+          cd Umbra
+          git init -q -b main
+          git config user.email "ci@wowumbra.gg"
+          git config user.name "Umbra CI"
+          git add -A
+          git commit -q -m "Release ${{ steps.decide.outputs.new_tag }}"
+          git tag "${{ steps.decide.outputs.new_tag }}"
+
+      - name: Package and upload to CurseForge + Wago
+        if: steps.decide.outputs.skip == 'false'
+        uses: BigWigsMods/packager@master
+        with:
+          args: -t Umbra -l "Umbra ${{ steps.decide.outputs.new_tag }}"
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
