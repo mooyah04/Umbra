@@ -550,6 +550,13 @@ interface EventSummary {
   label: string;
   count: number;
   total: number | null;
+  /** Only set for critical_interrupt rows: the player's interrupter
+   *  spell (e.g. "Mind Freeze"). */
+  interrupterName?: string | null;
+  /** Only set for critical_interrupt rows. Undefined means legacy data
+   *  from before we started capturing the flag — those events were all
+   *  criticals by definition, so UI treats undefined as true. */
+  critical?: boolean;
 }
 
 function groupEvents(events: PullEvent[]): EventSummary[] {
@@ -575,20 +582,35 @@ function groupEvents(events: PullEvent[]): EventSummary[] {
     (a, b) => (b.total ?? 0) - (a.total ?? 0),
   );
 
-  const kickMap = new Map<number, EventSummary>();
+  // Key by (kicked ability_id, interrupter_id). Different kick spells
+  // on the same enemy cast stay on separate rows so hybrid specs that
+  // mix interrupters read honestly.
+  const kickMap = new Map<string, EventSummary>();
   for (const ev of events) {
     if (ev.type !== "critical_interrupt") continue;
-    const existing = kickMap.get(ev.ability_id);
-    if (existing) existing.count += 1;
-    else
-      kickMap.set(ev.ability_id, {
+    const key = `${ev.ability_id}:${ev.interrupter_id ?? "none"}`;
+    const existing = kickMap.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      kickMap.set(key, {
         type: "critical_interrupt",
         label: ev.ability_name,
         count: 1,
         total: null,
+        interrupterName: ev.interrupter_name ?? null,
+        critical: ev.critical,
       });
+    }
   }
-  const kickSorted = [...kickMap.values()].sort((a, b) => b.count - a.count);
+  // Sort: criticals first (matters for scoring), then by count desc.
+  // Undefined critical = legacy data = treat as critical.
+  const kickSorted = [...kickMap.values()].sort((a, b) => {
+    const aCrit = a.critical === false ? 0 : 1;
+    const bCrit = b.critical === false ? 0 : 1;
+    if (aCrit !== bCrit) return bCrit - aCrit;
+    return b.count - a.count;
+  });
 
   const deaths: EventSummary[] = events
     .filter((e) => e.type === "death")
@@ -606,12 +628,23 @@ function groupEvents(events: PullEvent[]): EventSummary[] {
 function EventSummaryLine({ summary }: { summary: EventSummary }) {
   const color = EVENT_COLOR[summary.type];
   const sentence = buildSentence(summary);
+  // Non-critical interrupts dim the bullet + text so priority kicks
+  // visually dominate. Legacy data (critical undefined) reads as full.
+  const isLowWeight =
+    summary.type === "critical_interrupt" && summary.critical === false;
 
   return (
-    <p className="text-sm font-[family-name:var(--font-body)] text-on-surface leading-relaxed flex gap-2.5 items-start">
+    <p
+      className={`text-sm font-[family-name:var(--font-body)] leading-relaxed flex gap-2.5 items-start ${
+        isLowWeight ? "text-on-surface/60" : "text-on-surface"
+      }`}
+    >
       <span
         className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
-        style={{ backgroundColor: color }}
+        style={{
+          backgroundColor: color,
+          opacity: isLowWeight ? 0.45 : 1,
+        }}
       />
       {sentence}
     </p>
@@ -628,10 +661,12 @@ function buildSentence(s: EventSummary): string {
       return s.count === 1
         ? `Took ${formatNumber(s.total ?? 0)} from ${s.label}.`
         : `Took ${s.count} hits from ${s.label} (${formatNumber(s.total ?? 0)} total).`;
-    case "critical_interrupt":
+    case "critical_interrupt": {
+      const withClause = s.interrupterName ? ` with ${s.interrupterName}` : "";
       return s.count === 1
-        ? `Kicked ${s.label}.`
-        : `Kicked ${s.label} ×${s.count}.`;
+        ? `Kicked ${s.label}${withClause}.`
+        : `Kicked ${s.label}${withClause} ×${s.count}.`;
+    }
   }
 }
 

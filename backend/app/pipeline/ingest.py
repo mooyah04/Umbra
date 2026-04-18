@@ -459,36 +459,52 @@ def _build_pulls(
                 "amount": amt,
             })
 
-    # ── Critical interrupts by this player ──────────────────────────────
-    if critical_interrupt_ids:
-        try:
-            raw = wcl_client.get_player_events(
-                report_code, [fight_id],
-                data_type="Interrupts",
-                source_id=actor_id,
-            )
-        except Exception as e:
-            logger.debug("Pulls: interrupt events failed for %s/%d: %s",
-                         report_code, fight_id, e)
-            raw = []
-        for ev in raw:
-            kicked = ev.get("extraAbilityGameID")
-            if not isinstance(kicked, int) or kicked not in critical_interrupt_ids:
-                continue
-            ts = ev.get("timestamp")
-            if not isinstance(ts, (int, float)):
-                continue
-            t_sec = (ts - fight_start_ms) / 1000.0
-            pull = _assign_to_pull(t_sec)
-            if pull is None:
-                continue
-            pull["events"].append({
-                "t": round(t_sec, 1),
-                "type": "critical_interrupt",
-                "ability_id": kicked,
-                "ability_name": ability_name_by_id.get(kicked, "Unknown"),
-                "amount": None,
-            })
+    # ── All interrupts by this player ───────────────────────────────────
+    # We used to skip this whole block when no critical IDs were defined
+    # for the dungeon, and also filter out non-critical kicks. Now we
+    # capture every interrupt for informational display (which kick spell
+    # hit which enemy cast), with a `critical` flag so the UI can
+    # distinguish priority kicks from trash kicks. Scoring still counts
+    # only criticals — that logic lives upstream in _count_critical_interrupts.
+    try:
+        raw = wcl_client.get_player_events(
+            report_code, [fight_id],
+            data_type="Interrupts",
+            source_id=actor_id,
+        )
+    except Exception as e:
+        logger.debug("Pulls: interrupt events failed for %s/%d: %s",
+                     report_code, fight_id, e)
+        raw = []
+    for ev in raw:
+        kicked = ev.get("extraAbilityGameID")
+        if not isinstance(kicked, int):
+            continue
+        ts = ev.get("timestamp")
+        if not isinstance(ts, (int, float)):
+            continue
+        t_sec = (ts - fight_start_ms) / 1000.0
+        pull = _assign_to_pull(t_sec)
+        if pull is None:
+            continue
+        interrupter_id = ev.get("abilityGameID")
+        interrupter_id = (
+            interrupter_id if isinstance(interrupter_id, int) else None
+        )
+        pull["events"].append({
+            "t": round(t_sec, 1),
+            "type": "critical_interrupt",  # kept for backward compat with older runs
+            "ability_id": kicked,
+            "ability_name": ability_name_by_id.get(kicked, "Unknown"),
+            "amount": None,
+            "interrupter_id": interrupter_id,
+            "interrupter_name": (
+                ability_name_by_id.get(interrupter_id)
+                if interrupter_id is not None
+                else None
+            ),
+            "critical": kicked in critical_interrupt_ids,
+        })
 
     # ── Player deaths → their containing pull ──────────────────────────
     for d in player_deaths:

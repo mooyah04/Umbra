@@ -64,6 +64,16 @@ export interface PullEvent {
   ability_id: number;
   ability_name: string;
   amount: number | null;        // damage amount; null for interrupts
+  /** For critical_interrupt events: the player's interrupter spell
+   *  (Mind Freeze, Kick, Counter Shot, etc.). Optional because legacy
+   *  runs ingested before this field was added won't have it. */
+  interrupter_id?: number | null;
+  interrupter_name?: string | null;
+  /** True when the kicked enemy cast is on our priority list for this
+   *  dungeon (i.e. the ones that count toward scoring). False for
+   *  'informational' interrupts that don't move the grade. Missing on
+   *  legacy runs — treat undefined as true to preserve their behavior. */
+  critical?: boolean;
 }
 
 export interface Pull {
