@@ -1,0 +1,52 @@
+name: Release addon
+
+# Runs on a pushed semver tag (e.g. v0.3.4). Packages the Umbra/ folder
+# via BigWigs packager and uploads to CurseForge + Wago simultaneously,
+# plus creates a GitHub Release with the zip attached.
+#
+# Release flow:
+#   1. Promote dev -> live (python scripts/promote-addon.py).
+#   2. Bump ## Version: in Umbra/Umbra.toc (and Umbra-dev/Umbra.toc to match).
+#   3. Update Umbra/CHANGELOG.md with the new version section.
+#   4. Commit the version bump.
+#   5. git tag v0.3.4 && git push origin v0.3.4
+#   6. Workflow runs automatically. Check Actions tab for status.
+#
+# Required GitHub repo secrets:
+#   - CF_API_KEY: https://legacy.curseforge.com/account/api-tokens
+#   - WAGO_API_TOKEN: https://addons.wago.io/account/apikeys
+#
+# Note: the hourly refresh-addon-data workflow keeps the direct-download
+# zip fresh with latest UmbraData.lua, but does NOT push to CF/Wago. Only
+# versioned tag releases do that. CF/Wago users get bundled data at the
+# version they installed, refreshed whenever a new tag is cut.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # packager creates GitHub releases + uploads zip as asset
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Packager needs full history to resolve changelog + version info.
+          fetch-depth: 0
+
+      - name: Package and upload to CurseForge + Wago
+        uses: BigWigsMods/packager@master
+        with:
+          args: -t Umbra
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
