@@ -33,6 +33,9 @@ def build_zip(repo_root: Path, folder_name: str, zip_name: str) -> Path | None:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for root, _dirs, files in os.walk(src):
             for f in files:
+                # Skip packaging / tooling metadata — not runtime content.
+                if f.startswith(".") or f == ".pkgmeta":
+                    continue
                 full = Path(root) / f
                 # Arcname relative to repo root, posix form. Also normalize
                 # the top-level folder to 'Umbra' so Umbra-dev.zip extracts

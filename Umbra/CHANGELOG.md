@@ -2,6 +2,16 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.4] - 2026-04-18
+
+### Changed
+- Bundled grade data refreshed against the live database. CurseForge
+  and Wago installs now carry the same freshness the direct download
+  has had since 0.3.3 shipped (the direct zip rebuilds every hour;
+  store installs only pick up data when we cut a new version).
+- `X-Curse-Project-ID` now wired into the .toc so the CurseForge app
+  matches installed copies to the listing and auto-updates correctly.
+
 ## [0.3.3] - 2026-04-17
 
 ### Fixed
