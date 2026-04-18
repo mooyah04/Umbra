@@ -311,9 +311,13 @@ def _get_cooldown_usage(
 
 
 # Minimum keystone level at which we build a per-run pull breakdown.
-# Below this, ingest cost isn't worth it — +5 keys aren't interesting
-# and the breakdown wouldn't be actionable.
-_BREAKDOWN_MIN_KEYSTONE = 8
+# +2 is the floor of M+ itself, so in practice every M+ run gets the
+# full breakdown. Low keys have the highest learning value (new players
+# figuring out interrupts + avoidable damage), so gating at +8 was
+# backwards product-wise. Extra WCL cost per low-key run is ~4 queries
+# (pulls + interrupts + deaths + damage-taken), well inside the budget
+# now that the background scheduler is off and ingest is user-driven.
+_BREAKDOWN_MIN_KEYSTONE = 2
 
 
 def _build_pulls(

@@ -339,21 +339,23 @@ export default async function RunDetailPage({ params }: Props) {
         </section>
       )}
 
-      {/* Roadmap fallback when the run doesn't have pull data (e.g. +7
-          or below, or ingested before Level B launched). */}
+      {/* Fallback when a legacy run was ingested before pull timelines
+          were captured. New ingests populate pulls on every M+ key. */}
       {(!pulls || pulls.length === 0) && (
         <section className="space-y-4">
           <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
             Pull-by-Pull Breakdown
           </p>
           <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
-            Not available for this run
+            Not captured for this run
           </h2>
           <p className="text-on-surface-variant text-sm">
-            We only capture per-pull event timelines on keys +8 and
-            higher. Your run doesn&apos;t have that data on file — either
-            it was below that threshold or it was ingested before this
-            feature went live. Newer runs will populate automatically.
+            This run was ingested before per-pull timelines were on. Hit{" "}
+            <span className="text-on-surface font-semibold">
+              Refresh my profile
+            </span>{" "}
+            up top — the re-ingest will populate the breakdown from the
+            original Warcraft Logs report.
           </p>
         </section>
       )}
