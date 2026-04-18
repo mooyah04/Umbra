@@ -159,8 +159,16 @@ class RunResponse(BaseModel):
     party_comp: list[dict] | None = None
     # Level B v2 — pull-by-pull breakdown. List of pull objects with
     # nested events. None on runs below the keystone-level threshold
-    # (+8) or ingested before Level B v2 shipped.
+    # (+2, was +8) or ingested before Level B v2 shipped.
     pulls: list[dict] | None = None
+    # Per-dungeon aggregate context. Only populated by the single-run
+    # endpoint so the run page can answer "where does this run sit
+    # inside my overall grade for this dungeon?" — same math as the
+    # profile's per-dungeon grid, scoped to this run's encounter_id
+    # in the player's primary role.
+    dungeon_grade: str | None = None
+    dungeon_composite_score: float | None = None
+    dungeon_runs_count: int | None = None
 
 
 class RunListResponse(BaseModel):

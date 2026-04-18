@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getRunDetail } from "@/lib/api";
+import { getGradeColor } from "@/lib/grades";
 import { formatNumber, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
@@ -74,9 +75,38 @@ export default async function RunDetailPage({ params }: Props) {
             <h2 className="text-4xl md:text-6xl font-black font-[family-name:var(--font-headline)] tracking-tighter uppercase text-on-surface">
               {dungeonName(run.encounter_id)}
             </h2>
+            {run.dungeon_grade && (
+              <span
+                className="bg-surface-container-highest border-2 font-black font-[family-name:var(--font-headline)] px-3 py-1 text-2xl italic tracking-tighter"
+                style={{
+                  color: getGradeColor(run.dungeon_grade),
+                  borderColor: `${getGradeColor(run.dungeon_grade)}60`,
+                  textShadow: `0 0 12px ${getGradeColor(run.dungeon_grade)}40`,
+                }}
+                title={`Your aggregate grade for ${dungeonName(run.encounter_id)} across ${run.dungeon_runs_count ?? 0} run${run.dungeon_runs_count === 1 ? "" : "s"}`}
+              >
+                {run.dungeon_grade}
+              </span>
+            )}
           </div>
           <p className="text-on-surface-variant font-[family-name:var(--font-label)] text-xs uppercase tracking-widest mt-1">
             {run.spec_name}
+            {run.dungeon_grade && run.dungeon_runs_count ? (
+              <>
+                {" · "}
+                <span className="normal-case tracking-normal text-on-surface/70">
+                  Your {dungeonName(run.encounter_id)} grade:{" "}
+                  <span
+                    className="font-bold"
+                    style={{ color: getGradeColor(run.dungeon_grade) }}
+                  >
+                    {run.dungeon_grade}
+                  </span>{" "}
+                  across {run.dungeon_runs_count} run
+                  {run.dungeon_runs_count === 1 ? "" : "s"}
+                </span>
+              </>
+            ) : null}
           </p>
           <div className="flex items-center gap-6 text-on-surface-variant font-[family-name:var(--font-label)] uppercase tracking-tighter text-sm">
             <div className="flex items-center gap-2">
@@ -630,10 +660,13 @@ function groupEvents(events: PullEvent[]): EventSummary[] {
 function EventSummaryLine({ summary }: { summary: EventSummary }) {
   const color = EVENT_COLOR[summary.type];
   const sentence = buildSentence(summary);
-  // Non-critical interrupts dim the bullet + text so priority kicks
-  // visually dominate. Legacy data (critical undefined) reads as full.
-  const isLowWeight =
-    summary.type === "critical_interrupt" && summary.critical === false;
+  // Critical kicks get an explicit star marker so they pop even when
+  // several kicks sit next to each other. Non-critical kicks dim the
+  // bullet + text so priority kicks still visually dominate. Legacy
+  // data (critical undefined) reads as critical.
+  const isInterrupt = summary.type === "critical_interrupt";
+  const isCritical = isInterrupt && summary.critical !== false;
+  const isLowWeight = isInterrupt && summary.critical === false;
 
   return (
     <p
@@ -641,13 +674,24 @@ function EventSummaryLine({ summary }: { summary: EventSummary }) {
         isLowWeight ? "text-on-surface/60" : "text-on-surface"
       }`}
     >
-      <span
-        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
-        style={{
-          backgroundColor: color,
-          opacity: isLowWeight ? 0.45 : 1,
-        }}
-      />
+      {isInterrupt && isCritical ? (
+        <span
+          className="material-symbols-outlined text-[14px] shrink-0 mt-0.5"
+          style={{ color: "#fbbf24" }}
+          title="Priority interrupt — counts toward your grade"
+          aria-label="Priority interrupt"
+        >
+          star
+        </span>
+      ) : (
+        <span
+          className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+          style={{
+            backgroundColor: color,
+            opacity: isLowWeight ? 0.45 : 1,
+          }}
+        />
+      )}
       {sentence}
     </p>
   );

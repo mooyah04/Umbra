@@ -2677,7 +2677,33 @@ def get_run_detail(
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    return _run_to_response(run)
+    response = _run_to_response(run)
+
+    # Enrich with the player's aggregate grade for this dungeon (in the
+    # run's role). Same math as the profile's per-dungeon grid, scoped
+    # to one encounter. Keeps the run page self-contained — the top of
+    # the page can render "Your Skyreach grade: B+" without an extra
+    # round-trip to the profile endpoint.
+    from app.scoring.engine import score_player_runs
+
+    dungeon_runs = list(session.execute(
+        select(DungeonRun).where(
+            DungeonRun.player_id == player.id,
+            DungeonRun.encounter_id == run.encounter_id,
+            DungeonRun.role == run.role,
+        )
+    ).scalars())
+    if dungeon_runs:
+        dungeon_result = score_player_runs(
+            runs=dungeon_runs,
+            role=run.role,
+            class_id=player.class_id,
+        )
+        response.dungeon_grade = dungeon_result.overall_grade
+        response.dungeon_composite_score = dungeon_result.composite_score
+        response.dungeon_runs_count = len(dungeon_runs)
+
+    return response
 
 
 @app.get("/api/player/{region}/{realm}/{name}/history", response_model=HistoryResponse)
