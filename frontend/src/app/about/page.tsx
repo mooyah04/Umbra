@@ -436,8 +436,8 @@ const WHAT_WE_PROVIDE = [
   },
   {
     icon: "refresh",
-    title: "Fresh data without a manual refresh",
-    body: "Run a key, upload via Archon (the official WCL uploader; the addon handles combat logging), and look yourself up on the site to trigger ingest immediately. Already-graded characters keep getting refreshed on the hour, so scores stay current as you play.",
+    title: "Fresh data when you ask for it",
+    body: "Run a key, upload via Archon (the official WCL uploader; the addon handles combat logging), and look yourself up on the site. Your profile has a 'Refresh my profile' button that pulls your recent logs from Warcraft Logs on demand, capped at once an hour per character. The in-game addon ships a new bundled grade database once a day, so tooltips and LFG badges stay current without you doing anything.",
   },
 ];
 

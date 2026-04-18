@@ -230,6 +230,67 @@ export async function claimPlayer(
   return res.json();
 }
 
+export interface RefreshResponse {
+  ok: boolean;
+  /** ISO timestamp the ingest finished. */
+  refreshed_at: string;
+  /** ISO timestamp when the next refresh becomes allowed. */
+  cooldown_ends_at: string;
+}
+
+export async function refreshPlayer(
+  name: string,
+  realm: string,
+  region: string,
+): Promise<RefreshResponse> {
+  // Same 25s abort ceiling as claimPlayer: a re-ingest on a slow WCL
+  // night can take most of Railway's edge timeout, and we'd rather
+  // surface a clear error than let the button spin indefinitely.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25_000);
+  let res: Response;
+  try {
+    res = await fetch(
+      `${API_URL}/api/player/${region}/${realm}/${name}/refresh`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+      },
+    );
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "The refresh timed out. Warcraft Logs may be slow right now. Try again in a minute.",
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  if (!res.ok) {
+    let detail: ApiErrorDetail | string | undefined;
+    let message = `API error ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body?.detail ?? body;
+      if (
+        detail &&
+        typeof detail === "object" &&
+        "message" in detail &&
+        typeof detail.message === "string"
+      ) {
+        message = detail.message;
+      }
+    } catch {
+      /* fall through */
+    }
+    throw new ApiError(res.status, message, detail);
+  }
+  return res.json();
+}
+
 export async function getPlayerHistory(
   region: string,
   realm: string,

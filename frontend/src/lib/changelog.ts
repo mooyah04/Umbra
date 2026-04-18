@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-18",
+    title: "Refresh-on-demand replaces the background refresher",
+    category: "improved",
+    body:
+      "Your profile now has a 'Refresh my profile' button that pulls your recent logs from Warcraft Logs when you click it, capped at once per hour per character. We're retiring the background job that used to re-fetch every graded player on a schedule because it wasn't pulling its weight: most refreshed profiles were never viewed again. Click-to-refresh keeps fresh data one tap away while keeping our WCL call budget focused on people actually checking their grade.",
+  },
+  {
+    date: "2026-04-18",
+    title: "\"Stale Logs? Submit a log.\" on any profile",
+    category: "new",
+    body:
+      "Every player page now has a compact 'Submit a log' form, even on already-graded profiles. If a recent run isn't showing up, paste the Warcraft Logs report URL or 16-character code and we'll re-sync your profile directly from that log. Handy when the normal character lookup missed a pull, or when WCL matched the wrong same-named character.",
+  },
+  {
+    date: "2026-04-18",
     title: "Umbra is also on CurseForge",
     category: "new",
     body:

@@ -8,17 +8,38 @@ interface Props {
   name: string;
   realm: string;
   region: string;
+  /** Header above the form. Defaults to the disambiguation framing. */
+  title?: string;
+  /** Paragraph under the header. Defaults to the disambiguation framing. */
+  description?: string;
+  /** Tighter paddings + smaller type for use below the fold on a graded
+   *  profile. Default is the full-size prominent treatment. */
+  compact?: boolean;
 }
 
+const DEFAULT_TITLE = "Not you? Claim with a log.";
+const DEFAULT_DESCRIPTION =
+  "Warcraft Logs sometimes returns the wrong character when multiple " +
+  "players share a name. Paste a WCL report URL (or the 16-character " +
+  "code) from any M+ run that included your character. We'll identify " +
+  "you from that log directly.";
+
 /**
- * "This isn't me" disambiguation form. WCL's character(name, server, region)
- * query returns a non-deterministic entity when multiple players share a name
- * across realms, so there's no candidate list we can render. Instead, the
- * visitor pastes a report URL containing their actual character — we read
- * playerDetails from that report and ingest via report_codes mode, which is
- * authoritative.
+ * Submit-a-log form. Dual purpose: disambiguation when WCL returned the
+ * wrong character (name collisions across realms) AND re-sync from a
+ * specific known-good log when a graded profile shows stale data. The
+ * backend's claim_by_log path reads playerDetails from the report and
+ * ingests via report_codes mode — authoritative regardless of name
+ * collision state.
  */
-export default function ClaimForm({ name, realm, region }: Props) {
+export default function ClaimForm({
+  name,
+  realm,
+  region,
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+  compact = false,
+}: Props) {
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,15 +74,18 @@ export default function ClaimForm({ name, realm, region }: Props) {
   }
 
   return (
-    <div className="bg-surface-container-high rounded-xl p-6 max-w-2xl mx-auto text-left">
-      <h3 className="font-[family-name:var(--font-headline)] text-xl font-bold text-on-surface mb-2">
-        Not you? Claim with a log.
+    <div
+      className={`bg-surface-container-high rounded-xl ${compact ? "p-4" : "p-6"} max-w-2xl mx-auto text-left`}
+    >
+      <h3
+        className={`font-[family-name:var(--font-headline)] font-bold text-on-surface mb-2 ${compact ? "text-base" : "text-xl"}`}
+      >
+        {title}
       </h3>
-      <p className="text-on-surface-variant text-sm mb-4 leading-relaxed">
-        Warcraft Logs sometimes returns the wrong character when multiple
-        players share a name. Paste a WCL report URL (or the 16-character
-        code) from any M+ run that included your character. We'll identify
-        you from that log directly.
+      <p
+        className={`text-on-surface-variant mb-4 leading-relaxed ${compact ? "text-xs" : "text-sm"}`}
+      >
+        {description}
       </p>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input

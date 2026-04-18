@@ -12,6 +12,7 @@ import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import DungeonBreakdown from "@/components/DungeonBreakdown";
+import RefreshButton from "@/components/RefreshButton";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
 
 interface Props {
@@ -31,6 +32,15 @@ function avg(runs: RunResponse[], field: keyof RunResponse, decimals = 1): strin
 function total(runs: RunResponse[], field: keyof RunResponse): number {
   return runs.reduce((acc, r) => acc + (Number(r[field]) || 0), 0);
 }
+
+// Copy for the stale-log ClaimForm variant: shown on profiles that already
+// have at least one ingested run. Frames the form as a "freshness" tool
+// (submit a specific log to override cached data) rather than a "wrong
+// character" disambiguation tool.
+const STALE_LOGS_TITLE = "Stale Logs? Submit a log.";
+const STALE_LOGS_DESCRIPTION =
+  "Have a recent M+ log that isn't showing here? Paste the Warcraft Logs " +
+  "report URL or 16-character code and we'll re-sync your profile from it.";
 
 /**
  * For each category, produce the raw per-run numbers that drove the score.
@@ -341,6 +351,20 @@ export default async function PlayerProfilePage({ params }: Props) {
           <p className="mt-4 font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest italic">
             {profile.timed_pct}% Keys Timed
           </p>
+          {primary && (
+            <>
+              <div className="mt-5 w-full">
+                <RefreshButton
+                  name={decodeURIComponent(name)}
+                  realm={decodeURIComponent(realm)}
+                  region={region}
+                />
+              </div>
+              <p className="mt-2 text-[9px] text-on-surface-variant/60 font-[family-name:var(--font-label)] uppercase tracking-wider">
+                Site updates on refresh • Addon data daily
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -405,16 +429,24 @@ export default async function PlayerProfilePage({ params }: Props) {
         </section>
       )}
 
-      {/* Disambiguation: if WCL's character lookup returned the wrong entity
-          (common for name-colliding realms), visitors can claim by pasting a
-          log URL from their real character. Also useful when stale/empty
-          data is shown for the wrong Player entity. */}
+      {/* Disambiguation / stale-log entry point. Copy adapts:
+          - Runs on file: "Stale Logs? Submit a log." — the profile likely
+            has the right player but is out of date and a specific log can
+            re-sync it.
+          - No runs on file: keep the default "Not you?" disambiguation
+            framing because the wrong-character case is more likely. */}
       {!primary && (
         <section className="mb-10">
           <ClaimForm
             name={decodeURIComponent(name)}
             realm={decodeURIComponent(realm)}
             region={region}
+            {...(profile.total_runs > 0
+              ? {
+                  title: STALE_LOGS_TITLE,
+                  description: STALE_LOGS_DESCRIPTION,
+                }
+              : {})}
           />
         </section>
       )}
@@ -497,6 +529,22 @@ export default async function PlayerProfilePage({ params }: Props) {
             </p>
           )}
         </div>
+        {/* Footer: graded profiles keep a compact claim-with-log entry so
+            users can override with a specific known-good report even after
+            we've already graded them. Covers stale-data + name-collision
+            cases on already-ingested profiles. */}
+        {primary && (
+          <div className="mt-6">
+            <ClaimForm
+              name={decodeURIComponent(name)}
+              realm={decodeURIComponent(realm)}
+              region={region}
+              title={STALE_LOGS_TITLE}
+              description={STALE_LOGS_DESCRIPTION}
+              compact
+            />
+          </div>
+        )}
       </section>
     </main>
   );
