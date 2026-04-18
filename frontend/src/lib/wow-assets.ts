@@ -63,14 +63,20 @@ export function classIconUrl(classId: number): string {
 /**
  * Returns a large 64×64 spec icon by spec name. Falls back to class icon
  * when a spec isn't in the map. Covers Midnight S1's active specs.
+ *
+ * For specs whose name is shared across two classes (Frost on DK + Mage,
+ * Protection on Warrior + Paladin, Holy on Paladin + Priest, Restoration
+ * on Druid + Shaman), the lookup key is `Spec|classId`. Plain name keys
+ * stay for everything else since they're unambiguous.
  */
 const SPEC_ICON: Record<string, string> = {
   // Warrior
   Arms: "ability_warrior_savageblow",
   Fury: "ability_warrior_innerrage",
-  "Protection": "ability_warrior_defensivestance",
+  "Protection|1": "ability_warrior_defensivestance",
   // Paladin
-  Holy: "spell_holy_holybolt",
+  "Holy|2": "spell_holy_holybolt",
+  "Protection|2": "spell_holy_devotionaura",
   Retribution: "spell_holy_auraoflight",
   // Hunter
   "Beast Mastery": "ability_hunter_bestialdiscipline",
@@ -82,18 +88,20 @@ const SPEC_ICON: Record<string, string> = {
   Subtlety: "ability_stealth",
   // Priest
   Discipline: "spell_holy_powerwordshield",
+  "Holy|5": "spell_holy_guardianspirit",
   Shadow: "spell_shadow_shadowwordpain",
   // Death Knight
   Blood: "spell_deathknight_bloodpresence",
-  Frost: "spell_deathknight_frostpresence",
+  "Frost|6": "spell_deathknight_frostpresence",
   Unholy: "spell_deathknight_unholypresence",
   // Shaman
   Elemental: "spell_nature_lightning",
   Enhancement: "spell_shaman_improvedstormstrike",
-  Restoration: "spell_nature_magicimmunity",
+  "Restoration|7": "spell_nature_magicimmunity",
   // Mage
   Arcane: "spell_holy_magicalsentry",
   Fire: "spell_fire_firebolt02",
+  "Frost|8": "spell_frost_frostbolt02",
   // Warlock
   Affliction: "spell_shadow_deathcoil",
   Demonology: "spell_shadow_metamorphosis",
@@ -106,6 +114,7 @@ const SPEC_ICON: Record<string, string> = {
   Balance: "spell_nature_starfall",
   Feral: "ability_druid_catform",
   Guardian: "ability_racial_bearform",
+  "Restoration|11": "spell_nature_healingtouch",
   // Demon Hunter
   Havoc: "ability_demonhunter_specdps",
   Vengeance: "ability_demonhunter_spectank",
@@ -117,7 +126,9 @@ const SPEC_ICON: Record<string, string> = {
 
 export function specIconUrl(specName: string | null | undefined, classId: number): string {
   if (!specName) return classIconUrl(classId);
-  const icon = SPEC_ICON[specName];
+  // Composite lookup first for names that are ambiguous across classes,
+  // then plain-name fallback for everything else.
+  const icon = SPEC_ICON[`${specName}|${classId}`] ?? SPEC_ICON[specName];
   if (!icon) return classIconUrl(classId);
   return `https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg`;
 }
