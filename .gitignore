@@ -17,4 +17,26 @@ backend/.env
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude session state — local only
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Stray dev artifacts that don't belong in the repo.
+# - Addon_Screenshots/: source images for the listings — big binaries,
+#   the ones we actually ship live under docs/listings/screenshots/
+# - Umbra.zip at repo root: a leftover from early testing; the real
+#   distributed zips are built into frontend/public/ by the packager
+# - scripts/batch_*_sampler.py etc: one-off research scripts we ran
+#   to seed dungeon ability data. They contain a hardcoded admin
+#   API key and write to C:/tmp — not production code. If we want
+#   to retain the knowledge, sanitize first and move into scripts/samplers/
+# - sync-addon.ps1: local dev convenience, Windows-specific
+Addon_Screenshots/
+Umbra.zip
+scripts/batch_*_sampler.py
+scripts/pass2_resample.py
+scripts/propose_cooldowns.py
+scripts/retry_cd_samples.py
+scripts/cd_diff.py
+sync-addon.ps1
