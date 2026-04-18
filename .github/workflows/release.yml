@@ -61,7 +61,10 @@ jobs:
       - name: Package and upload to CurseForge + Wago
         uses: BigWigsMods/packager@master
         with:
-          args: -t Umbra
+          # -l sets the release label shown in addon managers. Default is
+          # just "v0.3.4"; we prefix "Umbra " so users see "Umbra v0.3.4"
+          # and have context for which addon is updating.
+          args: -t Umbra -l "Umbra ${{ github.ref_name }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
