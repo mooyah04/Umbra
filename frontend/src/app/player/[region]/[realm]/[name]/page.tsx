@@ -397,20 +397,20 @@ export default async function PlayerProfilePage({ params }: Props) {
           <p className="mt-4 font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant uppercase tracking-widest italic">
             {profile.timed_pct}% Keys Timed
           </p>
-          {primary && (
-            <>
-              <div className="mt-5 w-full">
-                <RefreshButton
-                  name={decodeURIComponent(name)}
-                  realm={decodeURIComponent(realm)}
-                  region={region}
-                />
-              </div>
-              <p className="mt-2 text-[9px] text-on-surface-variant/60 font-[family-name:var(--font-label)] uppercase tracking-wider">
-                Site updates on refresh • Addon data daily
-              </p>
-            </>
-          )}
+          {/* Refresh is available on any in-DB profile, not just graded
+              ones. A player at 1-2 runs (no grade published yet) is
+              exactly the person who wants to refresh after running their
+              next key. */}
+          <div className="mt-5 w-full">
+            <RefreshButton
+              name={decodeURIComponent(name)}
+              realm={decodeURIComponent(realm)}
+              region={region}
+            />
+          </div>
+          <p className="mt-2 text-[9px] text-on-surface-variant/60 font-[family-name:var(--font-label)] uppercase tracking-wider">
+            Site updates on refresh • Addon data daily
+          </p>
         </div>
       </div>
 
