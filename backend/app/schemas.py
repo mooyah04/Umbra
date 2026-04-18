@@ -233,6 +233,19 @@ class HistoryResponse(BaseModel):
 
 # ── Bug reports ─────────────────────────────────────────────────────────────
 
+class RefreshResponse(BaseModel):
+    """Response from the user-triggered refresh endpoint.
+
+    `refreshed_at` is the timestamp WCL ingest last completed for this player
+    (read back from DB after the refresh finishes). `cooldown_ends_at` tells
+    the frontend when the player is eligible for another refresh so it can
+    disable the button and show a countdown without a second round-trip.
+    """
+    ok: bool
+    refreshed_at: datetime
+    cooldown_ends_at: datetime
+
+
 class BugReportRequest(BaseModel):
     """Public submission from the website form (or a user pasting addon
     SavedVariables output into the same form)."""

@@ -36,6 +36,7 @@ from app.schemas import (
     PlayerProfileResponse,
     PlayerScoreResponse,
     PlayerSearchResult,
+    RefreshResponse,
     RoleScore,
     RunListResponse,
     RunResponse,
@@ -471,6 +472,101 @@ def get_player_score(
         grade=primary.overall_grade,
         category_scores=primary.category_scores,
         runs_analyzed=primary.runs_analyzed,
+    )
+
+
+@app.post(
+    "/api/player/{region}/{realm}/{name}/refresh",
+    response_model=RefreshResponse,
+)
+@limiter.limit(settings.rate_limit_refresh)
+def refresh_player(
+    request: Request,
+    region: str,
+    realm: str,
+    name: str,
+    session: Session = Depends(get_session),
+):
+    """User-triggered re-ingest for a player already in our database.
+
+    This is the public counterpart to the admin `?refresh=true` query param.
+    It is intentionally limited to players we already know about — cold
+    discovery (first-time ingest of an unknown character) is a separate
+    flow so we don't let anonymous traffic arbitrarily mine WCL. Two rate
+    limits apply: slowapi enforces the per-IP cap, and a per-player
+    cooldown based on `last_ingested_at` defends against IP-walking attacks
+    where a bad actor cycles through many source IPs to hammer one player.
+    """
+    from app.wcl.client import WCLRateLimitedError
+
+    name, realm, region = _canonical_identity(name, realm, region)
+
+    player = _find_player(session, region, realm, name)
+    if not player:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "not_found",
+                "message": (
+                    "Player not in our database. "
+                    "Search for them first to kick off ingest."
+                ),
+            },
+        )
+
+    # Per-player cooldown check. Independent of the IP-level limit so a
+    # visitor cannot bypass it by switching VPNs or rotating IPs.
+    now = datetime.utcnow()
+    if player.last_ingested_at is not None:
+        elapsed = (now - player.last_ingested_at).total_seconds()
+        remaining = int(settings.refresh_cooldown_seconds - elapsed)
+        if remaining > 0:
+            mins = max(1, round(remaining / 60))
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "code": "cooldown_active",
+                    "message": f"Wait {mins}m before refreshing again.",
+                    "retry_after_seconds": remaining,
+                    "last_refreshed_at": player.last_ingested_at.isoformat(),
+                },
+            )
+
+    try:
+        _ingest_player_inline_wrapper(name, realm, region)
+    except WCLRateLimitedError as e:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "wcl_rate_limited",
+                "message": (
+                    "Warcraft Logs rate-limited us — try again in about "
+                    f"{max(1, round(e.retry_after / 60))} minute(s)."
+                ),
+                "retry_after": e.retry_after,
+            },
+        )
+    except Exception as e:
+        logger.warning("User refresh failed for %s-%s (%s): %s", name, realm, region, e)
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "ingest_failed",
+                "message": "Refresh failed. Try again in a minute.",
+            },
+        )
+
+    # Re-read the player row to get the fresh last_ingested_at that ingest
+    # just wrote. expire_all() forces SA to discard its cached state.
+    session.expire_all()
+    player = _find_player(session, region, realm, name)
+    refreshed_at = (player.last_ingested_at if player and player.last_ingested_at
+                    else now)
+    cooldown_ends_at = refreshed_at + timedelta(seconds=settings.refresh_cooldown_seconds)
+    return RefreshResponse(
+        ok=True,
+        refreshed_at=refreshed_at,
+        cooldown_ends_at=cooldown_ends_at,
     )
 
 

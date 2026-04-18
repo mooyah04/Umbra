@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     rate_limit_public: str = "60/minute"
     # Player lookup — each uncached call triggers WCL ingest (expensive).
     rate_limit_player_lookup: str = "20/minute"
+    # Per-IP rate limit for user-triggered refresh.
+    rate_limit_refresh: str = "10/hour"
+    # Per-player cooldown enforced server-side on top of the IP limit.
+    # Player must not have been ingested in this many seconds before
+    # another refresh is allowed. 3600 = 1 hour.
+    refresh_cooldown_seconds: int = 3600
 
     # Blizzard Battle.net API credentials (develop.battle.net OAuth client).
     # Used to fetch character avatar / inset / render URLs for display on
