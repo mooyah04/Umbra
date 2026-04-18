@@ -13,6 +13,7 @@ from app.models import DungeonRun, Player, PlayerScore, Role
 from app.scoring.avoidable import get_avoidable_abilities
 from app.scoring.cc_abilities import get_cc_ability_ids
 from app.scoring.cooldowns import get_cooldowns_for_spec
+from app.scoring.dungeons.registry import active_encounter_ids
 from app.scoring.engine import score_player_runs
 from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
@@ -827,6 +828,7 @@ def ingest_player(
     skipped_exact = 0
     skipped_fuzzy = 0
     skipped_not_present = 0  # fights where target player didn't participate
+    skipped_out_of_season = 0  # fights from dungeons outside the active pool
     fetched_fights = 0
 
     logger.info("Processing %d reports for %s-%s", len(reports), name, realm)
@@ -878,13 +880,22 @@ def ingest_player(
                 skipped_not_present += 1
                 continue
 
+            # Season filter — ignore fights from dungeons that aren't in the
+            # current active pool (registry.active_encounter_ids). Old-season
+            # logs otherwise leak into the player's run history with no
+            # dungeon name and skew their grade. Kept after the presence
+            # check so we don't waste the active_encounter_ids() lookup on
+            # fights the player isn't even in.
+            fight_encounter_id = fight.get("encounterID", 0)
+            if fight_encounter_id not in active_encounter_ids():
+                skipped_out_of_season += 1
+                continue
             # Early dedup — if we've already ingested this fight (either by
             # exact (report_code, fight_id) match, or by the fuzzy cross-log
             # rule), skip before we pay for the ~8-query playerDetails +
             # tables fetch. Scheduler re-sweeps dominate our WCL budget and
             # most of their fights hit one of these checks, so hoisting the
             # skip here is the single biggest query-spend reduction.
-            fight_encounter_id = fight.get("encounterID", 0)
             fight_keystone_level = fight.get("keystoneLevel", 0)
             fight_abs_start_ms_dedup = (
                 report.get("startTime", 0) + fight.get("startTime", 0)
@@ -1125,13 +1136,17 @@ def ingest_player(
         if len(runs) >= settings.max_runs_to_analyze:
             break
 
-    if skipped_exact or skipped_fuzzy or skipped_not_present or fetched_fights:
+    if (skipped_exact or skipped_fuzzy or skipped_not_present
+            or skipped_out_of_season or fetched_fights):
         # "not-present" skips save ~5 queries each (playerDetails + 4 tables).
-        # Dedup skips save ~2 each (playerDetails + auras).
+        # Dedup + out-of-season skips save ~2 each (playerDetails + auras).
         logger.info(
-            "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d not-present=%d (WCL queries saved ~%d)",
-            name, realm, fetched_fights, skipped_exact, skipped_fuzzy, skipped_not_present,
-            (skipped_exact + skipped_fuzzy) * 2 + skipped_not_present * 5,
+            "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d "
+            "not-present=%d out-of-season=%d (WCL queries saved ~%d)",
+            name, realm, fetched_fights, skipped_exact, skipped_fuzzy,
+            skipped_not_present, skipped_out_of_season,
+            (skipped_exact + skipped_fuzzy + skipped_out_of_season) * 2
+            + skipped_not_present * 5,
         )
 
     # 4. Fetch zone rankings for DPS percentile (available even for archived reports)

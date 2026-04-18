@@ -3,6 +3,7 @@ import SearchBar from "@/components/SearchBar";
 import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
 import {
   ADDON_DOWNLOAD_URL,
+  CURSEFORGE_ADDON_URL,
   WAGO_ADDON_URL,
   getStatsSummary,
   getTopPlayers,
@@ -352,7 +353,7 @@ export default async function Home() {
             Umbra grade, role, and category breakdown. Auto combat-logs
             your M+ keys. Plays nicely with Raider.IO.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <a
               href={ADDON_DOWNLOAD_URL}
               className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:brightness-110 transition-all"
@@ -361,6 +362,17 @@ export default async function Home() {
                 download
               </span>
               Download Umbra.zip
+            </a>
+            <a
+              href={CURSEFORGE_ADDON_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border border-primary/40 text-primary font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 rounded hover:bg-primary/10 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">
+                open_in_new
+              </span>
+              Install via CurseForge
             </a>
             <a
               href={WAGO_ADDON_URL}
@@ -376,7 +388,7 @@ export default async function Home() {
           </div>
           <p className="font-[family-name:var(--font-label)] text-[10px] text-on-primary-container/60 mt-3">
             Direct download unzips into World of Warcraft/_retail_/Interface/AddOns/.
-            Wago auto-updates through supported addon managers.
+            CurseForge and Wago auto-update through supported addon managers.
           </p>
         </div>
       </section>
