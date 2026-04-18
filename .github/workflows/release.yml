@@ -42,6 +42,22 @@ jobs:
           # Packager needs full history to resolve changelog + version info.
           fetch-depth: 0
 
+      - name: Stage Umbra/ as a standalone git checkout for packager
+        # The packager's file discovery uses `git ls-files`, which reads
+        # the repo index. In our monorepo, the index tracks backend/,
+        # frontend/, docs/, etc. — none of which belong in the addon zip.
+        # Initializing a fresh git repo inside Umbra/ scopes ls-files to
+        # just the addon files, which is what the packager expects.
+        run: |
+          set -euo pipefail
+          cd Umbra
+          git init -q -b main
+          git config user.email "ci@wowumbra.gg"
+          git config user.name "Umbra CI"
+          git add -A
+          git commit -q -m "Release ${GITHUB_REF_NAME}"
+          git tag "${GITHUB_REF_NAME}"
+
       - name: Package and upload to CurseForge + Wago
         uses: BigWigsMods/packager@master
         with:
