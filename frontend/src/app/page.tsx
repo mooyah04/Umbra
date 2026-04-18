@@ -373,7 +373,7 @@ export default async function Home() {
             CurseForge
           </a>
           <a
-            href="https://addons.wago.io/addons/umbra-1Mo9iQjb"
+            href="https://addons.wago.io/addons/umbra"
             target="_blank"
             rel="noopener noreferrer"
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"

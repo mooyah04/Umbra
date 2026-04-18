@@ -13,7 +13,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export const ADDON_DOWNLOAD_URL = `${API_URL}/api/addon/download`;
 
 /** Public Wago listing. Auto-updates via addon managers that sync Wago. */
-export const WAGO_ADDON_URL = "https://addons.wago.io/addons/umbra-1Mo9iQjb";
+export const WAGO_ADDON_URL = "https://addons.wago.io/addons/umbra";
 
 /** Public CurseForge listing. Auto-updates via the CurseForge app. */
 export const CURSEFORGE_ADDON_URL = "https://www.curseforge.com/wow/addons/umbra";

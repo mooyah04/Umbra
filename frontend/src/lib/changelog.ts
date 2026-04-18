@@ -76,7 +76,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Umbra is on Wago",
     category: "new",
     body:
-      "Install Umbra from Wago now and it'll auto-update through any supported addon manager (CurseForge app, WowUp, etc.). Direct download from wowumbra.gg still works too. Listing: https://addons.wago.io/addons/umbra-1Mo9iQjb. CurseForge submission is also in review.",
+      "Install Umbra from Wago now and it'll auto-update through any supported addon manager (CurseForge app, WowUp, etc.). Direct download from wowumbra.gg still works too. Listing: https://addons.wago.io/addons/umbra. CurseForge submission is also in review.",
   },
   {
     date: "2026-04-17",
