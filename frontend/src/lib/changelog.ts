@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-18",
+    title: "Umbra is also on CurseForge",
+    category: "new",
+    body:
+      "CurseForge listing is live. Install Umbra through the CurseForge app and it'll auto-update alongside the rest of your addons. Wago and direct download from wowumbra.gg still work too. Pick whichever manager you already use.",
+  },
+  {
     date: "2026-04-17",
     title: "Umbra is on Wago",
     category: "new",
