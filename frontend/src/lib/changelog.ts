@@ -17,6 +17,34 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-18",
+    title: "Interrupts now name the spell you kicked with",
+    category: "improved",
+    body:
+      "Pull-by-pull lines read like prose: \"Kicked Shadow Bolt with Mind Freeze\" instead of just \"Kicked Shadow Bolt.\" We're now also capturing every interrupt, not only the priority casts — the priority ones keep full color and the trash ones render dimmer so the important kicks still dominate the eye. Scoring is unchanged: grade still only moves on priority interrupts.",
+  },
+  {
+    date: "2026-04-18",
+    title: "Pull-by-pull breakdown on every M+ run",
+    category: "improved",
+    body:
+      "Used to be gated behind +8 keys. Lowered the floor to +2 so the per-pull timeline — interrupts, avoidable damage, deaths — shows up on every Mythic+ run you've had. Low-key learners get the same depth as +20 pushers. New ingests populate automatically; older runs backfill next time you hit Refresh.",
+  },
+  {
+    date: "2026-04-18",
+    title: "Run breakdown lives on the run page, not a click away",
+    category: "improved",
+    body:
+      "Merged the pull-by-pull breakdown into the main run page. One scroll, everything — hero, stats, per-pull timeline, and the raw WCL link at the bottom. Also bumped the brightness of the verdict pills and event text so it's actually readable on dark.",
+  },
+  {
+    date: "2026-04-18",
+    title: "Local download dropped, CurseForge + Wago become the default",
+    category: "improved",
+    body:
+      "Every 'Download Addon' button on the site now points at CurseForge or Wago instead of the raw zip. Managers handle auto-updates, which means fewer 'why does my friend have a newer version' moments. Direct zip is still there if you type the URL in — we just stopped pushing it.",
+  },
+  {
+    date: "2026-04-18",
     title: "Searching a new character now prompts a 'Parse Warcraft Logs' button",
     category: "improved",
     body:
