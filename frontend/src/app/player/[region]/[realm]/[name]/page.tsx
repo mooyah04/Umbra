@@ -12,6 +12,7 @@ import { dungeonName } from "@/lib/dungeons";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import DungeonBreakdown from "@/components/DungeonBreakdown";
+import ParseButton from "@/components/ParseButton";
 import RefreshButton from "@/components/RefreshButton";
 import type { RunResponse, RoleScore, PartyMember } from "@/lib/types";
 
@@ -193,7 +194,61 @@ export default async function PlayerProfilePage({ params }: Props) {
     );
   }
 
+  if (profile.not_indexed) {
+    // Player isn't in our DB yet. We no longer auto-ingest on profile
+    // view (sildri's RPGLogs guidance: drive-by compute wastes everyone's
+    // budget). User must click to pull logs. ParseButton enforces its own
+    // 24h per-(IP, character) cooldown server-side; the warning copy lives
+    // inside the component.
+    return (
+      <div className="pt-28 pb-32 px-6 max-w-3xl mx-auto text-center">
+        <span className="material-symbols-outlined text-primary text-6xl mb-6 opacity-60">
+          search
+        </span>
+        <h2 className="font-[family-name:var(--font-headline)] text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
+          NOT SCORED YET
+        </h2>
+        <p className="text-on-surface-variant mb-2 text-lg">
+          {decodeURIComponent(name)} &middot;{" "}
+          {decodeURIComponent(realm)}-{region.toUpperCase()}
+        </p>
+        <p className="text-on-surface-variant mb-8 max-w-xl mx-auto leading-relaxed">
+          We haven&apos;t pulled this character from Warcraft Logs yet. Click
+          below to run the first ingest and we&apos;ll grade them from their
+          recent M+ runs.
+        </p>
+        <ParseButton
+          name={decodeURIComponent(name)}
+          realm={decodeURIComponent(realm)}
+          region={region}
+        />
+        <p className="text-on-surface-variant/70 text-sm mt-10 mb-4 max-w-md mx-auto">
+          Or, if WCL doesn&apos;t have them yet, submit a specific log:
+        </p>
+        <div className="max-w-2xl mx-auto">
+          <ClaimForm
+            name={decodeURIComponent(name)}
+            realm={decodeURIComponent(realm)}
+            region={region}
+            compact
+          />
+        </div>
+        <div className="flex items-center justify-center gap-4 flex-wrap mt-10">
+          <Link
+            href="/"
+            className="bg-surface-container-high text-on-surface font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-5 py-3 rounded hover:bg-surface-bright transition-colors"
+          >
+            Return to Search
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (profile.is_indexing) {
+    // Legacy state — should no longer fire in the new click-to-parse
+    // model but kept for any residual paths (e.g. addon-triggered
+    // ingest races). Falls back to the same waiting-spinner UX.
     return (
       <div className="pt-28 pb-32 px-6 max-w-3xl mx-auto text-center">
         <span className="material-symbols-outlined text-primary text-6xl mb-6 opacity-40 animate-pulse">

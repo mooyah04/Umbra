@@ -122,6 +122,10 @@ export interface PlayerProfileResponse {
   render_url?: string | null;
   per_dungeon?: PerDungeonGrade[];
   is_indexing?: boolean;
+  /** Player isn't in our DB yet. Frontend renders a "Parse WCL" button
+   *  that hits POST /api/player/.../parse to trigger the cold ingest
+   *  explicitly. Replaces the old auto-ingest-on-GET behavior. */
+  not_indexed?: boolean;
 }
 
 export interface HistoryPoint {

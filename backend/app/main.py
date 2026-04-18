@@ -2,6 +2,7 @@
 
 import logging
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime, timedelta
 
@@ -32,6 +33,7 @@ from app.schemas import (
     HistoryResponse,
     IngestRequest,
     IngestResponse,
+    ParseResponse,
     PerDungeonGrade,
     PlayerProfileResponse,
     PlayerScoreResponse,
@@ -188,6 +190,42 @@ def _kick_background_ingest(name: str, realm: str, region: str) -> None:
             return
         _bg_ingest_inflight.add(key)
     _bg_ingest_pool.submit(_ingest_player_in_own_session, name, realm, region)
+
+
+# In-memory TTL dict for cold-parse attempts. Key = (ip_hash, region_upper,
+# realm, name_lower). Value = time.time() unix timestamp. Resets on process
+# restart — acceptable for v1; if abuse shows up in logs, migrate to a DB
+# table (ColdParseAttempt). Lock makes concurrent requests from the same
+# client race-safe.
+_cold_parse_attempts: dict[tuple[str, str, str, str], float] = {}
+_cold_parse_lock = threading.Lock()
+
+
+def _check_and_record_cold_parse(
+    ip_hash: str, region: str, realm: str, name: str
+) -> int:
+    """Atomic check-and-record for the per-(IP, character) cold-parse cooldown.
+
+    Returns 0 if the attempt is allowed (and records it as the new timestamp
+    under lock). Returns a positive int giving seconds remaining if the caller
+    must back off. Prunes opportunistically — when we check a key and the old
+    entry is expired, we sweep up to 100 other stale entries in the same lock
+    hold to keep the dict bounded without a separate cleanup task.
+    """
+    now = time.time()
+    cooldown = settings.cold_parse_cooldown_seconds
+    key = (ip_hash, region.upper(), realm, name.lower())
+    with _cold_parse_lock:
+        last = _cold_parse_attempts.get(key)
+        if last is not None and now - last < cooldown:
+            return int(cooldown - (now - last))
+        # Opportunistic pruning, capped to avoid pathological holds.
+        stale = [k for k, v in _cold_parse_attempts.items()
+                 if now - v >= cooldown][:100]
+        for k in stale:
+            _cold_parse_attempts.pop(k, None)
+        _cold_parse_attempts[key] = now
+    return 0
 
 
 def _run_to_response(run: DungeonRun) -> RunResponse:
@@ -568,6 +606,126 @@ def refresh_player(
         refreshed_at=refreshed_at,
         cooldown_ends_at=cooldown_ends_at,
     )
+
+
+@app.post(
+    "/api/player/{region}/{realm}/{name}/parse",
+    response_model=ParseResponse,
+)
+@limiter.limit(settings.rate_limit_cold_parse)
+def parse_player(
+    request: Request,
+    region: str,
+    realm: str,
+    name: str,
+    session: Session = Depends(get_session),
+):
+    """User-triggered cold ingest for a character not yet in our database.
+
+    Separate path from /refresh because the two have very different abuse
+    profiles. Refresh targets an existing Player row and is capped by a
+    60-minute per-player cooldown. Parse creates new WCL work for any
+    character the user names, so it's rate-limited by (IP, character) with
+    a 24-hour cooldown plus a per-IP slowapi daily cap as a safety net.
+    The 24h per-(IP, character) cooldown is INDEPENDENT of the 60-minute
+    refresh cooldown — a user can cold-parse character A at 10:00 AM and
+    still refresh their already-cached character B at 10:01 AM.
+    """
+    from app.wcl.client import WCLRateLimitedError
+
+    name, realm, region = _canonical_identity(name, realm, region)
+
+    # If the player is already in our DB, the refresh endpoint is the
+    # right tool. 409 steers the frontend to the right UX.
+    existing = _find_player(session, region, realm, name)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "already_indexed",
+                "message": (
+                    "This character is already in our database. Use the "
+                    "Refresh button to pull recent logs."
+                ),
+            },
+        )
+
+    # Per-(IP, character) cooldown — hashed so raw IPs never touch the dict.
+    ip = request.client.host if request.client else None
+    salt = settings.api_key or "umbra-fallback-salt"
+    ip_hash = (
+        hashlib.sha256(f"{ip}:{salt}".encode()).hexdigest() if ip else "anon"
+    )
+    retry_after = _check_and_record_cold_parse(ip_hash, region, realm, name)
+    if retry_after > 0:
+        hours = max(1, round(retry_after / 3600))
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "cold_parse_cooldown_active",
+                "message": (
+                    "You can only parse this character once every 24 hours. "
+                    f"Try again in ~{hours}h."
+                ),
+                "retry_after_seconds": retry_after,
+            },
+        )
+
+    # Perform the ingest. _ingest_player_inline_wrapper opens its own
+    # session, so we don't reuse `session` (SA guarantees break on
+    # cross-session writes).
+    try:
+        result = _ingest_player_inline_wrapper(name, realm, region)
+    except WCLRateLimitedError as e:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "wcl_rate_limited",
+                "message": (
+                    "Warcraft Logs is rate-limiting us — try again in "
+                    f"{max(1, round(e.retry_after / 60))} minute(s)."
+                ),
+                "retry_after": e.retry_after,
+            },
+        )
+    except Exception as e:
+        logger.warning(
+            "Cold parse failed for %s-%s (%s): %s", name, realm, region, e
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "ingest_failed",
+                "message": "Parse failed. Try again in a minute.",
+            },
+        )
+
+    # Ingest returned but produced no Player row -> WCL returned 404 for this
+    # character. Surface as 404 so the frontend can pivot to the ClaimForm
+    # fallback ("or paste a specific log").
+    if result is None or getattr(result, "player", None) is None:
+        reason = getattr(result, "reason", "wcl_not_found") if result else "wcl_not_found"
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "not_found",
+                "reason": reason,
+                "message": (
+                    "Warcraft Logs doesn't have this character. Check the "
+                    "spelling and realm, or paste a specific log below."
+                ),
+            },
+        )
+
+    # IngestResult doesn't carry a run count directly — re-query it from
+    # the DungeonRun table for the newly created Player row. This is a
+    # single indexed count query, so it's cheap.
+    player_id = result.player.id
+    runs_ingested = session.execute(
+        select(func.count()).where(DungeonRun.player_id == player_id)
+    ).scalar() or 0
+
+    return ParseResponse(ok=True, runs_ingested=int(runs_ingested))
 
 
 @app.post(
@@ -2317,101 +2475,37 @@ def get_player_profile(
 ):
     """Full player profile: all role scores + recent runs.
 
-    If the character isn't in our DB yet, we try a one-shot ingest from
-    WCL so anyone searching their own character gets a real answer
-    instead of a dead-end 404. The stricter player-lookup rate limit
-    applies (not the public limit) because each miss can trigger a
-    chain of WCL calls.
+    If the character isn't in our DB, returns not_indexed=True so the
+    frontend can render a "Parse Warcraft Logs" empty state. No auto-ingest
+    happens here — the user must explicitly click Parse, which hits the
+    POST /parse endpoint where it is properly rate-limited.
 
     Outcomes:
-      - Player in DB: served from cache, scores may or may not be
-        populated depending on runs-analyzed threshold.
-      - Player not in DB, WCL has recent M+ reports: ingested live,
-        profile returned with whatever scored.
-      - Player not in DB, WCL returns nothing: 404 with reason
-        'wcl_not_found' so the frontend can show a tailored message.
-      - Player not in DB, WCL has the character but no M+ in recent
-        reports: profile returned with empty scores so the page can
-        render with a 'no runs yet' state.
+      - Player in DB with scores: full profile served from cache.
+      - Player in DB, no scores yet (stub): profile with empty scores,
+        is_indexing=True if the scheduler hasn't finished yet.
+      - Player not in DB: empty profile with not_indexed=True so the
+        frontend can render the Parse CTA without a 404 dead end.
     """
     name, realm, region = _canonical_identity(name, realm, region)
     player = _find_player(session, region, realm, name)
-    is_indexing = False
     if not player:
-        # Fast path: try a bounded inline ingest first so self-lookups (which
-        # often land cold) still get scored within the request.
-        # Slow path: if the ingest doesn't finish in time we hand off to a
-        # background thread and serve an "indexing" stub. The next page
-        # refresh picks up whatever landed. Avoids the edge-timeout 504 that
-        # makes clicks on cold party members look like they do nothing.
-        fut = _bg_ingest_pool.submit(
-            _ingest_player_inline_wrapper, name, realm, region
+        # No auto-ingest. The user must explicitly click Parse on the
+        # empty-state page, which hits POST /parse and is rate-limited
+        # there. This eliminates the compute burn from drive-by searches.
+        return PlayerProfileResponse(
+            name=name,
+            realm=realm,
+            region=region.upper(),
+            class_id=0,
+            scores=[],
+            recent_runs=[],
+            timed_pct=0.0,
+            total_runs=0,
+            per_dungeon=[],
+            not_indexed=True,
         )
-        try:
-            result = fut.result(timeout=_INLINE_INGEST_TIMEOUT_SECONDS)
-        except FutureTimeout:
-            # Thread keeps running; we don't cancel it. Ensure it's tracked
-            # in the inflight set so a second click doesn't double-fire.
-            key = (region.upper(), realm, name.lower())
-            with _bg_ingest_lock:
-                _bg_ingest_inflight.add(key)
-            result = None
-            is_indexing = True
-        except Exception as e:
-            # Treat WCL-rate-limit the same as a timeout: the request is
-            # live, WCL is temporarily unavailable, render the indexing
-            # state so the user at least sees the page load. Scheduler
-            # will retry once WCL's cool-off window ends.
-            from app.wcl.client import WCLRateLimitedError
-            if isinstance(e, WCLRateLimitedError):
-                logger.info("Inline ingest rate-limited for %s-%s (%s): %s",
-                            name, realm, region, e)
-                result = None
-                is_indexing = True
-            else:
-                logger.warning("Inline ingest raised for %s-%s (%s): %s",
-                               name, realm, region, e)
-                result = None
-
-        if not is_indexing and (result is None or result.player is None):
-            reason = getattr(result, "reason", None) if result else None
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "not_found",
-                    "reason": reason or "wcl_not_found",
-                    "message": (
-                        "Character not found on Warcraft Logs. Double-check "
-                        "the name and realm, or make sure you've uploaded "
-                        "at least one M+ log via the Warcraft Logs Uploader."
-                    ),
-                },
-            )
-        player = _find_player(session, region, realm, name)
-        if is_indexing and not player:
-            # Ingest is still running and hasn't persisted the Player row
-            # yet. Return a synthesized indexing response so the frontend
-            # can render an "analyzing…" state without a 404.
-            return PlayerProfileResponse(
-                name=name,
-                realm=realm,
-                region=region.upper(),
-                class_id=0,
-                scores=[],
-                recent_runs=[],
-                timed_pct=0.0,
-                total_runs=0,
-                per_dungeon=[],
-                is_indexing=True,
-            )
-        if not player:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "lookup_failed_post_ingest",
-                    "message": "Ingest succeeded but player lookup failed. Try again in a minute.",
-                },
-            )
+    is_indexing = False
 
     # Build role scores
     scores = [

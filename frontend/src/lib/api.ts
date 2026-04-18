@@ -233,6 +233,67 @@ export async function claimPlayer(
   return res.json();
 }
 
+export interface ParseResponse {
+  ok: boolean;
+  /** Number of M+ runs ingested from the WCL reports we found. 0 is a
+   *  valid success — the character exists on WCL but has no M+ runs
+   *  in their recent reports yet. */
+  runs_ingested: number;
+}
+
+export async function parsePlayerFromWcl(
+  name: string,
+  realm: string,
+  region: string,
+): Promise<ParseResponse> {
+  // Cold parse can take longer than refresh — WCL has more fetching to
+  // do for an uncached character. Match the refresh timeout ceiling;
+  // backend will still bail on its own WCL timeout before this hits.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25_000);
+  let res: Response;
+  try {
+    res = await fetch(
+      `${API_URL}/api/player/${region}/${realm}/${name}/parse`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+      },
+    );
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "The parse timed out. Warcraft Logs may be slow right now. Try again in a minute.",
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  if (!res.ok) {
+    let detail: ApiErrorDetail | string | undefined;
+    let message = `API error ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body?.detail ?? body;
+      if (
+        detail &&
+        typeof detail === "object" &&
+        "message" in detail &&
+        typeof detail.message === "string"
+      ) {
+        message = detail.message;
+      }
+    } catch {
+      /* fall through */
+    }
+    throw new ApiError(res.status, message, detail);
+  }
+  return res.json();
+}
+
 export interface RefreshResponse {
   ok: boolean;
   /** ISO timestamp the ingest finished. */

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-18",
+    title: "Searching a new character now prompts a 'Parse Warcraft Logs' button",
+    category: "improved",
+    body:
+      "Before: searching a character we'd never seen before silently triggered a WCL fetch in the background while you stared at a spinner. Now: you see an empty-state page with a single button to confirm you actually want us to pull their logs. Rate-limited to once per character per IP per 24 hours so drive-by clicks can't burn through our Warcraft Logs budget. Separate from the 1-hour refresh cooldown on profiles that are already graded.",
+  },
+  {
+    date: "2026-04-18",
     title: "Refresh-on-demand replaces the background refresher",
     category: "improved",
     body:

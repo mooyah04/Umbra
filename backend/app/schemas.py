@@ -214,6 +214,10 @@ class PlayerProfileResponse(BaseModel):
     # Frontend renders an "analyzing…" state and the scheduler will
     # warm the row on its next sweep.
     is_indexing: bool = False
+    # True when the character has never been ingested. The frontend
+    # renders a "Parse Warcraft Logs" empty state instead of a spinner
+    # so the user can trigger ingest explicitly via POST /parse.
+    not_indexed: bool = False
 
 
 class HistoryPoint(BaseModel):
@@ -244,6 +248,15 @@ class RefreshResponse(BaseModel):
     ok: bool
     refreshed_at: datetime
     cooldown_ends_at: datetime
+
+
+class ParseResponse(BaseModel):
+    """Result of a user-triggered cold parse."""
+    ok: bool
+    # Number of M+ runs ingested from the WCL reports we found. 0 is a
+    # valid success — the character exists on WCL but has no M+ runs
+    # in their recent reports yet.
+    runs_ingested: int
 
 
 class BugReportRequest(BaseModel):

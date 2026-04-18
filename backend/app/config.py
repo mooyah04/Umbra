@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     # Player must not have been ingested in this many seconds before
     # another refresh is allowed. 3600 = 1 hour.
     refresh_cooldown_seconds: int = 3600
+    # Per-IP slowapi limit on cold parse. Above the per-(IP, char) 24h
+    # cooldown; acts as a safety net against character-name walkers.
+    rate_limit_cold_parse: str = "5/day"
+    # Per-(IP, character) cooldown on cold parse (seconds). Separate from
+    # refresh_cooldown_seconds — that one governs re-ingest of cached
+    # players; this one governs first-time ingest of uncached characters.
+    cold_parse_cooldown_seconds: int = 86400  # 24h
 
     # Blizzard Battle.net API credentials (develop.battle.net OAuth client).
     # Used to fetch character avatar / inset / render URLs for display on
