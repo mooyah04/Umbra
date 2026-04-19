@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { submitBugReport, type BugReportPayload } from "@/lib/api";
 
-export default function BugReportForm() {
+interface Props {
+  /** "suggestion" reframes placeholders around ideas and prefixes the
+   *  submitted summary with "[Suggestion] " so the admin queue can
+   *  visually separate the two without a schema change. */
+  mode?: "bug" | "suggestion";
+}
+
+export default function BugReportForm({ mode = "bug" }: Props) {
+  const isSuggestion = mode === "suggestion";
   const [summary, setSummary] = useState("");
   const [details, setDetails] = useState("");
   const [source, setSource] = useState<"website" | "addon">("website");
@@ -18,8 +26,12 @@ export default function BugReportForm() {
     setSubmitting(true);
     setError(null);
     try {
+      const trimmed = summary.trim();
+      const submittedSummary = isSuggestion
+        ? `[Suggestion] ${trimmed}`
+        : trimmed;
       const payload: BugReportPayload = {
-        summary: summary.trim(),
+        summary: submittedSummary,
         details: details.trim(),
         source,
         submitter_name: name.trim() || undefined,
@@ -43,11 +55,12 @@ export default function BugReportForm() {
           Got It
         </p>
         <h2 className="font-[family-name:var(--font-headline)] font-bold text-3xl text-on-surface mb-3">
-          Bug report #{submitted.id} received.
+          {isSuggestion ? "Suggestion" : "Bug report"} #{submitted.id} received.
         </h2>
         <p className="text-on-surface-variant">
-          Thanks for the heads-up. We&apos;ll look into it. If you left an
-          email we might follow up with questions.
+          {isSuggestion
+            ? "Thanks for the idea. We read every suggestion. If you left an email we might follow up with questions."
+            : "Thanks for the heads-up. We'll look into it. If you left an email we might follow up with questions."}
         </p>
       </div>
     );
@@ -70,7 +83,13 @@ export default function BugReportForm() {
                 : "bg-surface-container-high border-outline-variant/20 text-on-surface-variant hover:text-on-surface"
             }`}
           >
-            {s === "website" ? "Website bug" : "Addon bug"}
+            {isSuggestion
+              ? s === "website"
+                ? "For the website"
+                : "For the addon"
+              : s === "website"
+                ? "Website bug"
+                : "Addon bug"}
           </button>
         ))}
       </div>
@@ -84,7 +103,11 @@ export default function BugReportForm() {
           required
           minLength={3}
           maxLength={200}
-          placeholder="Short description: what broke?"
+          placeholder={
+            isSuggestion
+              ? "Short description: what should we build?"
+              : "Short description: what broke?"
+          }
           className="w-full bg-surface-container-high rounded-md px-3 py-2 text-on-surface placeholder:text-on-surface-variant/60 border border-outline-variant/20 focus:border-primary/50 focus:outline-none"
         />
       </Field>
@@ -97,9 +120,11 @@ export default function BugReportForm() {
           maxLength={8000}
           rows={8}
           placeholder={
-            source === "addon"
-              ? "Paste /umbra bug output here. Include steps that triggered it."
-              : "Steps to reproduce, what you expected vs. what happened, screenshots if any."
+            isSuggestion
+              ? "What problem would this solve for you? Any examples of how other tools handle it? Rough sketches of the UI are welcome."
+              : source === "addon"
+                ? "Paste /umbra bug output here. Include steps that triggered it."
+                : "Steps to reproduce, what you expected vs. what happened, screenshots if any."
           }
           className="w-full bg-surface-container-high rounded-md px-3 py-2 text-on-surface placeholder:text-on-surface-variant/60 border border-outline-variant/20 focus:border-primary/50 focus:outline-none font-mono text-sm"
         />
@@ -141,7 +166,11 @@ export default function BugReportForm() {
         disabled={submitting || summary.trim().length < 3}
         className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.2em] bg-primary text-on-primary px-6 py-3 rounded-md hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {submitting ? "Sending..." : "Send Report"}
+        {submitting
+          ? "Sending..."
+          : isSuggestion
+            ? "Send Suggestion"
+            : "Send Report"}
       </button>
     </form>
   );

@@ -40,6 +40,12 @@ export default function Nav() {
             >
               Methodology
             </Link>
+            <Link
+              href="/bug-report?type=suggestion"
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
+            >
+              Suggest
+            </Link>
           </nav>
           <div className="hidden md:block">
             <InstallButtons size="sm" />
@@ -74,6 +80,15 @@ export default function Nav() {
           <span className="material-symbols-outlined">rule</span>
           <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
             Methodology
+          </span>
+        </Link>
+        <Link
+          href="/bug-report?type=suggestion"
+          className="flex flex-col items-center justify-center text-on-surface/50 pt-1 hover:text-primary"
+        >
+          <span className="material-symbols-outlined">lightbulb</span>
+          <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
+            Suggest
           </span>
         </Link>
       </nav>
