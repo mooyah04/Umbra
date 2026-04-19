@@ -2679,12 +2679,19 @@ def get_run_detail(
 
     response = _run_to_response(run)
 
-    # Enrich with the player's aggregate grade for this dungeon (in the
-    # run's role). Same math as the profile's per-dungeon grid, scoped
-    # to one encounter. Keeps the run page self-contained — the top of
-    # the page can render "Your Skyreach grade: B+" without an extra
-    # round-trip to the profile endpoint.
+    # Grade this specific run on its own, then the whole dungeon (all
+    # runs the player has at this encounter+role). Two scores makes
+    # "how did this one go?" vs "how do I usually do here?" readable at
+    # a glance without a round-trip to the profile endpoint.
     from app.scoring.engine import score_player_runs
+
+    run_result = score_player_runs(
+        runs=[run],
+        role=run.role,
+        class_id=player.class_id,
+    )
+    response.run_grade = run_result.overall_grade
+    response.run_composite_score = run_result.composite_score
 
     dungeon_runs = list(session.execute(
         select(DungeonRun).where(

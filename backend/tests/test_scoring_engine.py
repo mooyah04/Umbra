@@ -186,10 +186,15 @@ def test_damage_output_skips_raw_dps_values():
     assert _score_damage_output(runs) == pytest.approx(40)
 
 
-def test_damage_output_all_raw_returns_zero():
-    """A player with NO runs tagged with a percentile gets 0, not 100."""
+def test_damage_output_all_raw_returns_none():
+    """A player with NO runs tagged with a percentile signals missing
+    data (None) so the composite can renormalize the remaining weights
+    instead of treating the category as a genuine 0 — the old behavior
+    crushed per-dungeon grades on unranked legacy dungeons (Pit of Saron
+    in Midnight S1) even for flawless runs.
+    """
     runs = [_run(dps=30_000_000), _run(dps=45_000_000)]
-    assert _score_damage_output(runs) == 0
+    assert _score_damage_output(runs) is None
 
 
 def test_healing_throughput_skips_raw_hps_values():
@@ -204,3 +209,66 @@ def test_damage_output_accepts_boundary_values():
     """0 and 100 are valid percentile values, not raw. Keep them."""
     runs = [_run(dps=0), _run(dps=100)]
     assert _score_damage_output(runs) == pytest.approx(50)
+
+
+def test_healing_throughput_all_raw_returns_none():
+    """Healer equivalent of the damage-output missing-data signal."""
+    runs = [
+        _run(role=Role.healer, hps=40_000_000),
+        _run(role=Role.healer, hps=75_000_000),
+    ]
+    assert _score_healing_throughput(runs) is None
+
+
+# ── Weight redistribution on missing percentile data ───────────────────────
+
+def _strong_healer_run_no_percentiles(**overrides):
+    """Healer run that looks excellent on every non-percentile metric
+    but has raw (unranked) dps+hps — the Peeli-on-PoS pattern."""
+    defaults = dict(
+        role=Role.healer,
+        spec_name="Holy",
+        encounter_id=10658,  # Pit of Saron, unranked in Midnight S1
+        keystone_level=20,
+        timed=True,
+        dps=29_000_000,           # raw — no WCL percentile
+        hps=170_000_000,          # raw — no WCL percentile
+        deaths=1,
+        interrupts=10, dispels=12,
+        casts_total=1300,
+        cooldown_usage_pct=100,
+        duration=1_800_000,  # 30 min
+        avoidable_damage_taken=0,
+        damage_taken_total=0,
+        cc_casts=8,
+        logged_at=datetime(2026, 4, 18),
+        wcl_report_id="peeli-pos-1", fight_id=1,
+    )
+    defaults.update(overrides)
+    return DungeonRun(**defaults)
+
+
+def test_unranked_dungeon_does_not_collapse_healer_grade():
+    """Peeli's +20 PoS: timed, 1 death, 100% CD usage, 10+ kicks.
+    Before the weight-redistribution fix, the missing percentile data
+    zeroed 40% of the weight bucket and dragged the composite to D+.
+    After the fix, the grade should reflect the categories we CAN
+    measure — minimum B for a clean high-key healer run.
+    """
+    runs = [_strong_healer_run_no_percentiles(wcl_report_id=f"r{i}", fight_id=i)
+            for i in range(5)]
+    result = score_player_runs(runs=runs, role=Role.healer, class_id=6)
+
+    assert "damage_output" in result.excluded_categories
+    assert "healing_throughput" in result.excluded_categories
+    assert result.composite_score >= 65, (
+        f"clean unranked-dungeon healer scored {result.composite_score} "
+        f"(grade {result.overall_grade}); expected ≥ B/65"
+    )
+
+
+def test_excluded_categories_empty_when_all_ranked():
+    """Baseline: a fully-ranked run set populates no excluded list."""
+    runs = [_run(role=Role.dps, dps=80, hps=0) for _ in range(3)]
+    result = score_player_runs(runs=runs, role=Role.dps, class_id=8)
+    assert result.excluded_categories == []

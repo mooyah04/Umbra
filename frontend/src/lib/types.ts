@@ -53,10 +53,14 @@ export interface RunResponse {
   avoidable_deaths: number | null;
   party_comp?: PartyMember[] | null;
   pulls?: Pull[] | null;
-  /** Player's aggregate grade for this dungeon (in this run's role).
-   *  Only populated by the single-run detail endpoint — the run list
-   *  and profile page don't carry it. Null when the run's role has
-   *  no scored runs at all. */
+  /** Grade for THIS specific run, scored in isolation. Only populated
+   *  by the single-run detail endpoint — the run list uses a
+   *  lighter response shape. */
+  run_grade?: string | null;
+  run_composite_score?: number | null;
+  /** Player's aggregate grade across every run they have at this
+   *  encounter+role. Only populated by the single-run detail endpoint.
+   *  Null when the run's role has no scored runs at all. */
   dungeon_grade?: string | null;
   dungeon_composite_score?: number | null;
   dungeon_runs_count?: number | null;

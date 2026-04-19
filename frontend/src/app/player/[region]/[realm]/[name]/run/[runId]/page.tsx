@@ -75,22 +75,36 @@ export default async function RunDetailPage({ params }: Props) {
             <h2 className="text-4xl md:text-6xl font-black font-[family-name:var(--font-headline)] tracking-tighter uppercase text-on-surface">
               {dungeonName(run.encounter_id)}
             </h2>
-            {run.dungeon_grade && (
+            {run.run_grade && (
               <span
                 className="bg-surface-container-highest border-2 font-black font-[family-name:var(--font-headline)] px-3 py-1 text-2xl italic tracking-tighter"
                 style={{
-                  color: getGradeColor(run.dungeon_grade),
-                  borderColor: `${getGradeColor(run.dungeon_grade)}60`,
-                  textShadow: `0 0 12px ${getGradeColor(run.dungeon_grade)}40`,
+                  color: getGradeColor(run.run_grade),
+                  borderColor: `${getGradeColor(run.run_grade)}60`,
+                  textShadow: `0 0 12px ${getGradeColor(run.run_grade)}40`,
                 }}
-                title={`Your aggregate grade for ${dungeonName(run.encounter_id)} across ${run.dungeon_runs_count ?? 0} run${run.dungeon_runs_count === 1 ? "" : "s"}`}
+                title={`Grade for this specific run, scored on its own.`}
               >
-                {run.dungeon_grade}
+                {run.run_grade}
               </span>
             )}
           </div>
           <p className="text-on-surface-variant font-[family-name:var(--font-label)] text-xs uppercase tracking-widest mt-1">
             {run.spec_name}
+            {run.run_grade ? (
+              <>
+                {" · "}
+                <span className="normal-case tracking-normal text-on-surface/70">
+                  This run:{" "}
+                  <span
+                    className="font-bold"
+                    style={{ color: getGradeColor(run.run_grade) }}
+                  >
+                    {run.run_grade}
+                  </span>
+                </span>
+              </>
+            ) : null}
             {run.dungeon_grade && run.dungeon_runs_count ? (
               <>
                 {" · "}

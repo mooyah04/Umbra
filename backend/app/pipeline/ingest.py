@@ -254,6 +254,27 @@ def _get_total_casts(table_data: dict, player_name: str) -> int:
     return 0
 
 
+# Minimum casts for a M+ fight to count as real participation. A full
+# dungeon run produces hundreds to thousands of casts for any role; a
+# fight where the player disconnected or left early shows up with a
+# handful (observed as low as 1). These phantom rows otherwise drag
+# composite scores down — e.g. zeroing CPM and cooldown-usage, which
+# flows through the weighted average and can demote a B tank to a D.
+# Chose 20 as a conservative floor: even a 30-second wipe-and-leave
+# key produces more than this for any spec, while true disconnects
+# are well under it.
+MIN_CASTS_FOR_VALID_RUN = 20
+
+
+def _is_phantom_run(casts_total: int) -> bool:
+    """True if a run's cast count is so low it must be a DC/phantom.
+
+    Isolated as a helper so the filter's threshold has one source of
+    truth and can be unit-tested without standing up the full ingest.
+    """
+    return casts_total < MIN_CASTS_FOR_VALID_RUN
+
+
 def _get_cooldown_usage(
     buffs_table: dict,
     cooldowns: list[tuple[int, str, float]],
@@ -1082,8 +1103,10 @@ def ingest_player(
             fight_logged_at = fight_logged_at_dedup
             fight_keystone = fight_keystone_level
 
-            # Track this new run so later fights in the same batch see it.
-            fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
+            # Note: fuzzy_runs is updated only after the phantom-run
+            # filter below, so a skipped DC fight doesn't claim the slot
+            # and cause a real subsequent run of the same key to be
+            # deduped away.
 
             # Level B v2 — pull-by-pull breakdown. Only built for ≥+8
             # keys (see _BREAKDOWN_MIN_KEYSTONE). The helper does four
@@ -1115,6 +1138,24 @@ def ingest_player(
                 )
                 if pull_avoidable > avoidable_death_count:
                     avoidable_death_count = pull_avoidable
+
+            # Drop DC/phantom fights before they reach the DB. WCL's
+            # playerDetails lists anyone who was in the raid group, even
+            # if they disconnected seconds after start, so we re-check
+            # participation by cast count here.
+            if _is_phantom_run(total_casts):
+                logger.info(
+                    "Ingest %s-%s: skipping phantom fight (report=%s fight=%d, "
+                    "casts=%d < %d)",
+                    name, realm, report_code, fight_id,
+                    total_casts, MIN_CASTS_FOR_VALID_RUN,
+                )
+                continue
+
+            # Track this new run so later fights in the same batch see it
+            # for dedup. Done after the phantom filter so a DC'd fight
+            # doesn't claim the slot of a real run of the same key.
+            fuzzy_runs.append((encounter_id, fight_keystone, fight_logged_at))
 
             run = DungeonRun(
                 player_id=player.id,

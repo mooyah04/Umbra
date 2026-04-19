@@ -7,7 +7,7 @@ Runs are weighted by keystone level — higher keys have more impact on the fina
 Key timing is a universal ±8 modifier applied to all roles equally.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from app.models import DungeonRun, Role
 from app.scoring.cpm_benchmarks import get_benchmark, score_cpm
 from app.scoring.dispel_capability import class_has_dispel
@@ -64,7 +64,7 @@ def _weighted_average(runs: list[DungeonRun], score_fn) -> float:
 
 # ── Category scorers ────────────────────────────────────────────────────────
 
-def _score_damage_output(runs: list[DungeonRun]) -> float:
+def _score_damage_output(runs: list[DungeonRun]) -> float | None:
     """DPS performance across runs, weighted by key level.
 
     `dps` holds a WCL rankPercent (0-100 percentile) when zoneRankings
@@ -72,21 +72,29 @@ def _score_damage_output(runs: list[DungeonRun]) -> float:
     not recognized, data missing upstream — ingest leaves the raw DPS
     number (millions). Treating those as "missing" rather than clamping
     to 100 prevents silent grade inflation. Runs with out-of-range
-    values are skipped; `_weighted_average` returns 0 if nothing's left.
+    values are skipped.
+
+    Returns None when no run has a valid percentile. The composite loop
+    uses that to drop the category and renormalize the remaining weights
+    rather than treating missing data as a zero — which would otherwise
+    crush per-dungeon grades on legacy dungeons that WCL hasn't ranked
+    yet (e.g. Pit of Saron reintroduced in Midnight S1).
     """
     valid = [r for r in runs if 0 <= r.dps <= 100]
+    if not valid:
+        return None
     return _weighted_average(valid, lambda r: r.dps)
 
 
-def _score_healing_throughput(runs: list[DungeonRun]) -> float:
+def _score_healing_throughput(runs: list[DungeonRun]) -> float | None:
     """Healing performance for healers, weighted by key level.
 
-    Same percentile-vs-raw guard as _score_damage_output — WCL's hps
-    zoneRankings doesn't always return a match, in which case ingest
-    leaves the raw HPS in place. Skip out-of-range values rather than
-    saturating them to 100.
+    Same percentile-vs-raw guard and None-when-no-data signal as
+    _score_damage_output.
     """
     valid = [r for r in runs if 0 <= r.hps <= 100]
+    if not valid:
+        return None
     return _weighted_average(valid, lambda r: r.hps)
 
 
@@ -444,6 +452,11 @@ class ScoreResult:
     category_scores: dict[str, float]  # category_name -> 0-100
     timing_modifier: float
     runs_analyzed: int
+    # Categories that returned no valid data (e.g. WCL has no percentile
+    # for this dungeon's runs). Excluded from the composite via weight
+    # renormalization; listed here so callers/UI can render "not
+    # measured" instead of a misleading 0.
+    excluded_categories: list[str] = field(default_factory=list)
 
 
 def score_player_runs(
@@ -469,15 +482,24 @@ def score_player_runs(
     """
     weights = ROLE_WEIGHTS[role]
     category_scores: dict[str, float] = {}
-    composite = 0.0
+    excluded_categories: list[str] = []
 
     # Use healer-specific scorers when applicable
     scorers = dict(CATEGORY_SCORERS)
     if role == Role.healer:
         scorers.update(HEALER_CATEGORY_OVERRIDES)
 
-    for category_name, weight in weights.categories.items():
-        # Use zone rankings percentile for damage output if available
+    # Phase 1: collect raw scores per category. Percentile-dependent
+    # scorers may return None when no run has a valid percentile (e.g.
+    # WCL hasn't ranked a reintroduced legacy dungeon). Those categories
+    # are dropped from the composite and the remaining weights are
+    # renormalized — zeroing them instead would crush per-dungeon grades
+    # on unranked dungeons even for flawless runs.
+    raw_scores: dict[str, float] = {}
+    for category_name in weights.categories:
+        # Use zone rankings percentile for damage output if available.
+        # Zone rankings are a player-wide average and always populated
+        # when ingest succeeds, so this path never returns None.
         if category_name == "damage_output" and zone_dps_percentile is not None:
             score = zone_dps_percentile
         else:
@@ -492,8 +514,30 @@ def score_player_runs(
                 score = scorer(runs, class_id=class_id)
             else:
                 score = scorer(runs)
-        category_scores[category_name] = round(score, 1)
-        composite += score * weight
+
+        if score is None:
+            excluded_categories.append(category_name)
+            # Keep the key in category_scores so existing API consumers
+            # (frontend bars, Lua export) don't blow up on a KeyError.
+            # 0 is the least surprising placeholder; the excluded list
+            # is the truthful signal a UI should use to render "no data".
+            category_scores[category_name] = 0.0
+        else:
+            raw_scores[category_name] = score
+            category_scores[category_name] = round(score, 1)
+
+    # Phase 2: composite over the categories that actually had data,
+    # with weights renormalized to sum to 1 across that subset.
+    effective_weight_total = sum(
+        w for name, w in weights.categories.items() if name in raw_scores
+    )
+    if effective_weight_total > 0:
+        composite = sum(
+            raw_scores[name] * (weights.categories[name] / effective_weight_total)
+            for name in raw_scores
+        )
+    else:
+        composite = 0.0
 
     # Store ilvl-relative percentile separately (for display, not in composite)
     if zone_dps_ilvl_percentile is not None:
@@ -521,4 +565,5 @@ def score_player_runs(
         category_scores=category_scores,
         timing_modifier=timing_mod,
         runs_analyzed=len(runs),
+        excluded_categories=excluded_categories,
     )

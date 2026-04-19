@@ -161,11 +161,16 @@ class RunResponse(BaseModel):
     # nested events. None on runs below the keystone-level threshold
     # (+2, was +8) or ingested before Level B v2 shipped.
     pulls: list[dict] | None = None
-    # Per-dungeon aggregate context. Only populated by the single-run
-    # endpoint so the run page can answer "where does this run sit
-    # inside my overall grade for this dungeon?" — same math as the
-    # profile's per-dungeon grid, scoped to this run's encounter_id
-    # in the player's primary role.
+    # Per-run grade — scoring engine applied to this one run alone.
+    # Answers "how did THIS particular run play?", letting the run page
+    # show a grade for the pull the user clicked into alongside the
+    # dungeon-wide aggregate below. Only populated by the single-run
+    # endpoint.
+    run_grade: str | None = None
+    run_composite_score: float | None = None
+    # Per-dungeon aggregate context — same scoring math applied across
+    # every run the player has in this encounter+role. Answers "where
+    # does this run sit inside my overall grade for this dungeon?"
     dungeon_grade: str | None = None
     dungeon_composite_score: float | None = None
     dungeon_runs_count: int | None = None

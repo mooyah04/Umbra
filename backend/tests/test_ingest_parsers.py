@@ -8,6 +8,7 @@ if the API shape changes upstream or we mis-parse a table, the test
 will catch it before we ingest garbage into the DB.
 """
 from app.pipeline.ingest import (
+    MIN_CASTS_FOR_VALID_RUN,
     _count_avoidable_deaths,
     _count_cc_casts,
     _count_cc_casts_from_casts_table,
@@ -18,6 +19,7 @@ from app.pipeline.ingest import (
     _get_nested_stat,
     _get_player_stat,
     _get_total_casts,
+    _is_phantom_run,
 )
 
 
@@ -331,3 +333,20 @@ def test_get_healing_received_target_grouped_fallback():
 def test_get_healing_received_missing_player():
     table = {"data": {"entries": []}}
     assert _get_healing_received(table, "Mooyuh") == 0
+
+
+# ── Phantom-run guard ───────────────────────────────────────────────────────
+
+def test_phantom_run_catches_dc_level_casts():
+    """Observed DC signatures: 1, 3, 8 casts over a 30-minute fight."""
+    assert _is_phantom_run(0)
+    assert _is_phantom_run(1)
+    assert _is_phantom_run(8)
+    assert _is_phantom_run(MIN_CASTS_FOR_VALID_RUN - 1)
+
+
+def test_phantom_run_lets_real_runs_through():
+    """Even a very short or very low-CPM run clears the floor."""
+    assert not _is_phantom_run(MIN_CASTS_FOR_VALID_RUN)
+    assert not _is_phantom_run(50)
+    assert not _is_phantom_run(1200)
