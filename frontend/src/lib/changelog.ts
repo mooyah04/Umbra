@@ -16,6 +16,48 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-19",
+    title: "Disconnect runs no longer drag your grade down",
+    category: "fixed",
+    body:
+      "If a dungeon ended with you disconnected or AFK, that fight used to flow into your grade as a zero-cast, zero-cooldown-use entry and could crater an otherwise clean composite from B into D. We now skip those phantom runs entirely. Cleaned 54 of them out of the database today, so 33 players will see their grade shift on their next refresh.",
+  },
+  {
+    date: "2026-04-19",
+    title: "Per-dungeon grades no longer collapse on reintroduced legacy dungeons",
+    category: "fixed",
+    body:
+      "Pit of Saron is back in rotation this season but Warcraft Logs hasn't indexed it for percentile rankings yet. Until today that meant our per-dungeon PoS tile had to treat damage and healing as zero, which pushed players with clean timed +20 runs down to D+ on that dungeon alone. Now we redistribute those categories' weight across the categories we can actually measure, so the per-dungeon grade reflects how the runs played instead of how much of the data Warcraft Logs has filled in.",
+  },
+  {
+    date: "2026-04-19",
+    title: "Two grades on every run page",
+    category: "new",
+    body:
+      "Click into any specific run and you'll now see both a grade for that single pull and your overall grade for that dungeon across however many runs you have of it. The single-run grade answers 'how did this one go?' and the aggregate answers 'where does this sit in my history here?'. They're right next to each other at the top of the page.",
+  },
+  {
+    date: "2026-04-19",
+    title: "Per-dungeon breakdown on the run page",
+    category: "new",
+    body:
+      "The same category blocks the profile uses for your overall grade now appear on the run page too, scoped to the dungeon you're viewing. See exactly where your B+ Skyreach or your A- Magister's Terrace came from, category by category, without leaving the run.",
+  },
+  {
+    date: "2026-04-19",
+    title: "Upload a log straight from the run page",
+    category: "new",
+    body:
+      "The run hero now has a 'Got another log?' slot in the top corner. Paste a Warcraft Logs URL or its 16-character code and we'll re-sync your profile directly from that report. Handy right after you finish a key and want the log in your profile without jumping back to your main page.",
+  },
+  {
+    date: "2026-04-19",
+    title: "Fixed profiles flickering between Not Rated and your real grade",
+    category: "fixed",
+    body:
+      "Some characters had duplicate records in our database from different ingest paths using different realm name formats (TwistingNether vs twisting-nether). Profile pages would sometimes load the empty duplicate instead of the populated one, showing 'Not Rated' even on graded players. Consolidated 61 duplicate characters into their real entries, made the lookup deterministic so the populated row wins every time, and closed the path that was creating the stubs so new ones can't appear.",
+  },
+  {
     date: "2026-04-18",
     title: "Interrupts now name the spell you kicked with",
     category: "improved",
