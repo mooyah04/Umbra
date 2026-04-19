@@ -64,7 +64,7 @@ export default async function RunDetailPage({ params }: Props) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50" />
         <div className="absolute bottom-8 left-8 z-20 space-y-2">
           <div className="flex items-center gap-3">
-            <Link href={playerPath} className="text-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest hover:underline">
+            <Link href={playerPath} prefetch={false} className="text-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest hover:underline">
               &larr; {decodeURIComponent(name)}
             </Link>
           </div>
