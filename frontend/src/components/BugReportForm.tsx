@@ -55,7 +55,7 @@ export default function BugReportForm({ mode = "bug" }: Props) {
           Got It
         </p>
         <h2 className="font-[family-name:var(--font-headline)] font-bold text-3xl text-on-surface mb-3">
-          {isSuggestion ? "Suggestion" : "Bug report"} #{submitted.id} received.
+          {isSuggestion ? "Suggestion received." : `Bug report #${submitted.id} received.`}
         </h2>
         <p className="text-on-surface-variant">
           {isSuggestion
