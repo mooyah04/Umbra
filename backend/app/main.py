@@ -126,6 +126,13 @@ def _find_player(session: Session, region: str, realm: str, name: str) -> Player
     Filtering realm client-side keeps the lookup independent of which storage
     convention ingest used. Scale fine for preview-level data; if the player
     count grows large, add an indexed realm_key column to avoid the full scan.
+
+    When multiple Player rows share the normalized identity (historically
+    created by different ingest paths using different casing), ORDER BY
+    `last_ingested_at DESC NULLS LAST, id ASC` picks the row that actually
+    has data over the empty stubs. Without the ORDER BY, Postgres's row
+    order was nondeterministic and users saw grades flicker between
+    "Not Rated" and their real score across page loads.
     """
     target = _realm_key(realm)
     stmt = (
@@ -134,6 +141,7 @@ def _find_player(session: Session, region: str, realm: str, name: str) -> Player
             Player.name.ilike(name),
             Player.region.ilike(region),
         )
+        .order_by(Player.last_ingested_at.desc().nullslast(), Player.id.asc())
         .options(selectinload(Player.scores), selectinload(Player.runs))
     )
     for p in session.execute(stmt).scalars():
