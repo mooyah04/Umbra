@@ -74,7 +74,7 @@ export default function RefreshButton({ name, realm, region }: Props) {
     ? "Refreshing…"
     : cooldownRemaining > 0
       ? `Refresh in ${formatCountdown(cooldownRemaining)}`
-      : "Refresh my profile";
+      : "Refresh Profile";
 
   return (
     <div className="w-full">

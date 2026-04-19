@@ -10,7 +10,7 @@ import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import { generateRunNarrative } from "@/lib/narrative";
 import CategoryExplainer from "@/components/CategoryExplainer";
-import RefreshButton from "@/components/RefreshButton";
+import ClaimForm from "@/components/ClaimForm";
 import type {
   PartyMember,
   Pull,
@@ -18,6 +18,11 @@ import type {
   PullEventType,
   PullVerdict,
 } from "@/lib/types";
+
+const RUN_UPLOAD_TITLE = "Got another log?";
+const RUN_UPLOAD_DESCRIPTION =
+  "Paste a Warcraft Logs report URL (or its 16-character code) " +
+  "and we'll ingest it into this profile.";
 
 interface Props {
   params: Promise<{ region: string; realm: string; name: string; runId: string }>;
@@ -109,10 +114,11 @@ export default async function RunDetailPage({ params }: Props) {
         <div className="absolute inset-0 bg-gradient-to-r from-surface-container-high/90 via-surface-container-high/40 to-transparent z-10" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50" />
 
-        {/* Top-right: quick stats + refresh. Not everyone scrolls to the
-            bottom for RefreshButton, so surfacing it here keeps the
-            freshness loop one click away from the run detail. */}
-        <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-3 w-[220px] max-w-[45%]">
+        {/* Top-right: quick ilvl context + "got another log?" slot. The
+            run page is the natural place for a user to realize they
+            have more logs to add, so surface the upload form directly
+            in the hero rather than hiding it lower on the page. */}
+        <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-3 w-[320px] max-w-[50%]">
           <div className="flex items-center gap-3 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant bg-surface-container-high/60 backdrop-blur-sm rounded px-3 py-2 border border-outline-variant/20">
             <div className="text-right">
               <p className="text-on-surface font-bold text-sm tracking-tight">
@@ -134,7 +140,16 @@ export default async function RunDetailPage({ params }: Props) {
               </>
             )}
           </div>
-          <RefreshButton name={name} realm={realm} region={region} />
+          <div className="w-full">
+            <ClaimForm
+              name={decodeURIComponent(name)}
+              realm={decodeURIComponent(realm)}
+              region={region}
+              title={RUN_UPLOAD_TITLE}
+              description={RUN_UPLOAD_DESCRIPTION}
+              compact
+            />
+          </div>
         </div>
 
         <div className="absolute bottom-8 left-8 z-20 space-y-2">
