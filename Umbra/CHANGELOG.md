@@ -2,6 +2,15 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.6] - 2026-04-19
+
+### Fixed
+- Addon being marked "Incompatible" on current live clients. The
+  .toc's Interface was bumped to 120005 in anticipation of a WoW 12.0.5
+  client update that hasn't shipped yet; live clients still report
+  120001, so the higher value made WoW treat the addon as targeting
+  a future version and refuse to load it. Rolled back to 120001.
+
 ## [0.3.5] - 2026-04-19
 
 ### Changed
