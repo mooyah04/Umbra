@@ -21,7 +21,7 @@ from app.db import SessionLocal, engine, get_session
 from app.export.lua_writer import generate_lua
 from app.models import AddonDownload, Base, BugReport, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
-from app.security import limiter, require_api_key
+from app.security import limiter, refresh_cloudflare_ips, require_api_key
 from app.validators import ValidationError, realm_key, validate_player_identity
 from app.schemas import (
     BugReportRequest,
@@ -51,6 +51,11 @@ logger = logging.getLogger(__name__)
 def lifespan(app: FastAPI):
     # Create tables on startup (use Alembic in production)
     Base.metadata.create_all(engine)
+    # Pull Cloudflare's current edge IP list so the rate-limiter can
+    # verify CF-Connecting-IP before trusting it. Fails soft: a failed
+    # fetch just means CF-Connecting-IP gets ignored until the next
+    # restart. Published ranges change rarely (months between updates).
+    refresh_cloudflare_ips()
     from app import scheduler, scheduler_leaderboard
     scheduler.start()
     scheduler_leaderboard.start()
