@@ -2704,6 +2704,7 @@ def get_run_detail(
         response.dungeon_grade = dungeon_result.overall_grade
         response.dungeon_composite_score = dungeon_result.composite_score
         response.dungeon_runs_count = len(dungeon_runs)
+        response.dungeon_category_scores = dungeon_result.category_scores
 
     return response
 

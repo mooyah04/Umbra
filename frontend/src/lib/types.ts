@@ -64,6 +64,10 @@ export interface RunResponse {
   dungeon_grade?: string | null;
   dungeon_composite_score?: number | null;
   dungeon_runs_count?: number | null;
+  /** Per-category breakdown for the dungeon aggregate — same shape as
+   *  the profile's overall category_scores but scoped to this dungeon's
+   *  runs. Drives the per-dungeon "THE BREAKDOWN" view. */
+  dungeon_category_scores?: Record<string, number> | null;
 }
 
 export type PullEventType = "avoidable_damage" | "critical_interrupt" | "death";

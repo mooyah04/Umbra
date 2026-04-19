@@ -171,9 +171,14 @@ class RunResponse(BaseModel):
     # Per-dungeon aggregate context — same scoring math applied across
     # every run the player has in this encounter+role. Answers "where
     # does this run sit inside my overall grade for this dungeon?"
+    # `dungeon_category_scores` powers the per-dungeon "THE BREAKDOWN"
+    # view (same shape as PlayerScore.category_scores on the profile),
+    # scoped to this dungeon's runs so users see exactly where the
+    # per-dungeon grade came from.
     dungeon_grade: str | None = None
     dungeon_composite_score: float | None = None
     dungeon_runs_count: int | None = None
+    dungeon_category_scores: dict[str, float] | None = None
 
 
 class RunListResponse(BaseModel):

@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { getRunDetail } from "@/lib/api";
 import { getGradeColor } from "@/lib/grades";
+import {
+  getCategoriesForRole,
+  ROLE_WEIGHT_PROFILES,
+} from "@/lib/methodology";
 import { formatNumber, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import { generateRunNarrative } from "@/lib/narrative";
+import CategoryExplainer from "@/components/CategoryExplainer";
 import type {
   PartyMember,
   Pull,
@@ -44,6 +49,32 @@ export default async function RunDetailPage({ params }: Props) {
   const narrative = generateRunNarrative(run);
   const pulls = run.pulls ?? null;
   const wclUrl = `https://www.warcraftlogs.com/reports/${run.wcl_report_id}?fight=${run.fight_id}`;
+
+  // Category breakdown scoped to this dungeon's aggregate — same shape
+  // as the profile's overall breakdown but populated from
+  // dungeon_category_scores (all the player's runs at this encounter+role).
+  // Mirrors the profile's filtering: skip timing_modifier because it's on
+  // a ±8 scale that CategoryExplainer renders as /100 and reads as failure.
+  const runRole = run.role.toLowerCase();
+  const dungeonWeightMap: Record<string, number> = Object.fromEntries(
+    (ROLE_WEIGHT_PROFILES[runRole as "dps" | "healer" | "tank"] ?? []).map(
+      (w) => [w.key, w.weight],
+    ),
+  );
+  const dungeonCategoryBlocks = run.dungeon_category_scores
+    ? getCategoriesForRole(runRole)
+        .filter(
+          (c) =>
+            c.key !== "timing_modifier" &&
+            run.dungeon_category_scores != null &&
+            c.key in run.dungeon_category_scores,
+        )
+        .map((c) => ({
+          explanation: c,
+          score: run.dungeon_category_scores?.[c.key] ?? 0,
+          weight: dungeonWeightMap[c.key],
+        }))
+    : [];
 
   const deathEvents = (run.pulls ?? []).flatMap((p) =>
     p.events
@@ -401,6 +432,48 @@ export default async function RunDetailPage({ params }: Props) {
             up top — the re-ingest will populate the breakdown from the
             original Warcraft Logs report.
           </p>
+        </section>
+      )}
+
+      {/* Per-dungeon category breakdown — the same blocks the profile
+          renders overall, but scoped to this dungeon's runs so users
+          can see where the per-dungeon grade came from. */}
+      {dungeonCategoryBlocks.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+            <div>
+              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+                How Your {dungeonName(run.encounter_id)} Grade Breaks Down
+              </p>
+              <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-4xl tracking-tighter text-on-surface">
+                THE BREAKDOWN
+              </h3>
+              <p className="text-on-surface-variant text-sm mt-2 max-w-xl">
+                Across your {run.dungeon_runs_count ?? 0}{" "}
+                {(run.dungeon_runs_count ?? 0) === 1 ? "run" : "runs"} of this
+                dungeon.
+              </p>
+            </div>
+            <Link
+              href="/about"
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
+            >
+              Full methodology
+              <span className="material-symbols-outlined text-sm">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {dungeonCategoryBlocks.map((c) => (
+              <CategoryExplainer
+                key={c.explanation.key}
+                explanation={c.explanation}
+                score={c.score}
+                weight={c.weight}
+              />
+            ))}
+          </div>
         </section>
       )}
 
