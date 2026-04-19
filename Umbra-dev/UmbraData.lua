@@ -1,17 +1,4 @@
 Umbra_Database = {
-    ["Kahélem-Ysondre"] = {
-        role = "dps",
-        spec = "Frost",
-        grade = "B",
-        dps_perf = 69,
-        dps_ilvl = 68,
-        utility = 58,
-        survivability = 52,
-        cd_usage = 78,
-        cpm = 100,
-        timed_pct = 93,
-        runs = 15,
-    },
     ["Mauta-Talnivarr"] = {
         role = "dps",
         spec = "Survival",
@@ -1811,6 +1798,19 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 23,
         runs = 173,
+    },
+    ["Kahélem-Ysondre"] = {
+        role = "dps",
+        spec = "Frost",
+        grade = "B",
+        dps_perf = 74,
+        dps_ilvl = 73,
+        utility = 58,
+        survivability = 49,
+        cd_usage = 83,
+        cpm = 100,
+        timed_pct = 94,
+        runs = 18,
     },
     ["Aethralon-Draenor"] = {
         role = "healer",
