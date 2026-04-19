@@ -19,6 +19,7 @@ from app.scoring.interrupts import get_critical_interrupt_ids
 from app.scoring.roles import get_role
 from app.scoring.spec_to_class import class_id_from_name, resolve_class_id
 from app.bnet.client import bnet_client
+from app.validators import realm_key
 from app.wcl.client import wcl_client, WCLQueryError
 
 logger = logging.getLogger(__name__)
@@ -770,17 +771,14 @@ def ingest_player(
     # on later queries, etc). Matching on wcl_id first historically caused
     # duplicate rows: a later sweep that returned a different wcl_id
     # couldn't find the original row and created a new one.
-    target_realm_key = "".join(c.lower() for c in wow_realm if c.isalnum())
+    target_realm_key = realm_key(wow_realm)
     candidates = list(session.execute(
         select(Player).where(
             Player.name.ilike(name),
             Player.region.ilike(region),
         )
     ).scalars())
-    matches = [
-        c for c in candidates
-        if "".join(ch.lower() for ch in c.realm if ch.isalnum()) == target_realm_key
-    ]
+    matches = [c for c in candidates if realm_key(c.realm) == target_realm_key]
 
     if len(matches) > 1:
         # Pre-existing duplicates: pick the row with the most runs as the

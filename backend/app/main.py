@@ -22,7 +22,7 @@ from app.export.lua_writer import generate_lua
 from app.models import AddonDownload, Base, BugReport, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, require_api_key
-from app.validators import ValidationError, validate_player_identity
+from app.validators import ValidationError, realm_key, validate_player_identity
 from app.schemas import (
     BugReportRequest,
     BugReportResponse,
@@ -107,19 +107,6 @@ def _canonical_identity(name: str, realm: str, region: str) -> tuple[str, str, s
         raise HTTPException(status_code=400, detail=str(e))
 
 
-def _realm_key(realm: str) -> str:
-    """Normalize a realm name for equality comparison.
-
-    The codebase mixes three realm storage/display conventions:
-      - WoW display:  'Tarren Mill'
-      - WCL slug:     'tarren-mill'
-      - Raider.IO:    'TarrenMill'
-    Stripping to alphanumeric + lowercase collapses all three to 'tarrenmill'
-    so any inbound format finds the row regardless of how it was stored.
-    """
-    return "".join(c.lower() for c in realm if c.isalnum())
-
-
 def _find_player(session: Session, region: str, realm: str, name: str) -> Player | None:
     """Find a player by name + region, filter realm in Python on the normalized key.
 
@@ -134,7 +121,7 @@ def _find_player(session: Session, region: str, realm: str, name: str) -> Player
     order was nondeterministic and users saw grades flicker between
     "Not Rated" and their real score across page loads.
     """
-    target = _realm_key(realm)
+    target = realm_key(realm)
     stmt = (
         select(Player)
         .where(
@@ -145,7 +132,7 @@ def _find_player(session: Session, region: str, realm: str, name: str) -> Player
         .options(selectinload(Player.scores), selectinload(Player.runs))
     )
     for p in session.execute(stmt).scalars():
-        if _realm_key(p.realm) == target:
+        if realm_key(p.realm) == target:
             return p
     return None
 

@@ -116,6 +116,23 @@ def realm_to_slug(realm: str) -> str:
     return slug
 
 
+def realm_key(realm: str) -> str:
+    """Normalize a realm name for equality comparison across formats.
+
+    The codebase mixes three realm conventions:
+      - WoW display:  'Tarren Mill'
+      - WCL slug:     'tarren-mill'
+      - Raider.IO:    'TarrenMill'
+    Stripping to alphanumeric + lowercase collapses all three to
+    'tarrenmill'. Use this to find an existing Player row regardless
+    of which format the caller used — e.g. the Blizzard leaderboard
+    discovery path writes slug-style realms while ingest writes
+    PascalCase. Without this, look-ups compare literal strings and
+    create duplicate rows for the same character.
+    """
+    return "".join(c.lower() for c in realm if c.isalnum())
+
+
 def validate_player_identity(
     name: str, realm: str, region: str
 ) -> tuple[str, str, str]:

@@ -23,6 +23,7 @@ from app.bnet.client import bnet_client
 from app.models import Player
 from app.scoring.dungeons.registry import _DUNGEONS
 from app.scoring.specializations import resolve_spec
+from app.validators import realm_key
 
 logger = logging.getLogger(__name__)
 
@@ -162,13 +163,25 @@ def upsert_stub_players(
     new_count = 0
     updated_count = 0
     for p in players:
-        existing = session.execute(
+        # ilike on realm alone misses rows stored in a different format
+        # convention (e.g. 'TwistingNether' from the WCL ingest path vs
+        # 'twisting-nether' from this Blizzard leaderboard path). Match
+        # name + region case-insensitively, then filter realm on the
+        # normalized key so all formats collapse to the same string.
+        # Without this, every leaderboard pass created a parallel stub
+        # row for every already-ingested character — 61 duplicates
+        # cleaned up 2026-04-19, all from this path.
+        target_realm_key = realm_key(p.realm)
+        candidates = list(session.execute(
             select(Player).where(
                 Player.name.ilike(p.name),
-                Player.realm.ilike(p.realm),
                 Player.region == p.region,
             )
-        ).scalar_one_or_none()
+        ).scalars())
+        existing = next(
+            (c for c in candidates if realm_key(c.realm) == target_realm_key),
+            None,
+        )
         if existing is not None:
             # Existing row — refresh the discovered_keystone_level if
             # this leaderboard pass saw a higher key than we had
