@@ -265,8 +265,10 @@ def _run_to_response(run: DungeonRun) -> RunResponse:
 
 # ── Routes ──────────────────────────────────────────────────────────────────
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health():
+    # HEAD is allowed alongside GET so uptime services (UptimeRobot
+    # defaults to HEAD) don't get 405s that look like real outages.
     return {"status": "ok", "service": "umbra-score-engine"}
 
 
