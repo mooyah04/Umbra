@@ -40,7 +40,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-surface text-on-surface font-[family-name:var(--font-body)] selection:bg-primary selection:text-on-primary">
+      <body className="min-h-full flex flex-col bg-surface text-on-surface font-[family-name:var(--font-body)] selection:bg-primary selection:text-on-primary overflow-x-hidden">
         <Nav />
         <main className="flex-1">{children}</main>
         <Analytics />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
 import InstallButtons from "@/components/InstallButtons";
+import HeroBackdrop from "@/components/HeroBackdrop";
 import {
   getStatsSummary,
   getTopPlayers,
@@ -20,13 +21,20 @@ export const revalidate = 15;
 export default async function Home() {
   const [stats, recent] = await Promise.all([
     getStatsSummary().catch(() => null),
-    getTopPlayers(12).catch(() => [] as PlayerSearchResult[]),
+    // Pull a wide pool so HeroBackdrop has real variety to shuffle
+    // from on each ISR cycle. 50 is the backend's hard cap; the
+    // carousel below slices off the first 20 so it doesn't become a
+    // hallway to scroll through.
+    getTopPlayers(50).catch(() => [] as PlayerSearchResult[]),
   ]);
+  const carouselPlayers = recent.slice(0, 20);
 
   return (
     <div className="min-h-screen pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
       {/* ── Hero ── */}
-      <section className="flex flex-col items-center justify-center text-center mb-12">
+      <section className="relative flex flex-col items-center justify-center text-center mb-12">
+        <HeroBackdrop players={recent} />
+        <div className="relative z-10 flex flex-col items-center w-full">
         <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-6">
           Mythic+ Performance Grading
         </p>
@@ -58,6 +66,7 @@ export default async function Home() {
           </span>{" "}
           graded
         </p>
+        </div>
       </section>
 
       {/* ── Stats strip ─ 3 role counts on row 1, 2 totals centered on
@@ -225,7 +234,7 @@ export default async function Home() {
             </span>
           </div>
           <RecentlyGradedCarousel>
-            {recent.map((p) => (
+            {carouselPlayers.map((p) => (
               <PlayerCard key={`${p.name}-${p.realm}`} player={p} />
             ))}
           </RecentlyGradedCarousel>

@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
     // to users and strictly more correct.
     staleTimes: {
       dynamic: 0,
-      static: 0,
+      // Next requires static >= 30. Combined with loading.tsx boundaries
+      // on dynamic routes, this is effectively a no-op for profile pages.
+      static: 30,
     },
   },
 };
