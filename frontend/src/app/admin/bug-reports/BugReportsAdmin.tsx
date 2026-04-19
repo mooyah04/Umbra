@@ -20,6 +20,16 @@ interface BugReport {
 
 type StatusFilter = "" | "new" | "triaged" | "resolved" | "wontfix";
 type SourceFilter = "" | "website" | "addon";
+type KindTab = "all" | "bugs" | "suggestions";
+
+// Suggestions come in through the same intake endpoint as bugs, with
+// their summary prefixed by "[Suggestion] " on the client. Triage here
+// reads that prefix to separate the two without a schema change.
+const SUGGESTION_PREFIX = "[Suggestion]";
+
+function isSuggestion(r: BugReport): boolean {
+  return r.summary.trimStart().startsWith(SUGGESTION_PREFIX);
+}
 
 export default function BugReportsAdmin() {
   const [apiKey, setApiKey] = useState("");
@@ -29,6 +39,7 @@ export default function BugReportsAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("");
+  const [kindTab, setKindTab] = useState<KindTab>("all");
 
   // Rehydrate the stored key on mount. Runs client-only (no SSR mismatch
   // risk because the page renders the "enter key" state on first paint).
@@ -92,12 +103,33 @@ export default function BugReportsAdmin() {
     setError(null);
   };
 
-  const counts = useMemo(() => {
+  // Filter by kind tab BEFORE everything else — status/source filters
+  // and counts all reflect the active tab.
+  const visibleReports = useMemo(() => {
     if (!reports) return null;
-    const byStatus: Record<string, number> = {};
-    for (const r of reports) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
-    return byStatus;
+    if (kindTab === "bugs") return reports.filter((r) => !isSuggestion(r));
+    if (kindTab === "suggestions") return reports.filter(isSuggestion);
+    return reports;
+  }, [reports, kindTab]);
+
+  const tabCounts = useMemo(() => {
+    if (!reports) return { all: 0, bugs: 0, suggestions: 0 };
+    let suggestions = 0;
+    for (const r of reports) if (isSuggestion(r)) suggestions += 1;
+    return {
+      all: reports.length,
+      bugs: reports.length - suggestions,
+      suggestions,
+    };
   }, [reports]);
+
+  const counts = useMemo(() => {
+    if (!visibleReports) return null;
+    const byStatus: Record<string, number> = {};
+    for (const r of visibleReports)
+      byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+    return byStatus;
+  }, [visibleReports]);
 
   if (!apiKey) {
     return (
@@ -138,6 +170,35 @@ export default function BugReportsAdmin() {
 
   return (
     <div>
+      {/* Kind tabs — bugs vs suggestions, with an "all" escape hatch.
+          Client-side filter: backend returns everything from the same
+          endpoint, the tab just hides what isn't relevant. */}
+      <div className="flex items-center gap-2 border-b border-outline-variant/20 mb-6">
+        {(["all", "bugs", "suggestions"] as const).map((tab) => {
+          const active = kindTab === tab;
+          const label =
+            tab === "all" ? "All" : tab === "bugs" ? "Bugs" : "Suggestions";
+          return (
+            <button
+              key={tab}
+              onClick={() => setKindTab(tab)}
+              className={`font-[family-name:var(--font-label)] text-[11px] uppercase tracking-widest px-4 py-3 border-b-2 transition-colors ${
+                active
+                  ? "border-primary text-primary"
+                  : "border-transparent text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              {label}
+              <span
+                className={`ml-2 text-[10px] ${active ? "text-primary/80" : "text-on-surface-variant/60"}`}
+              >
+                {tabCounts[tab]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap mb-6">
         <select
           value={statusFilter}
@@ -182,7 +243,7 @@ export default function BugReportsAdmin() {
 
       {counts && (
         <div className="flex gap-4 mb-6 text-xs font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant">
-          <span>Total: {reports?.length ?? 0}</span>
+          <span>Total: {visibleReports?.length ?? 0}</span>
           {Object.entries(counts).map(([k, v]) => (
             <span key={k}>
               {k}: <span className="text-on-surface">{v}</span>
@@ -191,15 +252,15 @@ export default function BugReportsAdmin() {
         </div>
       )}
 
-      {reports && reports.length === 0 && !loading && (
+      {visibleReports && visibleReports.length === 0 && !loading && (
         <p className="text-on-surface-variant text-sm italic">
-          No reports matching the current filters.
+          No {kindTab === "suggestions" ? "suggestions" : kindTab === "bugs" ? "bug reports" : "reports"} matching the current filters.
         </p>
       )}
 
-      {reports && reports.length > 0 && (
+      {visibleReports && visibleReports.length > 0 && (
         <ul className="space-y-3">
-          {reports.map((r) => (
+          {visibleReports.map((r) => (
             <ReportRow
               key={r.id}
               r={r}
