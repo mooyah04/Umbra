@@ -349,6 +349,50 @@ export default async function RunDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Per-dungeon category breakdown — the same blocks the profile
+            renders for the overall grade, but scoped to this dungeon's
+            runs so users can see where the per-dungeon grade came from.
+            Sits as a col-span-12 card to match the other full-width
+            sections (Team Composition, Full Stat Sheet) below it. */}
+        {dungeonCategoryBlocks.length > 0 && (
+          <div className="md:col-span-12 bg-surface-container-high rounded-lg p-8">
+            <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+              <div>
+                <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+                  How Your {dungeonName(run.encounter_id)} Grade Breaks Down
+                </p>
+                <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter uppercase text-on-surface italic">
+                  The Breakdown
+                </h3>
+                <p className="text-on-surface-variant text-sm mt-2 max-w-xl">
+                  Across your {run.dungeon_runs_count ?? 0}{" "}
+                  {(run.dungeon_runs_count ?? 0) === 1 ? "run" : "runs"} of this
+                  dungeon.
+                </p>
+              </div>
+              <Link
+                href="/about"
+                className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
+              >
+                Full methodology
+                <span className="material-symbols-outlined text-sm">
+                  arrow_forward
+                </span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dungeonCategoryBlocks.map((c) => (
+                <CategoryExplainer
+                  key={c.explanation.key}
+                  explanation={c.explanation}
+                  score={c.score}
+                  weight={c.weight}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Party Composition */}
         {run.party_comp && run.party_comp.length > 0 && (
           <div className="md:col-span-12 bg-surface-container-high rounded-lg p-8">
@@ -383,7 +427,6 @@ export default async function RunDetailPage({ params }: Props) {
             <StatTile label="iLvl" value={run.ilvl.toFixed(0)} sub="Item Level" />
             <StatTile label="Dispels" value={run.dispels.toString()} sub="Cleanses" />
             {run.cc_casts !== null && <StatTile label="CC" value={run.cc_casts.toString()} sub="Applications" />}
-            {run.rating !== null && <StatTile label="Rating" value={run.rating.toString()} sub="Blizzard M+" />}
             {run.average_item_level !== null && <StatTile label="Group iLvl" value={run.average_item_level.toFixed(0)} sub="Average" />}
           </div>
         </div>
@@ -432,48 +475,6 @@ export default async function RunDetailPage({ params }: Props) {
             up top — the re-ingest will populate the breakdown from the
             original Warcraft Logs report.
           </p>
-        </section>
-      )}
-
-      {/* Per-dungeon category breakdown — the same blocks the profile
-          renders overall, but scoped to this dungeon's runs so users
-          can see where the per-dungeon grade came from. */}
-      {dungeonCategoryBlocks.length > 0 && (
-        <section className="mb-10">
-          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
-            <div>
-              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-                How Your {dungeonName(run.encounter_id)} Grade Breaks Down
-              </p>
-              <h3 className="font-[family-name:var(--font-headline)] font-bold text-3xl md:text-4xl tracking-tighter text-on-surface">
-                THE BREAKDOWN
-              </h3>
-              <p className="text-on-surface-variant text-sm mt-2 max-w-xl">
-                Across your {run.dungeon_runs_count ?? 0}{" "}
-                {(run.dungeon_runs_count ?? 0) === 1 ? "run" : "runs"} of this
-                dungeon.
-              </p>
-            </div>
-            <Link
-              href="/about"
-              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
-            >
-              Full methodology
-              <span className="material-symbols-outlined text-sm">
-                arrow_forward
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dungeonCategoryBlocks.map((c) => (
-              <CategoryExplainer
-                key={c.explanation.key}
-                explanation={c.explanation}
-                score={c.score}
-                weight={c.weight}
-              />
-            ))}
-          </div>
         </section>
       )}
 
