@@ -161,6 +161,13 @@ class RunResponse(BaseModel):
     # nested events. None on runs below the keystone-level threshold
     # (+2, was +8) or ingested before Level B v2 shipped.
     pulls: list[dict] | None = None
+    # Character render URLs from Blizzard, copied off the Player row on
+    # the single-run endpoint so the run hero can show the same
+    # backdrop the profile does. Null when Bnet creds aren't wired up
+    # or the character's render is hidden.
+    avatar_url: str | None = None
+    inset_url: str | None = None
+    render_url: str | None = None
     # Per-run grade — scoring engine applied to this one run alone.
     # Answers "how did THIS particular run play?", letting the run page
     # show a grade for the pull the user clicked into alongside the

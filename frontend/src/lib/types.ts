@@ -53,6 +53,11 @@ export interface RunResponse {
   avoidable_deaths: number | null;
   party_comp?: PartyMember[] | null;
   pulls?: Pull[] | null;
+  /** Blizzard media URLs carried off the Player for the run page hero
+   *  backdrop. Only populated by the single-run detail endpoint. */
+  avatar_url?: string | null;
+  inset_url?: string | null;
+  render_url?: string | null;
   /** Grade for THIS specific run, scored in isolation. Only populated
    *  by the single-run detail endpoint — the run list uses a
    *  lighter response shape. */

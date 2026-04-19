@@ -10,6 +10,7 @@ import { classIdFromName, specIconUrl } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
 import { generateRunNarrative } from "@/lib/narrative";
 import CategoryExplainer from "@/components/CategoryExplainer";
+import RefreshButton from "@/components/RefreshButton";
 import type {
   PartyMember,
   Pull,
@@ -91,8 +92,51 @@ export default async function RunDetailPage({ params }: Props) {
     <main className="mt-24 px-6 max-w-7xl mx-auto space-y-12 pb-32">
       {/* Hero Banner */}
       <section className="relative w-full aspect-[21/9] md:aspect-[25/7] rounded-xl overflow-hidden bg-surface-container-high group">
+        {/* Character render as backdrop, same treatment as the profile
+            hero — pinned right so the existing bottom-left content stays
+            readable while the otherwise-empty upper-right corner fills
+            with the player's character art. */}
+        {run.render_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={run.render_url}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover object-right opacity-30 pointer-events-none"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-surface-container-high/90 via-surface-container-high/40 to-transparent z-10" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50" />
+
+        {/* Top-right: quick stats + refresh. Not everyone scrolls to the
+            bottom for RefreshButton, so surfacing it here keeps the
+            freshness loop one click away from the run detail. */}
+        <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-3 w-[220px] max-w-[45%]">
+          <div className="flex items-center gap-3 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant bg-surface-container-high/60 backdrop-blur-sm rounded px-3 py-2 border border-outline-variant/20">
+            <div className="text-right">
+              <p className="text-on-surface font-bold text-sm tracking-tight">
+                {run.ilvl.toFixed(0)}
+              </p>
+              <p className="text-[9px] text-on-surface-variant/80">Item Level</p>
+            </div>
+            {run.average_item_level !== null && (
+              <>
+                <div className="h-6 w-px bg-outline-variant/30" aria-hidden />
+                <div className="text-right">
+                  <p className="text-on-surface font-bold text-sm tracking-tight">
+                    {run.average_item_level.toFixed(0)}
+                  </p>
+                  <p className="text-[9px] text-on-surface-variant/80">
+                    Group Avg
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <RefreshButton name={name} realm={realm} region={region} />
+        </div>
+
         <div className="absolute bottom-8 left-8 z-20 space-y-2">
           <div className="flex items-center gap-3">
             <Link href={playerPath} prefetch={false} className="text-primary font-[family-name:var(--font-label)] text-xs uppercase tracking-widest hover:underline">

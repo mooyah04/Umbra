@@ -2674,6 +2674,12 @@ def get_run_detail(
 
     response = _run_to_response(run)
 
+    # Copy Blizzard media URLs off the Player so the run page hero can
+    # use the same render-as-backdrop treatment the profile does.
+    response.avatar_url = player.avatar_url
+    response.inset_url = player.inset_url
+    response.render_url = player.render_url
+
     # Grade this specific run on its own, then the whole dungeon (all
     # runs the player has at this encounter+role). Two scores makes
     # "how did this one go?" vs "how do I usually do here?" readable at
