@@ -954,6 +954,95 @@ def debug_wcl_character(
     }
 
 
+@app.get("/api/debug/wcl-rankings", dependencies=[Depends(require_api_key)])
+def debug_wcl_rankings(
+    region: str,
+    realm: str,
+    name: str,
+    encounter_id: int | None = None,
+    zone_id: int | None = None,
+):
+    """Admin diagnostic. Fires the exact same rankings fetches ingest
+    uses — zoneRankings + per-encounter rankings — and returns the raw
+    payload from WCL so we can see why a run.dps wasn't overwritten
+    with a percentile. Covers the 'WCL shows the character but our
+    grade says unranked' case.
+
+    zone_id defaults to the active-season zone; pass encounter_id to
+    scope the encounterRankings call to a single dungeon."""
+    from app.wcl.client import wcl_client
+
+    name_c, realm_c, region_c = validate_player_identity(name, realm, region)
+    server_slug = realm_c.lower().replace("'", "").replace(" ", "-")
+    server_region = region_c.lower()
+    zid = zone_id if zone_id is not None else settings.wcl_mplus_zone_id
+
+    out: dict = {
+        "name": name_c,
+        "server_slug": server_slug,
+        "server_region": server_region,
+        "zone_id": zid,
+    }
+
+    # Mirror ingest step 4a: zone-wide aggregate percentile.
+    try:
+        zone = wcl_client.get_zone_rankings(
+            name=name_c, server_slug=server_slug,
+            server_region=server_region, zone_id=zid,
+        )
+        overall = zone.get("overall", {}).get("rankings", [])
+        by_ilvl = zone.get("by_ilvl", {}).get("rankings", [])
+        out["zone_rankings"] = {
+            "overall_dungeon_count": len(overall),
+            "overall": [
+                {
+                    "encounter": d.get("encounter", {}).get("name"),
+                    "rankPercent": d.get("rankPercent"),
+                    "totalKills": d.get("totalKills"),
+                }
+                for d in overall
+            ],
+            "by_ilvl_dungeon_count": len(by_ilvl),
+            "by_ilvl": [
+                {
+                    "encounter": d.get("encounter", {}).get("name"),
+                    "rankPercent": d.get("rankPercent"),
+                    "totalKills": d.get("totalKills"),
+                }
+                for d in by_ilvl
+            ],
+        }
+    except Exception as e:
+        out["zone_rankings_error"] = f"{type(e).__name__}: {e}"
+
+    # Mirror ingest step 4b: per-fight ranks for one (or all active) encounters.
+    eids = [encounter_id] if encounter_id is not None else []
+    if not eids:
+        from app.scoring.dungeons.registry import active_encounter_ids
+        eids = list(active_encounter_ids())
+    try:
+        pct = wcl_client.get_encounter_percentiles(
+            name=name_c, server_slug=server_slug,
+            server_region=server_region, encounter_ids=eids, metric="dps",
+        )
+        out["encounter_percentiles"] = {
+            eid: [
+                {
+                    "rankPercent": r.get("rankPercent"),
+                    "report_code": r.get("report", {}).get("code"),
+                    "fightID": r.get("report", {}).get("fightID"),
+                    "spec": r.get("spec"),
+                }
+                for r in ranks
+            ]
+            for eid, ranks in pct.items()
+        }
+    except Exception as e:
+        out["encounter_percentiles_error"] = f"{type(e).__name__}: {e}"
+
+    return out
+
+
 @app.post("/api/admin/delete-player-runs", dependencies=[Depends(require_api_key)])
 def delete_player_runs(
     region: str, realm: str, name: str,
