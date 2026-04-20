@@ -961,6 +961,8 @@ def debug_wcl_rankings(
     name: str,
     encounter_id: int | None = None,
     zone_id: int | None = None,
+    report_code: str | None = None,
+    fight_id: int | None = None,
 ):
     """Admin diagnostic. Fires the exact same rankings fetches ingest
     uses — zoneRankings + per-encounter rankings — and returns the raw
@@ -1079,6 +1081,33 @@ def debug_wcl_rankings(
             )
         except Exception as e:
             out["encounter_rankings_raw_error"] = f"{type(e).__name__}: {e}"
+
+    # Report-level rankings — the alternative path: pull per-fight
+    # percentiles from the report itself instead of aggregating through
+    # encounterRankings. If zoneRankings knows about these kills but
+    # encounterRankings is blind to them, reportData.rankings may be
+    # the source of truth for M+ per-fight percentiles.
+    if report_code:
+        try:
+            report_raw = wcl_client.query(
+                """
+                query($code: String!) {
+                  reportData {
+                    report(code: $code) {
+                      title
+                      zone { id name }
+                      rankings(playerMetric: dps)
+                    }
+                  }
+                }
+                """,
+                {"code": report_code},
+            )
+            out["report_rankings_raw"] = (
+                report_raw.get("reportData", {}).get("report", {})
+            )
+        except Exception as e:
+            out["report_rankings_error"] = f"{type(e).__name__}: {e}"
 
     return out
 
