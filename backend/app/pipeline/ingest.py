@@ -278,7 +278,7 @@ def _is_phantom_run(casts_total: int) -> bool:
 
 def _get_cooldown_usage(
     buffs_table: dict,
-    cooldowns: list[tuple[int, str, float]],
+    cooldowns: list[tuple[int, str, float, str]],
     duration_ms: int,
 ) -> float:
     """Score cooldown usage based on frequency, not just presence.
@@ -310,7 +310,7 @@ def _get_cooldown_usage(
         aura_uses[aura_id] = aura.get("totalUses", 0)
 
     cd_scores: list[float] = []
-    for buff_id, _name, expected_uptime_pct in cooldowns:
+    for buff_id, _name, expected_uptime_pct, _kind in cooldowns:
         actual_uses = aura_uses.get(buff_id, 0)
 
         # Expected uses = max of:
@@ -351,6 +351,7 @@ def _build_pulls(
     avoidable_ids: set[int],
     critical_interrupt_ids: set[int],
     keystone_level: int,
+    spec_cooldowns: list[tuple[int, str, float, str]] | None = None,
 ) -> list[dict] | None:
     """Build the Level B v2 pull-by-pull breakdown for one run.
 
@@ -544,6 +545,53 @@ def _build_pulls(
             "ability_name": ability_name_by_id.get(d["ability_id"], "Unknown"),
             "amount": d["amount"],
         })
+
+    # ── Major cooldown uses by this player ─────────────────────────────
+    # Fetch applybuff events for the spec's tracked major CDs and bucket
+    # them into pulls. The kind tag ("offensive" / "defensive") travels
+    # with each event so the run page can render the right icon. One
+    # extra paginated events call per run — cheap, and it only fires when
+    # the spec has trackable CDs (Affliction, Survival, Assassination,
+    # etc. are no-ops here because their cooldowns.py lists are empty).
+    if spec_cooldowns:
+        cd_name_by_id = {buff_id: name for buff_id, name, _u, _k in spec_cooldowns}
+        cd_kind_by_id = {buff_id: kind for buff_id, _n, _u, kind in spec_cooldowns}
+        cd_buff_ids = set(cd_name_by_id.keys())
+        try:
+            raw = wcl_client.get_player_events(
+                report_code, [fight_id],
+                data_type="Buffs",
+                source_id=actor_id,
+            )
+        except Exception as e:
+            logger.debug("Pulls: buff events failed for %s/%d: %s",
+                         report_code, fight_id, e)
+            raw = []
+        for ev in raw:
+            # Only count the initial application — refreshes and stack
+            # gains would over-count a single "press" of the CD.
+            if ev.get("type") != "applybuff":
+                continue
+            aid = ev.get("abilityGameID")
+            if not isinstance(aid, int) or aid not in cd_buff_ids:
+                continue
+            ts = ev.get("timestamp")
+            if not isinstance(ts, (int, float)):
+                continue
+            t_sec = (ts - fight_start_ms) / 1000.0
+            pull = _assign_to_pull(t_sec)
+            if pull is None:
+                continue
+            pull["events"].append({
+                "t": round(t_sec, 1),
+                "type": "cooldown",
+                "ability_id": aid,
+                "ability_name": (
+                    ability_name_by_id.get(aid) or cd_name_by_id.get(aid, "Unknown")
+                ),
+                "amount": None,
+                "kind": cd_kind_by_id.get(aid, "offensive"),
+            })
 
     # ── Sort events per pull + compute verdict ──────────────────────────
     for p in pulls:
@@ -1120,6 +1168,7 @@ def ingest_player(
                 avoidable_ids=avoidable_ids,
                 critical_interrupt_ids=critical_interrupt_ids,
                 keystone_level=fight_keystone,
+                spec_cooldowns=spec_cds,
             )
 
             # Reclassify avoidable_deaths from pulls when available. The

@@ -736,6 +736,9 @@ interface EventSummary {
    *  from before we started capturing the flag — those events were all
    *  criticals by definition, so UI treats undefined as true. */
   critical?: boolean;
+  /** Only set for cooldown rows: whether the CD was offensive or
+   *  defensive. Drives the icon (red sword vs blue shield). */
+  cooldownKind?: "offensive" | "defensive";
 }
 
 function groupEvents(events: PullEvent[]): EventSummary[] {
@@ -800,7 +803,29 @@ function groupEvents(events: PullEvent[]): EventSummary[] {
       total: ev.amount,
     }));
 
-  out.push(...deaths, ...dmgSorted, ...kickSorted);
+  // Cooldowns: collapse same ability in the same pull to one row with a
+  // ×N count. Short-duration stacking CDs (Ironfur, Shield Block) produce
+  // many applybuff events per pull; one aggregated line reads cleaner
+  // than a flood.
+  const cdMap = new Map<number, EventSummary>();
+  for (const ev of events) {
+    if (ev.type !== "cooldown") continue;
+    const existing = cdMap.get(ev.ability_id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      cdMap.set(ev.ability_id, {
+        type: "cooldown",
+        label: ev.ability_name,
+        count: 1,
+        total: null,
+        cooldownKind: ev.kind,
+      });
+    }
+  }
+  const cdSorted = [...cdMap.values()].sort((a, b) => b.count - a.count);
+
+  out.push(...deaths, ...dmgSorted, ...kickSorted, ...cdSorted);
   return out;
 }
 
@@ -814,6 +839,16 @@ function EventSummaryLine({ summary }: { summary: EventSummary }) {
   const isInterrupt = summary.type === "critical_interrupt";
   const isCritical = isInterrupt && summary.critical !== false;
   const isLowWeight = isInterrupt && summary.critical === false;
+
+  const isCooldown = summary.type === "cooldown";
+  // Default to offensive when the kind tag is missing (shouldn't happen
+  // with current ingest but guards against any oddball legacy payload).
+  const isDefensive = isCooldown && summary.cooldownKind === "defensive";
+  const cdIcon = isDefensive ? "shield" : "swords";
+  const cdColor = isDefensive ? "#3b82f6" : "#dc2626";
+  const cdLabel = isDefensive
+    ? "Defensive cooldown used"
+    : "Offensive cooldown used";
 
   return (
     <p
@@ -829,6 +864,15 @@ function EventSummaryLine({ summary }: { summary: EventSummary }) {
           aria-label="Priority interrupt"
         >
           star
+        </span>
+      ) : isCooldown ? (
+        <span
+          className="material-symbols-outlined text-[14px] shrink-0 mt-0.5"
+          style={{ color: cdColor }}
+          title={cdLabel}
+          aria-label={cdLabel}
+        >
+          {cdIcon}
         </span>
       ) : (
         <span
@@ -848,7 +892,7 @@ function buildSentence(s: EventSummary): string {
   switch (s.type) {
     case "death":
       return s.total
-        ? `Died to ${s.label} — ${formatNumber(s.total)} damage.`
+        ? `Died to ${s.label} (${formatNumber(s.total)} damage).`
         : `Died to ${s.label}.`;
     case "avoidable_damage":
       return s.count === 1
@@ -860,6 +904,10 @@ function buildSentence(s: EventSummary): string {
         ? `Kicked ${s.label}${withClause}.`
         : `Kicked ${s.label}${withClause} ×${s.count}.`;
     }
+    case "cooldown":
+      return s.count === 1
+        ? `Used ${s.label}.`
+        : `Used ${s.label} ×${s.count}.`;
   }
 }
 
@@ -867,6 +915,9 @@ const EVENT_COLOR: Record<PullEventType, string> = {
   avoidable_damage: "#fbbf24",
   critical_interrupt: "#22d3ee",
   death: "#f87171",
+  // Cooldown color isn't actually used — the icon carries the color.
+  // Kept here to satisfy Record<PullEventType, string> typing.
+  cooldown: "#3b82f6",
 };
 
 const VERDICT_CONFIG: Record<PullVerdict, { color: string; label: string }> = {

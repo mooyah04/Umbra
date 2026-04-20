@@ -75,15 +75,20 @@ export interface RunResponse {
   dungeon_category_scores?: Record<string, number> | null;
 }
 
-export type PullEventType = "avoidable_damage" | "critical_interrupt" | "death";
+export type PullEventType =
+  | "avoidable_damage"
+  | "critical_interrupt"
+  | "death"
+  | "cooldown";
 export type PullVerdict = "clean" | "took_hits" | "wipe";
+export type CooldownKind = "offensive" | "defensive";
 
 export interface PullEvent {
   t: number;                    // seconds into fight
   type: PullEventType;
   ability_id: number;
   ability_name: string;
-  amount: number | null;        // damage amount; null for interrupts
+  amount: number | null;        // damage amount; null for interrupts and cooldowns
   /** For critical_interrupt events: the player's interrupter spell
    *  (Mind Freeze, Kick, Counter Shot, etc.). Optional because legacy
    *  runs ingested before this field was added won't have it. */
@@ -94,6 +99,11 @@ export interface PullEvent {
    *  'informational' interrupts that don't move the grade. Missing on
    *  legacy runs — treat undefined as true to preserve their behavior. */
   critical?: boolean;
+  /** For cooldown events: whether the tracked CD was used to boost
+   *  damage/throughput ("offensive") or reduce damage taken / emergency
+   *  heal ("defensive"). Drives the per-pull icon (red sword vs blue
+   *  shield). Missing on legacy runs ingested before CD tracking landed. */
+  kind?: CooldownKind;
 }
 
 export interface Pull {

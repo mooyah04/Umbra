@@ -1772,7 +1772,7 @@ def cd_audit_coverage(session: Session = Depends(get_session)):
 
         tracked_and_seen = []
         tracked_never_seen = []
-        for buff_id, name, expected_uptime in tracked:
+        for buff_id, name, expected_uptime, _kind in tracked:
             obs = observed.get(buff_id)
             if obs:
                 tracked_and_seen.append({
@@ -1891,7 +1891,7 @@ def debug_wcl_cd_audit(code: str, player: str):
     tracked_and_seen: list[dict] = []
     # Bucket 2: tracked CDs that never appeared (our ID wrong OR player didn't talent).
     tracked_never_seen: list[dict] = []
-    for buff_id, name, expected_uptime in tracked:
+    for buff_id, name, expected_uptime, _kind in tracked:
         obs = observed.get(buff_id)
         if obs:
             tracked_and_seen.append({
