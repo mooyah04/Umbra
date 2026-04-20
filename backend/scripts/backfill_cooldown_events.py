@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 def _class_id_from_name(class_name: str) -> int | None:
     """Map WCL class name (e.g. 'DemonHunter') to our internal class_id.
     Kept local to avoid importing the full pipeline layer."""
-    from app.scoring.roles import class_id_from_name
+    from app.scoring.spec_to_class import class_id_from_name
     return class_id_from_name(class_name)
 
 
