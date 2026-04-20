@@ -1042,6 +1042,36 @@ def debug_wcl_rankings(
     except Exception as e:
         out["encounter_percentiles_error"] = f"{type(e).__name__}: {e}"
 
+    # Dump the raw encounterRankings payload for one encounter so we can
+    # see what WCL actually returns and what arguments it expects — the
+    # "10658 returns empty but zoneRankings has 4 kills" case points at
+    # our call args being wrong (stale difficulty, missing partition,
+    # wrong metric enum for M+, etc.). No-op if no encounter_id passed.
+    if encounter_id is not None:
+        try:
+            raw = wcl_client.query(
+                """
+                query($name: String!, $serverSlug: String!, $serverRegion: String!) {
+                  characterData {
+                    character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
+                      withDifficulty: encounterRankings(encounterID: %d, difficulty: 10, metric: dps)
+                      noDifficulty: encounterRankings(encounterID: %d, metric: dps)
+                    }
+                  }
+                }
+                """ % (encounter_id, encounter_id),
+                {
+                    "name": name_c,
+                    "serverSlug": server_slug,
+                    "serverRegion": server_region,
+                },
+            )
+            out["encounter_rankings_raw"] = (
+                raw.get("characterData", {}).get("character", {})
+            )
+        except Exception as e:
+            out["encounter_rankings_raw_error"] = f"{type(e).__name__}: {e}"
+
     return out
 
 
