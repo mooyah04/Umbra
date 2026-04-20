@@ -54,6 +54,17 @@ export default function ClaimForm({
     setPlayersInLog(null);
     try {
       await claimPlayer(name, realm, region, value.trim());
+      // Push to the profile so the newly-ingested runs are visible. On
+      // the run page, a plain router.refresh() just re-fetches the same
+      // run detail — the new data is sibling runs the user can't see
+      // without navigating up. router.push hits the profile's
+      // server-rendered list with the fresh data. Encode each segment so
+      // names/realms with spaces or unicode survive the round-trip.
+      const playerPath =
+        `/player/${encodeURIComponent(region)}` +
+        `/${encodeURIComponent(realm)}` +
+        `/${encodeURIComponent(name)}`;
+      router.push(playerPath);
       router.refresh();
     } catch (err) {
       const apiErr = err instanceof ApiError ? err : null;
@@ -69,6 +80,12 @@ export default function ClaimForm({
       if (detail?.players_in_log?.length) {
         setPlayersInLog(detail.players_in_log);
       }
+    } finally {
+      // Always reset — on success router.push may or may not unmount us
+      // (it's a no-op if we're already on the profile). Without this the
+      // button stuck on "Verifying log…" after a successful claim from
+      // the run page, because the run page still re-rendered with the
+      // same component instance.
       setSubmitting(false);
     }
   }
