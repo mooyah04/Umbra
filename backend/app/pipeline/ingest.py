@@ -1262,6 +1262,12 @@ def ingest_player(
     zone_dps_percentile = None
     zone_dps_ilvl_percentile = None
     zone_total_kills = 0
+    # encounter_id -> best rankPercent from zoneRankings. Used as the
+    # per-fight fallback when encounterRankings returns empty ranks (see
+    # step 4b). For some M+ characters WCL populates zoneRankings
+    # aggregates but never surfaces per-fight ranks via encounterRankings,
+    # so without this fallback those runs score 0 on damage_output.
+    encounter_pct_fallback: dict[int, float] = {}
     try:
         zone_data = wcl_client.get_zone_rankings(
             name=name,
@@ -1278,6 +1284,9 @@ def ingest_player(
             zone_total_kills += kills
             if best_pct is not None and kills > 0:
                 overall_pcts.append(best_pct)
+                eid = dungeon.get("encounter", {}).get("id")
+                if eid is not None:
+                    encounter_pct_fallback[int(eid)] = float(best_pct)
 
         if overall_pcts:
             zone_dps_percentile = sum(overall_pcts) / len(overall_pcts)
@@ -1304,6 +1313,7 @@ def ingest_player(
     # Also attach per-fight percentiles to runs where available
     encounter_ids = list({r.encounter_id for r in runs})
     if encounter_ids:
+        pct_lookup: dict[tuple[str, int], float] = {}
         try:
             percentiles = wcl_client.get_encounter_percentiles(
                 name=name,
@@ -1312,23 +1322,42 @@ def ingest_player(
                 encounter_ids=encounter_ids,
                 metric="dps",
             )
-
-            pct_lookup: dict[tuple[str, int], float] = {}
             for eid, ranks in percentiles.items():
                 for rank in ranks:
                     report_code_r = rank.get("report", {}).get("code", "")
                     fight_id_r = rank.get("report", {}).get("fightID", 0)
                     pct_lookup[(report_code_r, fight_id_r)] = rank.get("rankPercent", 0)
+        except WCLQueryError as e:
+            logger.warning("Failed to fetch encounter percentiles: %s", e)
 
-            # Overwrite raw DPS with rankPercent when WCL has a ranking
-            # for this fight. Runs without a match keep their raw DPS —
-            # the scorer in engine.py guards against out-of-range values
-            # and skips them, so storing raw here is intentional and
-            # safe. No separate "percentile available?" flag needed.
-            for run in runs:
-                pct = pct_lookup.get((run.wcl_report_id, run.fight_id))
-                if pct is not None:
-                    run.dps = pct
+        # Overwrite raw DPS with rankPercent when WCL has a per-fight
+        # ranking. Runs without a match fall back to the per-encounter
+        # best from zoneRankings (encounter_pct_fallback) — strictly
+        # better than storing raw DPS, which the scorer rejects as
+        # out-of-range and drops the category entirely. WCL sometimes
+        # populates zoneRankings aggregates without exposing per-fight
+        # ranks, so the fallback is the difference between
+        # "damage_output scored" and "damage_output excluded" for
+        # affected characters. Runs outside the active dungeon pool
+        # (encounter_pct_fallback has no entry) keep raw DPS and the
+        # scorer drops them.
+        fallback_hits = 0
+        for run in runs:
+            pct = pct_lookup.get((run.wcl_report_id, run.fight_id))
+            if pct is not None:
+                run.dps = pct
+            elif run.dps > 100:
+                fb = encounter_pct_fallback.get(run.encounter_id)
+                if fb is not None:
+                    run.dps = fb
+                    fallback_hits += 1
+        if fallback_hits:
+            logger.info(
+                "DPS percentile fallback: %d runs (per-fight empty, used zoneRankings per-encounter best)",
+                fallback_hits,
+            )
+
+        try:
 
             # HPS percentiles for healers
             healer_runs = [r for r in runs if r.role == Role.healer]
@@ -1361,6 +1390,26 @@ def ingest_player(
         .order_by(DungeonRun.logged_at.desc())
     )
     all_runs = list(session.execute(all_runs_stmt).scalars())
+
+    # Heal any pre-existing runs stored with raw DPS (the ingest-time
+    # fallback above only touched newly-created runs). Happens when a
+    # prior ingest of this player ran before we had the zoneRankings
+    # fallback, or against a character whose per-fight ranks WCL had not
+    # surfaced yet. Same rule as the new-run fallback: only fill in from
+    # active-season zoneRankings data, leaving raw values intact for
+    # dungeons not in the current pool.
+    existing_fallback_hits = 0
+    for run in all_runs:
+        if run.dps > 100:
+            fb = encounter_pct_fallback.get(run.encounter_id)
+            if fb is not None:
+                run.dps = fb
+                existing_fallback_hits += 1
+    if existing_fallback_hits:
+        logger.info(
+            "DPS percentile backfill: healed %d existing runs via zoneRankings per-encounter best",
+            existing_fallback_hits,
+        )
 
     # Take the most recent N runs for scoring (rolling window)
     recent_runs = all_runs[:settings.max_runs_to_analyze]
