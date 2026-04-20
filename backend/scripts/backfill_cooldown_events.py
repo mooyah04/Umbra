@@ -30,7 +30,7 @@ from app.db import SessionLocal
 from app.models import DungeonRun, Player
 from app.scoring.cooldowns import get_cooldowns_for_spec
 from app.wcl.client import wcl_client
-from app.pipeline.ingest import _find_player_in_details
+from app.pipeline.ingest import _find_player_in_details, _iter_player_details
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +45,49 @@ def _class_id_from_name(class_name: str) -> int | None:
 def _resolve_actor_id(
     report_code: str, fight_id: int, player_name: str
 ) -> tuple[int | None, str | None]:
-    """Return (actor_id, class_name) for the player in this fight."""
+    """Return (actor_id, class_name) for the player in this fight.
+
+    Fallback path: if playerDetails for the specific fight doesn't list
+    the player, fall back to masterData.actors for the whole report. The
+    WCL playerDetails query occasionally returns a sparse roster for a
+    specific fight (the scoping semantics aren't strict about who was
+    present vs who was merely in the raid group), so a name miss there
+    isn't authoritative. masterData.actors is the report-wide actor list
+    and is stable."""
     rd = wcl_client.get_report_player_data(report_code, [fight_id])
     pd = (rd or {}).get("playerDetails", {}).get("data", {}).get("playerDetails", {})
     info = _find_player_in_details(pd, player_name)
-    if not info:
-        return None, None
-    actor_id = info.get("id")
-    class_name = info.get("type")
-    return (int(actor_id) if isinstance(actor_id, int) else None), class_name
+    if info:
+        actor_id = info.get("id")
+        class_name = info.get("type")
+        return (int(actor_id) if isinstance(actor_id, int) else None), class_name
+
+    # Fallback: report masterData.actors
+    names_seen = sorted({
+        p.get("name", "")
+        for _g, p in _iter_player_details(pd)
+    })
+    logger.debug(
+        "playerDetails miss for %r in %s/%d — names present: %s",
+        player_name, report_code, fight_id, names_seen,
+    )
+
+    md = wcl_client.get_report_master_data(report_code) or {}
+    for actor in (md.get("actors") or []):
+        if (actor.get("type") or "").lower() != "player":
+            continue
+        if (actor.get("name") or "").lower() == player_name.lower():
+            actor_id = actor.get("id")
+            # masterData doesn't carry a canonical spec/class in the same
+            # shape as playerDetails — subType is usually the class name.
+            class_name = actor.get("subType") or ""
+            logger.debug(
+                "resolved %r via masterData.actors -> id=%s class=%s",
+                player_name, actor_id, class_name,
+            )
+            return (int(actor_id) if isinstance(actor_id, int) else None), class_name
+
+    return None, None
 
 
 def _has_cooldown_events(pulls: list[dict]) -> bool:
