@@ -67,13 +67,19 @@ export default async function RunDetailPage({ params }: Props) {
       (w) => [w.key, w.weight],
     ),
   );
+  // Hide categories the scorer dropped for lack of data (most commonly
+  // `damage_output` when WCL hasn't ranked this character yet). Showing a
+  // zero-width bar reads as a failing score; omitting it matches how the
+  // composite was actually computed.
+  const excludedCategories = new Set(run.dungeon_excluded_categories ?? []);
   const dungeonCategoryBlocks = run.dungeon_category_scores
     ? getCategoriesForRole(runRole)
         .filter(
           (c) =>
             c.key !== "timing_modifier" &&
             run.dungeon_category_scores != null &&
-            c.key in run.dungeon_category_scores,
+            c.key in run.dungeon_category_scores &&
+            !excludedCategories.has(c.key),
         )
         .map((c) => ({
           explanation: c,
@@ -481,8 +487,18 @@ export default async function RunDetailPage({ params }: Props) {
             Full Stat Sheet
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
-            <StatTile label="DPS %" value={`${run.dps.toFixed(1)}`} sub="Percentile" />
-            {run.hps > 0 && <StatTile label="HPS %" value={`${run.hps.toFixed(1)}`} sub="Percentile" />}
+            {/* `dps` stores the WCL rankPercent (0–100) when available;
+                ingest falls back to raw DPS (millions) when WCL hasn't
+                ranked this character yet. Hide the tile in that case
+                rather than render "101904702.0" as a percentile. Same
+                guard for HPS. Refresh after WCL indexes the character
+                populates the real percentile. */}
+            {run.dps >= 0 && run.dps <= 100 && (
+              <StatTile label="DPS %" value={`${run.dps.toFixed(1)}`} sub="Percentile" />
+            )}
+            {run.hps > 0 && run.hps <= 100 && (
+              <StatTile label="HPS %" value={`${run.hps.toFixed(1)}`} sub="Percentile" />
+            )}
             <StatTile label="iLvl" value={run.ilvl.toFixed(0)} sub="Item Level" />
             <StatTile label="Dispels" value={run.dispels.toString()} sub="Cleanses" />
             {run.cc_casts !== null && <StatTile label="CC" value={run.cc_casts.toString()} sub="Applications" />}

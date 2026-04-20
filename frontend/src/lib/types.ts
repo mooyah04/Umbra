@@ -73,6 +73,11 @@ export interface RunResponse {
    *  the profile's overall category_scores but scoped to this dungeon's
    *  runs. Drives the per-dungeon "THE BREAKDOWN" view. */
   dungeon_category_scores?: Record<string, number> | null;
+  /** Categories the scorer dropped (no data). Currently this is how
+   *  `damage_output` lands when WCL hasn't ranked the character yet —
+   *  the per-fight DPS percentile lookup came back empty, so the score
+   *  would otherwise render as a misleading 0. Frontend hides these. */
+  dungeon_excluded_categories?: string[] | null;
 }
 
 export type PullEventType =

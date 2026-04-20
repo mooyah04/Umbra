@@ -2718,6 +2718,7 @@ def get_run_detail(
         response.dungeon_composite_score = dungeon_result.composite_score
         response.dungeon_runs_count = len(dungeon_runs)
         response.dungeon_category_scores = dungeon_result.category_scores
+        response.dungeon_excluded_categories = list(dungeon_result.excluded_categories)
 
     return response
 

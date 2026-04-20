@@ -186,6 +186,10 @@ class RunResponse(BaseModel):
     dungeon_composite_score: float | None = None
     dungeon_runs_count: int | None = None
     dungeon_category_scores: dict[str, float] | None = None
+    # Categories the scorer dropped for lack of data (e.g. WCL hasn't ranked
+    # this character yet, so damage_output has no percentile). The frontend
+    # uses this to hide the 0-valued bar instead of implying a failing score.
+    dungeon_excluded_categories: list[str] | None = None
 
 
 class RunListResponse(BaseModel):
