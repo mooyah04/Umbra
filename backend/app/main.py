@@ -996,6 +996,7 @@ def debug_wcl_rankings(
             "overall_dungeon_count": len(overall),
             "overall": [
                 {
+                    "encounter_id": d.get("encounter", {}).get("id"),
                     "encounter": d.get("encounter", {}).get("name"),
                     "rankPercent": d.get("rankPercent"),
                     "totalKills": d.get("totalKills"),
@@ -1005,6 +1006,7 @@ def debug_wcl_rankings(
             "by_ilvl_dungeon_count": len(by_ilvl),
             "by_ilvl": [
                 {
+                    "encounter_id": d.get("encounter", {}).get("id"),
                     "encounter": d.get("encounter", {}).get("name"),
                     "rankPercent": d.get("rankPercent"),
                     "totalKills": d.get("totalKills"),
