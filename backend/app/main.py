@@ -1043,29 +1043,37 @@ def debug_wcl_rankings(
         out["encounter_percentiles_error"] = f"{type(e).__name__}: {e}"
 
     # Dump the raw encounterRankings payload for one encounter so we can
-    # see what WCL actually returns and what arguments it expects — the
-    # "10658 returns empty but zoneRankings has 4 kills" case points at
-    # our call args being wrong (stale difficulty, missing partition,
-    # wrong metric enum for M+, etc.). No-op if no encounter_id passed.
+    # see what WCL actually returns and what arguments it expects —
+    # encounterRankings defaults to partition 1 (stale), while
+    # zoneRankings uses the current partition. Passing partition: -1
+    # on encounterRankings tells WCL "all partitions merged".
     if encounter_id is not None:
         try:
             raw = wcl_client.query(
                 """
                 query($name: String!, $serverSlug: String!, $serverRegion: String!) {
+                  worldData {
+                    zone(id: %d) {
+                      name
+                      partitions { id name default }
+                    }
+                  }
                   characterData {
                     character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
-                      withDifficulty: encounterRankings(encounterID: %d, difficulty: 10, metric: dps)
-                      noDifficulty: encounterRankings(encounterID: %d, metric: dps)
+                      default: encounterRankings(encounterID: %d, difficulty: 10, metric: dps)
+                      allPartitions: encounterRankings(encounterID: %d, difficulty: 10, metric: dps, partition: -1)
+                      noDifficulty: encounterRankings(encounterID: %d, metric: dps, partition: -1)
                     }
                   }
                 }
-                """ % (encounter_id, encounter_id),
+                """ % (settings.wcl_mplus_zone_id, encounter_id, encounter_id, encounter_id),
                 {
                     "name": name_c,
                     "serverSlug": server_slug,
                     "serverRegion": server_region,
                 },
             )
+            out["zone_partitions"] = raw.get("worldData", {}).get("zone", {})
             out["encounter_rankings_raw"] = (
                 raw.get("characterData", {}).get("character", {})
             )
