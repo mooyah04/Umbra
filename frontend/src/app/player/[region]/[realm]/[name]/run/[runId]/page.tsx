@@ -677,7 +677,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
  *  ~30 seconds. */
 function PullCard({ pull }: { pull: Pull }) {
   const duration = pull.end_t - pull.start_t;
-  const verdict = VERDICT_CONFIG[pull.verdict];
+  const verdict = resolveVerdict(pull);
   const grouped = groupEvents(pull.events);
 
   return (
@@ -925,6 +925,23 @@ const VERDICT_CONFIG: Record<PullVerdict, { color: string; label: string }> = {
   took_hits: { color: "#fbbf24", label: "Took Hits" },
   wipe: { color: "#f87171", label: "Wipe" },
 };
+
+// Soften the took_hits verdict when the player burned a defensive CD in
+// the same pull: they ate the damage but also made the save attempt, so
+// read "Mitigated" in defensive blue instead of alarm amber. Wipes still
+// read as wipes regardless — a defensive press that didn't stop a death
+// isn't a success.
+function resolveVerdict(pull: Pull): { color: string; label: string } {
+  if (pull.verdict === "took_hits") {
+    const usedDefensive = pull.events.some(
+      (e) => e.type === "cooldown" && e.kind === "defensive",
+    );
+    if (usedDefensive) {
+      return { color: "#60a5fa", label: "Mitigated" };
+    }
+  }
+  return VERDICT_CONFIG[pull.verdict];
+}
 
 function formatSeconds(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));

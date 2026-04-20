@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-20",
+    title: "See exactly when you pressed your cooldowns",
+    category: "new",
+    body:
+      "Every pull on the run page now shows which of your major cooldowns fired during it. Offensive cooldowns (burst windows like Avenging Wrath, Combustion, Bestial Wrath) show a red sword. Defensive cooldowns (Shield Block, Ironfur, Touch of Karma, Tranquility) show a blue shield. A pull where you took avoidable damage but also popped a defensive reads as 'Mitigated' in softer blue instead of alarm yellow, because you made the save attempt. New runs capture this automatically; older runs will pick it up the next time you refresh your profile.",
+  },
+  {
     date: "2026-04-19",
     title: "Disconnect runs no longer drag your grade down",
     category: "fixed",
