@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { ApiError, getRunRotation } from "@/lib/api";
 import type {
   Pull,
-  ReferenceOpenerStep,
   RotationAbility,
   RotationCast,
   RotationCategory,
@@ -203,11 +202,7 @@ function RotationPanel({
   return (
     <div className="space-y-6">
       {!data.classified && <UnclassifiedNotice specName={data.spec_name} />}
-      <OpenerStrip
-        casts={data.casts}
-        abilities={data.abilities}
-        reference={data.reference_opener}
-      />
+      <OpenerStrip casts={data.casts} abilities={data.abilities} />
       <FrequencyTable
         casts={data.casts}
         abilities={data.abilities}
@@ -230,28 +225,22 @@ function UnclassifiedNotice({ specName }: { specName: string }) {
         Heads up
       </p>
       <p className="text-sm text-on-surface-variant">
-        Rotation classification for <span className="font-semibold text-on-surface">{specName}</span> hasn&apos;t been curated yet — you&apos;ll see raw casts without
-        rotation / cooldown / utility grouping or a reference opener.
-        Coming soon.
+        Rotation classification for <span className="font-semibold text-on-surface">{specName}</span> hasn&apos;t been curated yet — you&apos;ll see raw casts
+        without rotation / cooldown / utility grouping. Coming soon.
       </p>
     </div>
   );
 }
 
-/** First N casts laid out horizontally. When reference data is present,
- *  renders the player's opener on top with the curated reference below
- *  so the user can see divergence at a glance. */
+/** First N casts laid out horizontally — the player's actual opener. */
 function OpenerStrip({
   casts,
   abilities,
-  reference,
 }: {
   casts: RotationCast[];
   abilities: Record<string, RotationAbility>;
-  reference: ReferenceOpenerStep[] | null;
 }) {
   const yourOpener = casts.slice(0, OPENER_CAST_COUNT);
-  const refOpener = reference?.slice(0, OPENER_CAST_COUNT) ?? null;
 
   return (
     <div className="bg-surface-container-high rounded-xl p-6">
@@ -261,51 +250,22 @@ function OpenerStrip({
             Opener
           </p>
           <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl tracking-tighter uppercase text-on-surface italic">
-            {refOpener ? "Yours vs. recommended" : `First ${yourOpener.length} casts`}
+            First {yourOpener.length} casts
           </h3>
         </div>
-        {!refOpener && (
-          <p className="text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant max-w-xs text-right">
-            Compare to your spec&apos;s opener on Icy Veins.
-          </p>
-        )}
       </div>
-      <div className="space-y-4">
-        <OpenerRow
-          label="You"
-          items={yourOpener.map((c, idx) => {
-            const ab = abilities[String(c.s)];
-            return {
-              key: `you-${idx}`,
-              spellId: c.s,
-              name: ab?.name ?? `#${c.s}`,
-              icon: ab?.icon ?? null,
-              sub: formatClock(c.t),
-            };
-          })}
-          accent="primary"
-        />
-        {refOpener && (
-          <OpenerRow
-            label="Guide"
-            items={refOpener.map((s, idx) => ({
-              key: `ref-${idx}`,
-              spellId: s.spell_id,
-              name: s.name,
-              icon: s.icon,
-              sub: s.note ?? "",
-            }))}
-            accent="secondary"
-            muted
-          />
-        )}
-      </div>
-      {refOpener && (
-        <p className="mt-4 text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant/60">
-          Recommended sequence is a guideline — real openers adapt to
-          procs, movement, and trash packs.
-        </p>
-      )}
+      <OpenerRow
+        items={yourOpener.map((c, idx) => {
+          const ab = abilities[String(c.s)];
+          return {
+            key: `you-${idx}`,
+            spellId: c.s,
+            name: ab?.name ?? `#${c.s}`,
+            icon: ab?.icon ?? null,
+            sub: formatClock(c.t),
+          };
+        })}
+      />
     </div>
   );
 }
@@ -318,26 +278,10 @@ interface OpenerRowItem {
   sub: string;
 }
 
-function OpenerRow({
-  label,
-  items,
-  accent,
-  muted,
-}: {
-  label: string;
-  items: OpenerRowItem[];
-  accent: "primary" | "secondary";
-  muted?: boolean;
-}) {
-  const accentColor = accent === "primary" ? "text-primary" : "text-secondary";
+function OpenerRow({ items }: { items: OpenerRowItem[] }) {
   return (
     <div>
-      <p
-        className={`font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.25em] mb-2 ${accentColor}`}
-      >
-        {label}
-      </p>
-      <ol className={`flex gap-2 overflow-x-auto pb-2 ${muted ? "opacity-90" : ""}`}>
+      <ol className="flex gap-2 overflow-x-auto pb-2">
         {items.length === 0 ? (
           <li className="text-xs italic text-on-surface-variant/60">
             No casts in the opener window.
