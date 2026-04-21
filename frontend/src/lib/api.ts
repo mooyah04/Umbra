@@ -4,6 +4,7 @@ import type {
   PlayerSearchResult,
   RunListResponse,
   RunResponse,
+  RunRotationResponse,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -164,6 +165,21 @@ export async function getRunDetail(
   return fetchApi(
     `/api/player/${region}/${realm}/${name}/runs/${runId}`,
     "no-store",
+  );
+}
+
+export async function getRunRotation(
+  region: string,
+  realm: string,
+  name: string,
+  runId: number,
+): Promise<RunRotationResponse> {
+  // First request for a given run pays a WCL round-trip; subsequent
+  // hits are served from the DB cache. Cache aggressively (1 hr) —
+  // rotation data is immutable once captured.
+  return fetchApi(
+    `/api/player/${region}/${realm}/${name}/runs/${runId}/rotation`,
+    3600,
   );
 }
 

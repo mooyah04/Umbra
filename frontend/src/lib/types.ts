@@ -187,3 +187,31 @@ export interface HistoryResponse {
   points: HistoryPoint[];
   period: string;
 }
+
+/** One cast in the rotation timeline: `t` seconds from fight start, `s`
+ *  WoW spell ID. Names and icons live in the abilities lookup so the
+ *  payload stays small on runs with hundreds of casts. */
+export interface RotationCast {
+  t: number;
+  s: number;
+}
+
+export interface RotationAbility {
+  name: string | null;
+  icon: string | null;
+}
+
+export interface RunRotationResponse {
+  run_id: number;
+  encounter_id: number;
+  keystone_level: number;
+  role: string;
+  spec_name: string;
+  duration_ms: number;
+  wcl_report_id: string;
+  fight_id: number;
+  /** Keyed by stringified spell ID — JSON objects can't have numeric keys. */
+  abilities: Record<string, RotationAbility>;
+  casts: RotationCast[];
+  cached: boolean;
+}

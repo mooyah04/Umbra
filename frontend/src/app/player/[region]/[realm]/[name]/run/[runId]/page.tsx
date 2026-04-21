@@ -11,6 +11,7 @@ import { dungeonName } from "@/lib/dungeons";
 import { generateRunNarrative } from "@/lib/narrative";
 import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
+import BreakdownTabs from "./BreakdownTabs";
 import type {
   PartyMember,
   Pull,
@@ -507,51 +508,55 @@ export default async function RunDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Pull-by-pull breakdown — used to live on a separate /breakdown
-          page, merged inline so the full story of the run is on one
-          page. Only rendered when we actually have pull data (Level B
-          ingest, +8 and up). */}
-      {pulls && pulls.length > 0 && (
-        <section className="space-y-4">
-          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary">
-            Pull-by-Pull Breakdown
-          </p>
-          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
-            What happened, pull by pull
-          </h2>
-          <p className="text-on-surface-variant text-sm">
-            {pulls.length} pulls tracked. Each one shows your kicks,
-            the damage you took, and whether you died, aggregated so
-            you can scan the whole dungeon in under a minute.
-          </p>
-          <ol className="space-y-3 pt-2">
-            {pulls.map((p) => (
-              <PullCard key={p.i} pull={p} />
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {/* Fallback when a legacy run was ingested before pull timelines
-          were captured. New ingests populate pulls on every M+ key. */}
-      {(!pulls || pulls.length === 0) && (
-        <section className="space-y-4">
-          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">
-            Pull-by-Pull Breakdown
-          </p>
-          <h2 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface">
-            Not captured for this run
-          </h2>
-          <p className="text-on-surface-variant text-sm">
-            This run was ingested before per-pull timelines were on. Hit{" "}
-            <span className="text-on-surface font-semibold">
-              Refresh my profile
-            </span>{" "}
-            up top — the re-ingest will populate the breakdown from the
-            original Warcraft Logs report.
-          </p>
-        </section>
-      )}
+      {/* Pull-by-pull + rotation breakdown, shown as tabs. Pull content
+          is pre-rendered on the server and passed into BreakdownTabs as
+          JSX — that keeps the existing server-side rendering path intact
+          while letting the client-component BreakdownTabs handle lazy
+          loading the rotation tab on demand. */}
+      <BreakdownTabs
+        region={region}
+        realm={realm}
+        name={name}
+        runId={parseInt(runId, 10)}
+        pulls={pulls}
+        pullsContent={
+          pulls && pulls.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-end justify-between flex-wrap gap-3">
+                <div>
+                  <h3 className="font-[family-name:var(--font-headline)] font-bold text-xl tracking-tighter text-on-surface">
+                    What happened, pull by pull
+                  </h3>
+                  <p className="text-on-surface-variant text-sm mt-1">
+                    {pulls.length} pulls tracked. Kicks, damage taken,
+                    deaths, and cooldown usage per pack.
+                  </p>
+                </div>
+              </div>
+              <ol className="space-y-3 pt-2">
+                {pulls.map((p) => (
+                  <PullCard key={p.i} pull={p} />
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <div className="space-y-3 py-4">
+              <h3 className="font-[family-name:var(--font-headline)] font-bold text-xl tracking-tighter text-on-surface">
+                Not captured for this run
+              </h3>
+              <p className="text-on-surface-variant text-sm">
+                This run was ingested before per-pull timelines were on. Hit{" "}
+                <span className="text-on-surface font-semibold">
+                  Refresh my profile
+                </span>{" "}
+                up top — the re-ingest will populate the breakdown from
+                the original Warcraft Logs report. The Rotation tab still
+                works on legacy runs.
+              </p>
+            </div>
+          )
+        }
+      />
 
       {/* Raw log on WCL — secondary surface at the bottom, not a gate. */}
       <section className="text-center pt-6 border-t border-outline-variant/10">

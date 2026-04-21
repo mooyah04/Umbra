@@ -42,6 +42,7 @@ from app.schemas import (
     RoleScore,
     RunListResponse,
     RunResponse,
+    RunRotationResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -2879,6 +2880,141 @@ def get_run_detail(
         response.dungeon_excluded_categories = list(dungeon_result.excluded_categories)
 
     return response
+
+
+@app.get(
+    "/api/player/{region}/{realm}/{name}/runs/{run_id}/rotation",
+    response_model=RunRotationResponse,
+)
+@limiter.limit(settings.rate_limit_public)
+def get_run_rotation(
+    request: Request,
+    region: str,
+    realm: str,
+    name: str,
+    run_id: int,
+    session: Session = Depends(get_session),
+):
+    """Cast-by-cast rotation timeline for a single run.
+
+    Served from `DungeonRun.rotation_events` when present. First request
+    per run triggers a WCL events fetch (~1-3 GraphQL calls) and caches
+    the result; every view after that is free. Surfaces WCL outages as
+    503 so the frontend can show a retry prompt without a hard failure.
+    """
+    name, realm, region = _canonical_identity(name, realm, region)
+    player = _find_player(session, region, realm, name)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    run = session.execute(
+        select(DungeonRun).where(
+            DungeonRun.id == run_id,
+            DungeonRun.player_id == player.id,
+        )
+    ).scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    cached = run.rotation_events is not None
+    if not cached:
+        # Resolve the player's actor (sourceID) inside the WCL report.
+        # Same lookup ingest uses — get_report_header_and_fights returns
+        # a name → [actor_id] map built from report.masterData.
+        from app.wcl.client import (
+            WCLQueryError,
+            WCLRateLimitedError,
+            wcl_client,
+        )
+
+        try:
+            header = wcl_client.get_report_header_and_fights(run.wcl_report_id)
+        except WCLRateLimitedError as e:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "wcl_rate_limited",
+                    "retry_after": e.retry_after,
+                    "message": (
+                        "Warcraft Logs is rate-limiting us. Try again in "
+                        f"{e.retry_after}s."
+                    ),
+                },
+            )
+        except WCLQueryError as e:
+            logger.warning(
+                "rotation: get_report_header_and_fights failed for %s: %s",
+                run.wcl_report_id, e,
+            )
+            raise HTTPException(status_code=502, detail="Warcraft Logs query failed")
+
+        actors_by_name = header.get("actors_by_name", {}) or {}
+        actor_ids = actors_by_name.get(player.name) or []
+        if not actor_ids:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Could not locate the player in the source Warcraft "
+                    "Logs report. The log may have been deleted."
+                ),
+            )
+        source_id = actor_ids[0]
+
+        try:
+            payload = wcl_client.get_player_cast_timeline(
+                run.wcl_report_id, run.fight_id, source_id
+            )
+        except WCLRateLimitedError as e:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "wcl_rate_limited",
+                    "retry_after": e.retry_after,
+                    "message": (
+                        "Warcraft Logs is rate-limiting us. Try again in "
+                        f"{e.retry_after}s."
+                    ),
+                },
+            )
+        except WCLQueryError as e:
+            logger.warning(
+                "rotation: get_player_cast_timeline failed for %s/%d: %s",
+                run.wcl_report_id, run.fight_id, e,
+            )
+            raise HTTPException(status_code=502, detail="Warcraft Logs query failed")
+
+        # Normalize to string-keyed abilities for JSON storage, keep
+        # casts compact. Empty casts is still a valid cache entry —
+        # means WCL had no cast events for this actor, which shouldn't
+        # happen on a real M+ run but is worth caching to avoid repeat
+        # lookups on a broken report.
+        abilities_str_keys = {
+            str(k): {"name": v.get("name"), "icon": v.get("icon")}
+            for k, v in (payload.get("abilities") or {}).items()
+        }
+        run.rotation_events = {
+            "fight_start_ms": payload.get("fight_start_ms", 0),
+            "abilities": abilities_str_keys,
+            "casts": payload.get("casts", []),
+        }
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+
+    data = run.rotation_events or {}
+    return RunRotationResponse(
+        run_id=run.id,
+        encounter_id=run.encounter_id,
+        keystone_level=run.keystone_level,
+        role=run.role.value if hasattr(run.role, "value") else str(run.role),
+        spec_name=run.spec_name,
+        duration_ms=run.duration,
+        wcl_report_id=run.wcl_report_id,
+        fight_id=run.fight_id,
+        abilities=data.get("abilities", {}) or {},
+        casts=data.get("casts", []) or [],
+        cached=cached,
+    )
 
 
 @app.get("/api/player/{region}/{realm}/{name}/history", response_model=HistoryResponse)

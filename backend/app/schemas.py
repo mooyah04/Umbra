@@ -199,6 +199,32 @@ class RunListResponse(BaseModel):
     per_page: int
 
 
+class RunRotationResponse(BaseModel):
+    """Cast-by-cast timeline for a single run. Lazy-fetched on first
+    /rotation request per run; cached in DungeonRun.rotation_events so
+    subsequent views are free of WCL cost.
+
+    The `abilities` map is a lookup table — keys are stringified spell
+    IDs (JSON-object-safe), values carry the display name and Wowhead
+    icon slug. `casts` references spell IDs only to keep the payload
+    small on runs with 500+ casts.
+    """
+
+    run_id: int
+    encounter_id: int
+    keystone_level: int
+    role: str
+    spec_name: str
+    duration_ms: int
+    wcl_report_id: str
+    fight_id: int
+    abilities: dict[str, dict]
+    casts: list[dict]
+    # True when the response came from the cached JSON column without
+    # a WCL roundtrip this request. Useful for debugging latency spikes.
+    cached: bool
+
+
 class RoleScore(BaseModel):
     role: str
     grade: str

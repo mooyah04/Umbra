@@ -422,6 +422,128 @@ class WCLClient:
             start = nxt
         return events
 
+    def get_player_cast_timeline(
+        self, report_code: str, fight_id: int, source_id: int
+    ) -> dict:
+        """Fetch a player's cast-by-cast timeline for a single fight.
+
+        Returns a dict:
+          {
+            "fight_start_ms": int,   # absolute, useful for debugging
+            "abilities": {spell_id: {"name": str, "icon": str|None}},
+            "casts": [{"t": float_seconds_from_fight_start, "s": int_spell_id}]
+          }
+
+        Bundles fight metadata + masterData.abilities + the first events
+        page into one GraphQL round-trip; subsequent pages only ask for
+        events. A typical +12 key is 200–600 casts = 1 page, so most
+        fights resolve in a single call. Pagination caps at 10 pages to
+        protect against pathological returns.
+        """
+        first_query = """
+        query($code: String!, $fightIDs: [Int!]!, $sourceID: Int!) {
+          reportData {
+            report(code: $code) {
+              masterData {
+                abilities { gameID name icon }
+              }
+              fights(fightIDs: $fightIDs) {
+                id startTime endTime
+              }
+              events(fightIDs: $fightIDs, dataType: Casts, sourceID: $sourceID,
+                     startTime: 0, limit: 10000) {
+                data
+                nextPageTimestamp
+              }
+            }
+          }
+        }
+        """
+        data = self.query(
+            first_query,
+            {"code": report_code, "fightIDs": [fight_id], "sourceID": source_id},
+        )
+        report = data.get("reportData", {}).get("report") or {}
+        master = report.get("masterData") or {}
+        abilities_list = master.get("abilities") or []
+        abilities: dict[int, dict] = {}
+        for a in abilities_list:
+            gid = a.get("gameID")
+            if isinstance(gid, int):
+                abilities[gid] = {"name": a.get("name"), "icon": a.get("icon")}
+        fights = report.get("fights") or []
+        if not fights:
+            return {"fight_start_ms": 0, "abilities": {}, "casts": []}
+        fight_start = int(fights[0].get("startTime") or 0)
+
+        casts: list[dict] = []
+
+        def _absorb(events_blob: dict) -> float | None:
+            batch = events_blob.get("data") or []
+            if isinstance(batch, str):
+                import json as _json
+                try:
+                    batch = _json.loads(batch)
+                except Exception:
+                    batch = []
+            for ev in batch:
+                if ev.get("type") != "cast":
+                    continue
+                aid = ev.get("abilityGameID")
+                ts = ev.get("timestamp")
+                if not isinstance(aid, int) or not isinstance(ts, (int, float)):
+                    continue
+                casts.append({
+                    "t": round((ts - fight_start) / 1000.0, 2),
+                    "s": aid,
+                })
+            return events_blob.get("nextPageTimestamp")
+
+        nxt = _absorb(report.get("events") or {})
+
+        page_query = """
+        query($code: String!, $fightIDs: [Int!]!, $sourceID: Int!,
+              $startTime: Float!) {
+          reportData {
+            report(code: $code) {
+              events(fightIDs: $fightIDs, dataType: Casts, sourceID: $sourceID,
+                     startTime: $startTime, limit: 10000) {
+                data
+                nextPageTimestamp
+              }
+            }
+          }
+        }
+        """
+        seen_pages = 1
+        while nxt and seen_pages < 10:
+            data = self.query(
+                page_query,
+                {
+                    "code": report_code,
+                    "fightIDs": [fight_id],
+                    "sourceID": source_id,
+                    "startTime": nxt,
+                },
+            )
+            events_blob = (
+                data.get("reportData", {}).get("report", {}).get("events") or {}
+            )
+            nxt = _absorb(events_blob)
+            seen_pages += 1
+
+        # Trim the abilities map to only those that actually appear in
+        # the casts list — the report-wide masterData can list hundreds
+        # of abilities (every party member + every enemy) and we only
+        # need the ones this player pressed.
+        used = {c["s"] for c in casts}
+        abilities = {k: v for k, v in abilities.items() if k in used}
+        return {
+            "fight_start_ms": fight_start,
+            "abilities": abilities,
+            "casts": casts,
+        }
+
     def get_encounter_percentiles(
         self,
         name: str,

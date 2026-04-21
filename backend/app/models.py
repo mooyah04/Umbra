@@ -116,6 +116,16 @@ class DungeonRun(Base):
     # Party composition snapshot — [{name, realm, class, role, spec}, ...] for
     # all 5 participants in the fight. Captured from WCL's playerDetails.
     party_comp: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Rotation timeline — cast-by-cast sequence for the run. Populated
+    # lazily on first /rotation request (not during ingest), so existing
+    # runs start null and only get filled when a user opens the Rotation
+    # tab. Shape:
+    #   {
+    #     "abilities": {"<spell_id>": {"name": str, "icon": str|null}},
+    #     "casts": [{"t": float (seconds into fight), "s": int (spell id)}],
+    #     "fight_start_ms": int (absolute ms epoch, for debugging)
+    #   }
+    rotation_events: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     player: Mapped["Player"] = relationship(back_populates="runs")
 
