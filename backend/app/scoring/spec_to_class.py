@@ -40,7 +40,7 @@ UNAMBIGUOUS_SPEC_TO_CLASS: dict[str, int] = {
     # Druid
     "Balance": 11, "Feral": 11, "Guardian": 11,
     # Demon Hunter
-    "Havoc": 12, "Vengeance": 12,
+    "Havoc": 12, "Vengeance": 12, "Devourer": 12,
     # Evoker
     "Devastation": 13, "Preservation": 13, "Augmentation": 13,
 }

@@ -79,6 +79,7 @@ ACTIVE_SPEC_MODULES: tuple[str, ...] = (
     # Demon Hunter
     "havoc_dh",
     "vengeance_dh",
+    "devourer_dh",
     # Evoker
     "devastation_evoker",
     "preservation_evoker",
