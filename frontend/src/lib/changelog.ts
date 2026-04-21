@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-21",
+    title: "Augmentation Evokers finally graded fairly",
+    category: "fixed",
+    body:
+      "Aug's whole job is buffing teammates via Ebon Might and Prescience, and Warcraft Logs attributes that amplified damage to the teammates' bars, not to the Aug. Our old scoring only saw the Aug's personal damage — which is lower by design — and graded them accordingly. Now we measure each Aug's group uplift directly (summing teammate damage during their buff windows) and blend it into the damage category. A top Aug adding 80k+ DPS of uplift gets the credit the pure-DPS scorer was missing. We also added an Aug-specific casts-per-minute benchmark and shifted their category weights toward cooldowns and utility — where their real contribution lives. Top Augs should see their grades move up on their next refresh.",
+  },
+  {
+    date: "2026-04-21",
+    title: "Rotation tab on every run",
+    category: "new",
+    body:
+      "Click into any run and there's a new Rotation tab next to Pull-by-Pull. It shows the first 15 casts of your opener with timestamps, a cast-frequency table grouped into Rotation / Cooldowns / Utility, and a per-pull timeline of every button you pressed. Every spec has its own classification data so the frequency table actually reads as your rotation, not a dump of every combat-log event. First time you open the tab on a run it fetches from Warcraft Logs and caches it; every view after that is instant. Full coverage: all 39 WoW specs including Midnight's Devourer DH.",
+  },
+  {
+    date: "2026-04-21",
+    title: "Dungeon timing write-up removed from methodology page",
+    category: "improved",
+    body:
+      "The methodology page used to carry a dedicated section explaining that timing keys is shown on your profile but doesn't feed into the composite. That was accurate but muddy — it gave timing more airtime than it deserved in the scoring explanation. Cut the section to keep the page focused on what actually drives the grade. The timed-rate stat still shows on your profile; we just don't over-explain a non-factor.",
+  },
+  {
     date: "2026-04-20",
     title: "See exactly when you pressed your cooldowns",
     category: "new",

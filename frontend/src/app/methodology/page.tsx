@@ -42,10 +42,12 @@ export default function MethodologyPage() {
           METHODOLOGY
         </h1>
         <p className="max-w-3xl mx-auto text-lg text-on-surface-variant leading-relaxed">
-          Every Umbra grade is a composite of five or six weighted categories,
-          adjusted by how many of your keys you timed. Weights change by role:
-          a tank and a DPS player aren&apos;t graded on the same things. The
-          whole engine is documented here so there&apos;s no black box.
+          Every Umbra grade is a composite of five or six weighted categories.
+          Weights change by role: a tank and a DPS player aren&apos;t graded
+          on the same things. Certain specs (Augmentation Evoker) also get
+          spec-specific adjustments where their contribution doesn&apos;t
+          show up on their own damage bar. The whole engine is documented
+          here so there&apos;s no black box.
         </p>
       </section>
 
@@ -161,7 +163,7 @@ export default function MethodologyPage() {
         </div>
       </section>
 
-      {/* Mechanics: key-level + timing */}
+      {/* Mechanics: key-level weighting + spec adjustments */}
       <section className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
@@ -180,18 +182,18 @@ export default function MethodologyPage() {
         </div>
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
-            Timing
+            Support spec adjustments
           </p>
           <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
-            SHOWN, NOT SCORED
+            FAIR TO AUGMENTATION
           </h3>
           <p className="text-on-surface-variant leading-relaxed">
-            We track keys timed as a displayed stat, but it doesn&apos;t feed
-            the composite. Pushing a +18 that fails timing is a harder run
-            than one-shotting a +5; scoring timing would punish the
-            correct direction. Mythic+ keys are also resettable, so timing
-            is gameable. The key level is already rewarded inside every
-            category via per-run weighting.
+            Augmentation Evokers don&apos;t top personal DPS meters because
+            their job is amplifying teammates&apos; damage via Ebon Might
+            and Prescience. We measure that uplift directly — summing
+            teammate damage done during their buff windows — and blend it
+            into their damage score. A top-uplift Aug gets the credit a
+            pure-DPS scorer would miss.
           </p>
         </div>
       </section>
@@ -216,17 +218,18 @@ export default function MethodologyPage() {
         </div>
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
-            Pull-by-pull breakdown
+            Pull-by-pull + rotation
           </p>
           <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
             THE WHOLE DUNGEON, 30 SECONDS
           </h3>
           <p className="text-on-surface-variant leading-relaxed">
-            Click any run and we show it pull-by-pull: your kicks, the
-            avoidable damage you ate, the pulls you died in, aggregated
-            per ability (&quot;took 3 hits from Dread Pulse, 840k total&quot;)
-            so it reads as a recap, not a raw log. No one else in the
-            ecosystem does this.
+            Click any run and you get two tabs. Pull-by-Pull shows what
+            happened each pack: kicks, avoidable damage, deaths, cooldowns
+            used. The new Rotation tab shows what you actually pressed —
+            your opener, cast frequency grouped into Rotation / Cooldowns /
+            Utility, and a timeline of every button aligned to each pull.
+            No one else in the ecosystem does this.
           </p>
         </div>
       </section>

@@ -430,6 +430,11 @@ const WHAT_WE_PROVIDE = [
     body: "Click any run and see what happened, pull by pull: the kicks you hit, the avoidable damage you ate, the pulls you died in. The whole dungeon in a 30-second read.",
   },
   {
+    icon: "playlist_play",
+    title: "A cast-by-cast rotation tab",
+    body: "See exactly what you pressed in a run: the first 15 casts of your opener, a frequency table grouped into Rotation / Cooldowns / Utility, and a timeline per pull. Compare your own sequence against what your spec is supposed to do. Every curated class and spec (including Midnight's Devourer DH) has its own classification data.",
+  },
+  {
     icon: "extension",
     title: "A free addon that surfaces grades in-game",
     body: "Tooltips in the world and in Group Finder show grades inline: yours and everyone else's. No signup, no account, no payment. Download, install, it just works.",

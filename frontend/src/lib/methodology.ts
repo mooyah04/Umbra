@@ -25,7 +25,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     summary:
       "Where your damage ranks against other players of your spec this season.",
     description:
-      "We pull Warcraft Logs' percentile rank for your spec in the current M+ zone. A 90 means you out-dps'd 90% of players playing your exact spec. Key levels and gear are factored into WCL's own normalization, so this is a fair spec-vs-spec comparison.",
+      "We pull Warcraft Logs' percentile rank for your spec in the current M+ zone. A 90 means you out-dps'd 90% of players playing your exact spec. Key levels and gear are factored into WCL's own normalization, so this is a fair spec-vs-spec comparison. Augmentation Evokers are a special case: their personal DPS ceiling is lower by design because they spend GCDs buffing teammates, so we also credit a portion of teammate damage done during their Ebon Might and Prescience windows back to their score.",
     howToImprove:
       "Review top-parse logs for your spec to see their opener, cooldown alignment, and target priority. Most sub-50 percentiles are fixable by tightening rotation, not by pushing gear.",
     roles: ["dps", "healer", "tank"],
@@ -85,17 +85,6 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
       "Check your Details timeline for long gaps between casts. Often these map to movement, mechanics, or a dead target (precast before the pull ends).",
     roles: ["dps", "healer", "tank"],
     icon: "speed",
-  },
-  {
-    key: "timing_modifier",
-    label: "Key Timing",
-    summary: "A ±8 bonus based on whether your keys actually timed.",
-    description:
-      "M+ is a team activity. We apply a ±8-point modifier to the composite based on your weighted timing rate, where higher keys count more. Timing everything adds 8; 50% timed is neutral; 0% timed subtracts 8. It's not per-player, it's the group's result, and that's intentional: you can't be a great M+ player while your runs deplete.",
-    howToImprove:
-      "Route quality and group cohesion matter as much as personal play. Practice dungeons in lower keys, study route creators like MDT/Quazii, and communicate pulls.",
-    roles: ["dps", "healer", "tank"],
-    icon: "schedule",
   },
 ];
 
