@@ -190,8 +190,8 @@ export default function MethodologyPage() {
           <p className="text-on-surface-variant leading-relaxed">
             Augmentation Evokers don&apos;t top personal DPS meters because
             their job is amplifying teammates&apos; damage via Ebon Might
-            and Prescience. We measure that uplift directly — summing
-            teammate damage done during their buff windows — and blend it
+            and Prescience. We measure that uplift directly (summing
+            teammate damage done during their buff windows) and blend it
             into their damage score. A top-uplift Aug gets the credit a
             pure-DPS scorer would miss.
           </p>
@@ -226,7 +226,7 @@ export default function MethodologyPage() {
           <p className="text-on-surface-variant leading-relaxed">
             Click any run and you get two tabs. Pull-by-Pull shows what
             happened each pack: kicks, avoidable damage, deaths, cooldowns
-            used. The new Rotation tab shows what you actually pressed —
+            used. The new Rotation tab shows what you actually pressed:
             your opener, cast frequency grouped into Rotation / Cooldowns /
             Utility, and a timeline of every button aligned to each pull.
             No one else in the ecosystem does this.

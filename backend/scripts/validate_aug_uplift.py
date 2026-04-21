@@ -22,25 +22,113 @@ from app.wcl.client import WCLQueryError, WCLRateLimitedError, wcl_client
 DEFAULT_ENCOUNTER = 12811  # Magister's Terrace — Midnight S1
 DEFAULT_LIMIT = 10
 
+# All 8 Midnight S1 encounter IDs, newest to oldest intro order.
+ALL_MIDNIGHT_S1_ENCOUNTERS: list[tuple[int, str]] = [
+    (12811, "Magister's Terrace"),
+    (12805, "Windrunner Spire"),
+    (12874, "Maisara Caverns"),
+    (12915, "Nexus-Point Xenas"),
+    (10658, "Pit of Saron"),
+    (61209, "Skyreach"),
+    (112526, "Algeth'ar Academy"),
+    (361753, "The Seat of the Triumvirate"),
+]
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--encounter", type=int, default=DEFAULT_ENCOUNTER)
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
+    parser.add_argument(
+        "--all-dungeons",
+        action="store_true",
+        help="Iterate over all 8 Midnight S1 dungeons instead of a single encounter.",
+    )
     args = parser.parse_args()
 
+    if args.all_dungeons:
+        return _run_all_dungeons(args.limit)
+    return _run_single(args.encounter, args.limit)
+
+
+def _run_all_dungeons(limit_per: int) -> int:
+    """Iterate over the full Midnight S1 pool and report an aggregate
+    distribution — used to recalibrate the scoring thresholds against
+    a multi-dungeon sample instead of a single-encounter window.
+    """
+    all_dps: list[float] = []
+    all_pct: list[float] = []
+    by_encounter: list[tuple[str, list[float]]] = []
+
+    for encounter_id, name in ALL_MIDNIGHT_S1_ENCOUNTERS:
+        print(f"\n===== {name} (id={encounter_id}) — top {limit_per} =====")
+        # Capture the per-encounter list for the summary.
+        before_len = len(all_dps)
+        rc = _run_single(encounter_id, limit_per, aggregate_dps=all_dps, aggregate_pct=all_pct)
+        after = all_dps[before_len:]
+        by_encounter.append((name, after))
+        if rc != 0:
+            print(f"  (encounter {encounter_id} errored — skipping in aggregate)")
+
+    if not all_dps:
+        print("\nNo uplift samples collected.")
+        return 1
+
+    print("\n\n===== AGGREGATE across all 8 Midnight S1 dungeons =====")
+    sorted_dps = sorted(all_dps)
+    sorted_pct = sorted(all_pct)
+    n = len(sorted_dps)
+    def pct(arr, p):
+        idx = max(0, min(n - 1, int(round(p / 100 * (n - 1)))))
+        return arr[idx]
+    print(f"  samples: {n}")
+    print(f"  uplift DPS  min={sorted_dps[0]/1000:.0f}k  "
+          f"p10={pct(sorted_dps, 10)/1000:.0f}k  "
+          f"p25={pct(sorted_dps, 25)/1000:.0f}k  "
+          f"p50={pct(sorted_dps, 50)/1000:.0f}k  "
+          f"p75={pct(sorted_dps, 75)/1000:.0f}k  "
+          f"p90={pct(sorted_dps, 90)/1000:.0f}k  "
+          f"max={sorted_dps[-1]/1000:.0f}k")
+    print(f"  uplift %    min={sorted_pct[0]:.1f}%  "
+          f"p25={pct(sorted_pct, 25):.1f}%  "
+          f"p50={pct(sorted_pct, 50):.1f}%  "
+          f"p75={pct(sorted_pct, 75):.1f}%  "
+          f"max={sorted_pct[-1]:.1f}%")
+
+    print("\n  per-dungeon p50 uplift DPS:")
+    for name, samples in by_encounter:
+        if not samples:
+            print(f"    {name:35s}  no samples")
+            continue
+        s = sorted(samples)
+        mid = s[len(s) // 2]
+        print(f"    {name:35s}  n={len(s):2d}  p50={mid/1000:5.0f}k  "
+              f"min={s[0]/1000:4.0f}k  max={s[-1]/1000:4.0f}k")
+
+    return 0
+
+
+def _run_single(
+    encounter_id: int,
+    limit: int,
+    aggregate_dps: list[float] | None = None,
+    aggregate_pct: list[float] | None = None,
+) -> int:
+    """Sample top N Augs for a single encounter. When aggregate lists
+    are provided (multi-dungeon mode), appends each sample's metrics
+    to the lists for later rollup."""
     print(
-        f"\n=== Aug uplift sampler: top {args.limit} Augs on encounter "
-        f"{args.encounter} ===\n"
+        f"\n=== Aug uplift sampler: top {limit} Augs on encounter "
+        f"{encounter_id} ===\n"
     )
 
     try:
         top = wcl_client.get_top_characters_for_spec(
-            encounter_id=args.encounter,
+            encounter_id=encounter_id,
             class_name="Evoker",
             spec_name="Augmentation",
             metric="dps",
-            limit=args.limit,
+            limit=limit,
         )
     except (WCLQueryError, WCLRateLimitedError) as e:
         print(f"WCL query failed: {e}")
@@ -100,6 +188,8 @@ def main() -> int:
         uplift = result["total_uplift_damage"]
         uplift_dps = uplift / duration_s
         all_uplift_dps.append(uplift_dps)
+        if aggregate_dps is not None:
+            aggregate_dps.append(uplift_dps)
 
         # Fetch teammates' total damage for context (% of group damage).
         total_group_dmg = 0.0
@@ -117,6 +207,8 @@ def main() -> int:
             )
         uplift_pct = (uplift / total_group_dmg * 100.0) if total_group_dmg > 0 else 0.0
         all_uplift_pct.append(uplift_pct)
+        if aggregate_pct is not None:
+            aggregate_pct.append(uplift_pct)
 
         print(f"    duration: {duration_s:.0f}s · group dmg: {total_group_dmg/1e6:.1f}M")
         print(f"    uplift damage: {uplift/1e6:.1f}M ({uplift_dps/1000:.0f}k DPS)")

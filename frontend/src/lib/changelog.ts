@@ -20,7 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Augmentation Evokers finally graded fairly",
     category: "fixed",
     body:
-      "Aug's whole job is buffing teammates via Ebon Might and Prescience, and Warcraft Logs attributes that amplified damage to the teammates' bars, not to the Aug. Our old scoring only saw the Aug's personal damage — which is lower by design — and graded them accordingly. Now we measure each Aug's group uplift directly (summing teammate damage during their buff windows) and blend it into the damage category. A top Aug adding 80k+ DPS of uplift gets the credit the pure-DPS scorer was missing. We also added an Aug-specific casts-per-minute benchmark and shifted their category weights toward cooldowns and utility — where their real contribution lives. Top Augs should see their grades move up on their next refresh.",
+      "Aug's whole job is buffing teammates via Ebon Might and Prescience, and Warcraft Logs attributes that amplified damage to the teammates' bars, not to the Aug. Our old scoring only saw the Aug's personal damage (which is lower by design) and graded them accordingly. Now we measure each Aug's group uplift directly (summing teammate damage during their buff windows) and blend it into the damage category. A top Aug adding 80k+ DPS of uplift gets the credit the pure-DPS scorer was missing. We also added an Aug-specific casts-per-minute benchmark and shifted their category weights toward cooldowns and utility, where their real contribution lives. Top Augs should see their grades move up on their next refresh.",
   },
   {
     date: "2026-04-21",
@@ -34,7 +34,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Dungeon timing write-up removed from methodology page",
     category: "improved",
     body:
-      "The methodology page used to carry a dedicated section explaining that timing keys is shown on your profile but doesn't feed into the composite. That was accurate but muddy — it gave timing more airtime than it deserved in the scoring explanation. Cut the section to keep the page focused on what actually drives the grade. The timed-rate stat still shows on your profile; we just don't over-explain a non-factor.",
+      "The methodology page used to carry a dedicated section explaining that timing keys is shown on your profile but doesn't feed into the composite. That was accurate but muddy. It gave timing more airtime than it deserved in the scoring explanation, so we cut the section to keep the page focused on what actually drives the grade. The timed-rate stat still shows on your profile; we just don't over-explain a non-factor.",
   },
   {
     date: "2026-04-20",
@@ -90,28 +90,28 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Interrupts now name the spell you kicked with",
     category: "improved",
     body:
-      "Pull-by-pull lines read like prose: \"Kicked Shadow Bolt with Mind Freeze\" instead of just \"Kicked Shadow Bolt.\" We're now also capturing every interrupt, not only the priority casts — the priority ones keep full color and the trash ones render dimmer so the important kicks still dominate the eye. Scoring is unchanged: grade still only moves on priority interrupts.",
+      "Pull-by-pull lines read like prose: \"Kicked Shadow Bolt with Mind Freeze\" instead of just \"Kicked Shadow Bolt.\" We're now also capturing every interrupt, not only the priority casts. The priority ones keep full color and the trash ones render dimmer so the important kicks still dominate the eye. Scoring is unchanged: grade still only moves on priority interrupts.",
   },
   {
     date: "2026-04-18",
     title: "Pull-by-pull breakdown on every M+ run",
     category: "improved",
     body:
-      "Used to be gated behind +8 keys. Lowered the floor to +2 so the per-pull timeline — interrupts, avoidable damage, deaths — shows up on every Mythic+ run you've had. Low-key learners get the same depth as +20 pushers. New ingests populate automatically; older runs backfill next time you hit Refresh.",
+      "Used to be gated behind +8 keys. Lowered the floor to +2 so the per-pull timeline (interrupts, avoidable damage, deaths) shows up on every Mythic+ run you've had. Low-key learners get the same depth as +20 pushers. New ingests populate automatically; older runs backfill next time you hit Refresh.",
   },
   {
     date: "2026-04-18",
     title: "Run breakdown lives on the run page, not a click away",
     category: "improved",
     body:
-      "Merged the pull-by-pull breakdown into the main run page. One scroll, everything — hero, stats, per-pull timeline, and the raw WCL link at the bottom. Also bumped the brightness of the verdict pills and event text so it's actually readable on dark.",
+      "Merged the pull-by-pull breakdown into the main run page. One scroll, everything: hero, stats, per-pull timeline, and the raw WCL link at the bottom. Also bumped the brightness of the verdict pills and event text so it's actually readable on dark.",
   },
   {
     date: "2026-04-18",
     title: "Local download dropped, CurseForge + Wago become the default",
     category: "improved",
     body:
-      "Every 'Download Addon' button on the site now points at CurseForge or Wago instead of the raw zip. Managers handle auto-updates, which means fewer 'why does my friend have a newer version' moments. Direct zip is still there if you type the URL in — we just stopped pushing it.",
+      "Every 'Download Addon' button on the site now points at CurseForge or Wago instead of the raw zip. Managers handle auto-updates, which means fewer 'why does my friend have a newer version' moments. Direct zip is still there if you type the URL in. We just stopped pushing it.",
   },
   {
     date: "2026-04-18",

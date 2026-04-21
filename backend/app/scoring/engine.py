@@ -357,25 +357,29 @@ def _score_casts_per_minute(runs: list[DungeonRun], class_id: int | None = None)
 def _aug_uplift_score(uplift_dps: float) -> float:
     """Map Augmentation Evoker uplift DPS to a 0-100 score.
 
-    Calibrated 2026-04-21 from a 10-log sampler against top Midnight S1
-    Augs on Magister's Terrace. Distribution observed:
-      min=8k  p25=78k  p50=79k  p75=84k  max=87k  (k = thousand DPS)
+    Calibrated 2026-04-21 from a 40-log sampler across all 8 Midnight
+    S1 dungeons (5 top Augs per dungeon). Aggregate distribution:
+      min=8k  p10=52k  p25=64k  p50=73k  p75=79k  p90=84k  max=88k
 
-    The two outliers (8k) appeared to be off-meta builds with minimal
-    Ebon Might uptime; the 8-log cluster 78-87k represents standard
-    competent Aug play. Thresholds:
+    Outliers at 8k reflect real bad Ebon Might play (16% uptime vs
+    96% for top performers) — our metric correctly flags them rather
+    than smoothing over. Thresholds:
       <10k   -> 0        (no meaningful group contribution)
-      80k    -> 78       (peer with competent Augs)
-      100k   -> 100      (elite — exceeds typical top-log uplift)
+      73k    -> ~79      (median competent Aug)
+      84k    -> ~93      (p90 elite)
+      90k    -> 100      (top anchor — rarely hit, leaves ceiling)
 
-    Linear between anchors. See backend/scripts/validate_aug_uplift.py
+    Linear between anchors. The top anchor was tightened from 100k to
+    90k after the multi-dungeon sweep showed the observed ceiling is
+    ~88k; leaving the anchor at 100k would have capped elite Augs at
+    ~82 instead of 93+. See backend/scripts/validate_aug_uplift.py
     for the sampler and recalibrate when coverage expands.
     """
     if uplift_dps <= 10000:
         return 0.0
-    if uplift_dps >= 100000:
+    if uplift_dps >= 90000:
         return 100.0
-    return (uplift_dps - 10000) / 90000 * 100.0
+    return (uplift_dps - 10000) / 80000 * 100.0
 
 
 def _compute_aug_uplift_category_score(runs: list[DungeonRun]) -> float:
