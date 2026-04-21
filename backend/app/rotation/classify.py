@@ -24,8 +24,16 @@ improvements to per-spec data (adding aliases, fixing an opener)
 immediately propagate to every previously-cached run without needing a
 cache flush.
 """
-from app.rotation.registry import get_spec_data
+from app.rotation.registry import UNIVERSAL_IGNORE_IDS, get_spec_data
 from app.rotation.spec_data import classify, resolve_alias
+
+
+def _int_key(k: object) -> int:
+    """Best-effort int cast for JSON-object string keys."""
+    try:
+        return int(k) if not isinstance(k, int) else k
+    except (TypeError, ValueError):
+        return -1
 
 
 def apply_classification(
@@ -42,7 +50,9 @@ def apply_classification(
 
     if spec is None:
         # No curated data yet for this spec — pass through as
-        # unclassified. UI falls back to the Phase 1 layout.
+        # unclassified. UI falls back to the Phase 1 layout. Universal
+        # ignores (trinkets, dungeon items) still apply so the noise
+        # floor is the same whether a spec is curated or not.
         abilities_out = {
             k: {
                 "name": v.get("name"),
@@ -50,11 +60,13 @@ def apply_classification(
                 "category": "unknown",
             }
             for k, v in abilities_in.items()
+            if _int_key(k) not in UNIVERSAL_IGNORE_IDS
         }
         casts_out = [
             {"t": c.get("t"), "s": c.get("s"), "cat": "unknown"}
             for c in casts_in
             if isinstance(c.get("s"), int)
+            and c.get("s") not in UNIVERSAL_IGNORE_IDS
         ]
         return {
             "abilities": abilities_out,
@@ -86,7 +98,7 @@ def apply_classification(
         if not isinstance(raw_id, int) or not isinstance(t, (int, float)):
             continue
         canonical = resolve_alias(spec, raw_id)
-        if canonical in spec.ignore_ids:
+        if canonical in spec.ignore_ids or canonical in UNIVERSAL_IGNORE_IDS:
             continue
         # Fragment dedup — only engages when this cast's raw ID is a
         # known alias fragment. Real presses on the canonical ID bypass
