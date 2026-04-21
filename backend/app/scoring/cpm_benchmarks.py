@@ -63,6 +63,13 @@ SPEC_BENCHMARKS: dict[str, CPMBenchmark] = {
     "Destruction": CPMBenchmark(poor=8, fair=14, good=20, excellent=26),
     "Beast Mastery": CPMBenchmark(poor=10, fair=16, good=22, excellent=30),
 
+    # Augmentation Evoker is a support spec — its kit is Ebon Might /
+    # Prescience buff maintenance + empowered casts (long channels). CPM
+    # sits below pure ranged DPS by design. Without this entry Aug fell
+    # back to the DPS default (excellent=35) and was scoring 50-70 for
+    # play that would score 90+ on a same-player Devastation run.
+    "Augmentation": CPMBenchmark(poor=8, fair=14, good=20, excellent=28),
+
     # Unambiguous tanks.
     "Brewmaster": CPMBenchmark(poor=16, fair=26, good=38, excellent=50),
     "Vengeance": CPMBenchmark(poor=16, fair=26, good=36, excellent=46),

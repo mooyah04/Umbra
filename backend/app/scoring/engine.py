@@ -384,6 +384,22 @@ class RoleWeights:
     categories: dict[str, float]  # category_name -> weight (must sum to 1.0)
 
 
+# Per-spec weight overrides — used for specs whose scoring profile
+# differs from the role default because of unique playstyle constraints.
+# Currently just Augmentation Evoker: their value is buffing teammates
+# via Ebon Might / Prescience, which inflates the teammates' damage bars
+# and leaves the Aug's own personal DPS ~60-70% of a pure DPS. We can't
+# credit buff uplift directly yet (WCL doesn't attribute damage back to
+# the Aug), so we soften the damage weight and redistribute to the
+# categories we CAN measure: Aug's CDs (Ebon Might / Breath of Eons /
+# Time Skip) and utility are load-bearing for the spec.
+#
+# Adding more overrides here is the right extension point when future
+# specs surface the same "primary contribution is invisible to personal
+# stats" problem.
+SPEC_WEIGHT_OVERRIDES: dict[tuple[int, str], "RoleWeights"] = {}  # filled after ROLE_WEIGHTS below
+
+
 ROLE_WEIGHTS: dict[Role, RoleWeights] = {
     # P1 rebalance (fairness audit): reduced CPM weight (spec bias),
     # boosted survivability. Timing modifier provides +/-8 on top.
@@ -425,6 +441,37 @@ ROLE_WEIGHTS: dict[Role, RoleWeights] = {
         }
     ),
 }
+
+SPEC_WEIGHT_OVERRIDES.update({
+    # Augmentation Evoker — support/buff spec. Personal DPS ceiling is
+    # lower by design; their uplift to teammates is invisible to our
+    # personal-stats scorers. Shift weight off damage_output onto the
+    # categories that reflect Aug's actual job: pressing big buff CDs
+    # (Ebon Might, Breath of Eons) on cooldown and providing utility.
+    # Composite still sums to 1.0.
+    (13, "Augmentation"): RoleWeights(
+        categories={
+            "damage_output": 0.20,     # down from 0.30 — personal DPS is not the whole story
+            "utility": 0.25,           # up from 0.20 — Aug utility kit is substantial
+            "survivability": 0.25,     # unchanged
+            "cooldown_usage": 0.20,    # up from 0.15 — Aug's CDs ARE their contribution
+            "casts_per_minute": 0.10,  # unchanged
+        }
+    ),
+})
+
+
+def _weights_for_spec(
+    role: Role, class_id: int | None, spec_name: str | None
+) -> RoleWeights:
+    """Pick the tightest weight profile. Spec-level override wins over
+    role default; missing data falls back to the role."""
+    if class_id is not None and spec_name:
+        override = SPEC_WEIGHT_OVERRIDES.get((class_id, spec_name))
+        if override is not None:
+            return override
+    return ROLE_WEIGHTS[role]
+
 
 # Category name -> scorer function (role-specific overrides below)
 CATEGORY_SCORERS = {
@@ -480,7 +527,12 @@ def score_player_runs(
     class_id is needed for healer utility scoring (determines if the spec
     can interrupt — only Resto Shaman and Holy Paladin can).
     """
-    weights = ROLE_WEIGHTS[role]
+    # Spec name is inferred from runs for the weights lookup. It's fine
+    # to pick the first run's spec — a scoring call bundles runs of the
+    # same role for the same player, and a player doesn't switch specs
+    # within a role mid-run.
+    spec_name = runs[0].spec_name if runs else None
+    weights = _weights_for_spec(role, class_id, spec_name)
     category_scores: dict[str, float] = {}
     excluded_categories: list[str] = []
 
