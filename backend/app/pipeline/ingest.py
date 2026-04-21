@@ -1186,6 +1186,34 @@ def ingest_player(
                 if pull_avoidable > avoidable_death_count:
                     avoidable_death_count = pull_avoidable
 
+            # Augmentation Evoker uplift. Only Augs have the buff kit
+            # this measures, and the computation needs two extra WCL
+            # queries (~50k events worth) — skip for non-Augs to keep
+            # ingest budget predictable. Returns 0 if WCL is unhappy;
+            # we just store null and move on rather than error the run.
+            aug_uplift = None
+            if spec_name == "Augmentation" and actor_id:
+                try:
+                    from app.pipeline.aug_uplift import compute_uplift
+                    fight_end_ms = fight.get("endTime", 0)
+                    teammates = [
+                        pid for pid in (fight.get("friendlyPlayers") or [])
+                        if pid != actor_id
+                    ]
+                    aug_result = compute_uplift(
+                        report_code=report_code,
+                        fight_id=fight_id,
+                        aug_source_id=actor_id,
+                        fight_end_ms=fight_end_ms,
+                        teammate_source_ids=teammates,
+                    )
+                    aug_uplift = aug_result.get("total_uplift_damage")
+                except Exception as e:
+                    logger.warning(
+                        "aug_uplift compute failed for %s/%d: %s",
+                        report_code, fight_id, e,
+                    )
+
             # Drop DC/phantom fights before they reach the DB. WCL's
             # playerDetails lists anyone who was in the raid group, even
             # if they disconnected seconds after start, so we re-check
@@ -1236,6 +1264,7 @@ def ingest_player(
                 avoidable_deaths=avoidable_death_count,
                 party_comp=_extract_party_comp(player_details) or None,
                 pulls=pulls,
+                aug_uplift_damage=aug_uplift,
             )
             session.add(run)
             runs.append(run)

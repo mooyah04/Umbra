@@ -116,6 +116,13 @@ class DungeonRun(Base):
     # Party composition snapshot — [{name, realm, class, role, spec}, ...] for
     # all 5 participants in the fight. Captured from WCL's playerDetails.
     party_comp: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Augmentation Evoker group-uplift: damage dealt by teammates while
+    # this player (if Aug) had Ebon Might or Prescience applied, weighted
+    # by each buff's uplift factor. Null for non-Aug specs and for Aug
+    # runs ingested before C-tier scoring shipped (2026-04-21). Feeds
+    # into damage_output as a bonus for Aug so "made the group stronger"
+    # actually moves the grade.
+    aug_uplift_damage: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Rotation timeline — cast-by-cast sequence for the run. Populated
     # lazily on first /rotation request (not during ingest), so existing
     # runs start null and only get filled when a user opens the Rotation

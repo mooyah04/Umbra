@@ -354,6 +354,42 @@ def _score_casts_per_minute(runs: list[DungeonRun], class_id: int | None = None)
     return _weighted_average(runs, score_fn)
 
 
+def _aug_uplift_score(uplift_dps: float) -> float:
+    """Map Augmentation Evoker uplift DPS to a 0-100 score.
+
+    Calibrated 2026-04-21 from a 10-log sampler against top Midnight S1
+    Augs on Magister's Terrace. Distribution observed:
+      min=8k  p25=78k  p50=79k  p75=84k  max=87k  (k = thousand DPS)
+
+    The two outliers (8k) appeared to be off-meta builds with minimal
+    Ebon Might uptime; the 8-log cluster 78-87k represents standard
+    competent Aug play. Thresholds:
+      <10k   -> 0        (no meaningful group contribution)
+      80k    -> 78       (peer with competent Augs)
+      100k   -> 100      (elite — exceeds typical top-log uplift)
+
+    Linear between anchors. See backend/scripts/validate_aug_uplift.py
+    for the sampler and recalibrate when coverage expands.
+    """
+    if uplift_dps <= 10000:
+        return 0.0
+    if uplift_dps >= 100000:
+        return 100.0
+    return (uplift_dps - 10000) / 90000 * 100.0
+
+
+def _compute_aug_uplift_category_score(runs: list[DungeonRun]) -> float:
+    """Aggregate uplift score across an Aug's runs, key-weighted."""
+    def score_fn(run: DungeonRun) -> float:
+        uplift = getattr(run, "aug_uplift_damage", None)
+        if not uplift or run.duration <= 0:
+            return 0.0
+        duration_s = run.duration / 1000.0
+        uplift_dps = uplift / duration_s
+        return _aug_uplift_score(uplift_dps)
+    return _weighted_average(runs, score_fn)
+
+
 def _timing_modifier(runs: list[DungeonRun]) -> float:
     """Universal modifier based on key timing rate, weighted by key level.
 
@@ -577,6 +613,39 @@ def score_player_runs(
         else:
             raw_scores[category_name] = score
             category_scores[category_name] = round(score, 1)
+
+    # Augmentation uplift blend. Aug's value is buffing teammates —
+    # WCL attributes the amplified damage to the teammates, leaving the
+    # Aug's personal-DPS percentile blind to their group contribution.
+    # `aug_uplift_damage` (populated during ingest) measures the hidden
+    # piece: teammate damage during the Aug's Ebon Might / Prescience
+    # windows, weighted by each buff's uplift factor. Blend it into
+    # damage_output at 60% personal / 40% uplift so top-uplift Augs are
+    # no longer penalized for their by-design lower personal ceiling.
+    #
+    # Legacy Aug runs (ingested before uplift tracking) have NULL
+    # aug_uplift_damage. Blending a null-populated uplift would
+    # PENALIZE those runs relative to pre-change behavior, so the
+    # blend only activates when at least one run has real uplift
+    # data. The rest revert to personal-only until they're refreshed.
+    if spec_name == "Augmentation" and "damage_output" in raw_scores:
+        # All runs must have uplift data before the blend activates.
+        # Otherwise mixed histories (some legacy runs, some freshly-
+        # ingested) penalize the legacy portion by averaging in 0-uplift
+        # contributions. Once the player hits refresh and all their
+        # runs have real uplift numbers, the blend kicks in.
+        has_uplift = bool(runs) and all(
+            getattr(r, "aug_uplift_damage", None) is not None for r in runs
+        )
+        if has_uplift:
+            uplift_score = _compute_aug_uplift_category_score(runs)
+            personal = raw_scores["damage_output"]
+            blended = personal * 0.6 + uplift_score * 0.4
+            raw_scores["damage_output"] = blended
+            category_scores["damage_output"] = round(blended, 1)
+            # Expose the uplift score on the response so the UI can
+            # render "X DPS added to teammates" alongside personal-DPS.
+            category_scores["aug_uplift_score"] = round(uplift_score, 1)
 
     # Phase 2: composite over the categories that actually had data,
     # with weights renormalized to sum to 1 across that subset.
