@@ -203,7 +203,6 @@ function RotationPanel({
   return (
     <div className="space-y-6">
       {!data.classified && <UnclassifiedNotice specName={data.spec_name} />}
-      {data.guide_url && <GuideLink url={data.guide_url} />}
       <OpenerStrip
         casts={data.casts}
         abilities={data.abilities}
@@ -235,22 +234,6 @@ function UnclassifiedNotice({ specName }: { specName: string }) {
         rotation / cooldown / utility grouping or a reference opener.
         Coming soon.
       </p>
-    </div>
-  );
-}
-
-function GuideLink({ url }: { url: string }) {
-  return (
-    <div className="flex justify-end">
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-4 py-2 bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-outline-variant/30 transition-colors"
-      >
-        <span className="material-symbols-outlined text-sm">open_in_new</span>
-        Full rotation guide on Icy Veins
-      </a>
     </div>
   );
 }
