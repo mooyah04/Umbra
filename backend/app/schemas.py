@@ -200,14 +200,19 @@ class RunListResponse(BaseModel):
 
 
 class RunRotationResponse(BaseModel):
-    """Cast-by-cast timeline for a single run. Lazy-fetched on first
-    /rotation request per run; cached in DungeonRun.rotation_events so
-    subsequent views are free of WCL cost.
+    """Cast-by-cast timeline for a single run, enriched with per-spec
+    classification (rotation/cooldown/utility) when curated data exists
+    for the player's class+spec.
+
+    Lazy-fetched on first /rotation request per run; cached in
+    DungeonRun.rotation_events so subsequent views are free of WCL cost.
+    Classification is applied at response time over the raw cache, so
+    improvements to spec data roll out to old runs without a re-fetch.
 
     The `abilities` map is a lookup table — keys are stringified spell
-    IDs (JSON-object-safe), values carry the display name and Wowhead
-    icon slug. `casts` references spell IDs only to keep the payload
-    small on runs with 500+ casts.
+    IDs (JSON-object-safe), values carry the display name, Wowhead icon
+    slug, and category tag. `casts` references spell IDs only to keep
+    the payload small on runs with 500+ casts.
     """
 
     run_id: int
@@ -218,11 +223,22 @@ class RunRotationResponse(BaseModel):
     duration_ms: int
     wcl_report_id: str
     fight_id: int
+    # abilities[str_spell_id] = {"name", "icon", "category"}
+    # casts[i] = {"t": float, "s": int, "cat": "rotation"|"cooldown"|"utility"|"unknown"}
     abilities: dict[str, dict]
     casts: list[dict]
     # True when the response came from the cached JSON column without
     # a WCL roundtrip this request. Useful for debugging latency spikes.
     cached: bool
+    # Phase 2 classification fields — populated when the player's spec
+    # has curated data under app.rotation.specs; null/False otherwise.
+    classified: bool = False
+    spec_key: str | None = None
+    # Reference opener from the spec's curated data — an ordered list
+    # of {spell_id, name, icon, note} the frontend renders side-by-side
+    # with the player's actual opener.
+    reference_opener: list[dict] | None = None
+    guide_url: str | None = None
 
 
 class RoleScore(BaseModel):

@@ -188,17 +188,39 @@ export interface HistoryResponse {
   period: string;
 }
 
+/** Spec-aware classification tag for an ability. `"unknown"` means the
+ *  player's spec doesn't have curated data yet — the frontend falls
+ *  back to the Phase 1 unsegmented display in that case. */
+export type RotationCategory =
+  | "rotation"
+  | "cooldown"
+  | "utility"
+  | "unknown";
+
 /** One cast in the rotation timeline: `t` seconds from fight start, `s`
- *  WoW spell ID. Names and icons live in the abilities lookup so the
- *  payload stays small on runs with hundreds of casts. */
+ *  WoW spell ID (post-alias), `cat` its classification tag. Names and
+ *  icons live in the abilities lookup so the payload stays small on
+ *  runs with hundreds of casts. */
 export interface RotationCast {
   t: number;
   s: number;
+  cat: RotationCategory;
 }
 
 export interface RotationAbility {
   name: string | null;
   icon: string | null;
+  category: RotationCategory;
+}
+
+/** One step of the expected opener, pulled from the curated per-spec
+ *  data. The frontend renders these side-by-side with the player's
+ *  actual opener so they can see deviations at a glance. */
+export interface ReferenceOpenerStep {
+  spell_id: number;
+  name: string;
+  icon: string | null;
+  note: string | null;
 }
 
 export interface RunRotationResponse {
@@ -214,4 +236,10 @@ export interface RunRotationResponse {
   abilities: Record<string, RotationAbility>;
   casts: RotationCast[];
   cached: boolean;
+  /** True when the player's spec has curated rotation data — enables
+   *  the grouped frequency table and reference-opener comparison. */
+  classified: boolean;
+  spec_key: string | null;
+  reference_opener: ReferenceOpenerStep[] | null;
+  guide_url: string | null;
 }

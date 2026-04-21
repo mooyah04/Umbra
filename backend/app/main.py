@@ -3001,7 +3001,14 @@ def get_run_rotation(
         session.commit()
         session.refresh(run)
 
+    from app.rotation.classify import apply_classification
+
     data = run.rotation_events or {}
+    classified = apply_classification(
+        data,
+        class_id=player.class_id,
+        spec_name=run.spec_name,
+    )
     return RunRotationResponse(
         run_id=run.id,
         encounter_id=run.encounter_id,
@@ -3011,9 +3018,13 @@ def get_run_rotation(
         duration_ms=run.duration,
         wcl_report_id=run.wcl_report_id,
         fight_id=run.fight_id,
-        abilities=data.get("abilities", {}) or {},
-        casts=data.get("casts", []) or [],
+        abilities=classified["abilities"],
+        casts=classified["casts"],
         cached=cached,
+        classified=classified["classified"],
+        spec_key=classified["spec_key"],
+        reference_opener=classified["reference_opener"],
+        guide_url=classified["guide_url"],
     )
 
 

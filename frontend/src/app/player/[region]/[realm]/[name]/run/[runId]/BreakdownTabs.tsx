@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { ApiError, getRunRotation } from "@/lib/api";
 import type {
   Pull,
+  ReferenceOpenerStep,
   RotationAbility,
   RotationCast,
+  RotationCategory,
   RunRotationResponse,
 } from "@/lib/types";
 
@@ -29,6 +31,23 @@ type Tab = "pulls" | "rotation";
 type LoadState = "idle" | "loading" | "error";
 
 const OPENER_CAST_COUNT = 15;
+
+/** Labels for the grouped frequency sections, in display order. Picked
+ *  to read as a narrative: what you actually DPS'd with first, the big
+ *  buttons that define the run second, kicks/defensives last. */
+const CATEGORY_TITLES: Record<RotationCategory, string> = {
+  rotation: "Rotation",
+  cooldown: "Cooldowns",
+  utility: "Utility",
+  unknown: "Other",
+};
+
+const CATEGORY_ORDER: RotationCategory[] = [
+  "rotation",
+  "cooldown",
+  "utility",
+  "unknown",
+];
 
 export default function BreakdownTabs({
   region,
@@ -183,8 +202,18 @@ function RotationPanel({
 
   return (
     <div className="space-y-6">
-      <OpenerStrip casts={data.casts} abilities={data.abilities} />
-      <FrequencyTable casts={data.casts} abilities={data.abilities} />
+      {!data.classified && <UnclassifiedNotice specName={data.spec_name} />}
+      {data.guide_url && <GuideLink url={data.guide_url} />}
+      <OpenerStrip
+        casts={data.casts}
+        abilities={data.abilities}
+        reference={data.reference_opener}
+      />
+      <FrequencyTable
+        casts={data.casts}
+        abilities={data.abilities}
+        classified={data.classified}
+      />
       <CastTimeline casts={data.casts} abilities={data.abilities} pulls={pulls} />
       <p className="text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant/60 text-center">
         {data.cached
@@ -195,17 +224,51 @@ function RotationPanel({
   );
 }
 
-/** First N casts laid out horizontally — the part of the rotation where
- *  players diverge most from guides, and where a quick visual scan
- *  against an Icy Veins opener sequence reveals the most improvement. */
+function UnclassifiedNotice({ specName }: { specName: string }) {
+  return (
+    <div className="bg-surface-container rounded-xl p-4 border-l-4 border-primary/40">
+      <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary mb-1">
+        Heads up
+      </p>
+      <p className="text-sm text-on-surface-variant">
+        Rotation classification for <span className="font-semibold text-on-surface">{specName}</span> hasn&apos;t been curated yet — you&apos;ll see raw casts without
+        rotation / cooldown / utility grouping or a reference opener.
+        Coming soon.
+      </p>
+    </div>
+  );
+}
+
+function GuideLink({ url }: { url: string }) {
+  return (
+    <div className="flex justify-end">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-xs uppercase tracking-widest px-4 py-2 bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-outline-variant/30 transition-colors"
+      >
+        <span className="material-symbols-outlined text-sm">open_in_new</span>
+        Full rotation guide on Icy Veins
+      </a>
+    </div>
+  );
+}
+
+/** First N casts laid out horizontally. When reference data is present,
+ *  renders the player's opener on top with the curated reference below
+ *  so the user can see divergence at a glance. */
 function OpenerStrip({
   casts,
   abilities,
+  reference,
 }: {
   casts: RotationCast[];
   abilities: Record<string, RotationAbility>;
+  reference: ReferenceOpenerStep[] | null;
 }) {
-  const opener = casts.slice(0, OPENER_CAST_COUNT);
+  const yourOpener = casts.slice(0, OPENER_CAST_COUNT);
+  const refOpener = reference?.slice(0, OPENER_CAST_COUNT) ?? null;
 
   return (
     <div className="bg-surface-container-high rounded-xl p-6">
@@ -215,105 +278,266 @@ function OpenerStrip({
             Opener
           </p>
           <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl tracking-tighter uppercase text-on-surface italic">
-            First {opener.length} casts
+            {refOpener ? "Yours vs. recommended" : `First ${yourOpener.length} casts`}
           </h3>
         </div>
-        <p className="text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant max-w-xs text-right">
-          Compare to your spec&apos;s opener on Icy Veins or Wowhead.
-        </p>
+        {!refOpener && (
+          <p className="text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant max-w-xs text-right">
+            Compare to your spec&apos;s opener on Icy Veins.
+          </p>
+        )}
       </div>
-      <ol className="flex gap-2 overflow-x-auto pb-2">
-        {opener.map((c, idx) => {
-          const ability = abilities[String(c.s)];
-          return (
+      <div className="space-y-4">
+        <OpenerRow
+          label="You"
+          items={yourOpener.map((c, idx) => {
+            const ab = abilities[String(c.s)];
+            return {
+              key: `you-${idx}`,
+              spellId: c.s,
+              name: ab?.name ?? `#${c.s}`,
+              icon: ab?.icon ?? null,
+              sub: formatClock(c.t),
+            };
+          })}
+          accent="primary"
+        />
+        {refOpener && (
+          <OpenerRow
+            label="Guide"
+            items={refOpener.map((s, idx) => ({
+              key: `ref-${idx}`,
+              spellId: s.spell_id,
+              name: s.name,
+              icon: s.icon,
+              sub: s.note ?? "",
+            }))}
+            accent="secondary"
+            muted
+          />
+        )}
+      </div>
+      {refOpener && (
+        <p className="mt-4 text-[10px] font-[family-name:var(--font-label)] uppercase tracking-widest text-on-surface-variant/60">
+          Recommended sequence is a guideline — real openers adapt to
+          procs, movement, and trash packs.
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface OpenerRowItem {
+  key: string;
+  spellId: number;
+  name: string;
+  icon: string | null;
+  sub: string;
+}
+
+function OpenerRow({
+  label,
+  items,
+  accent,
+  muted,
+}: {
+  label: string;
+  items: OpenerRowItem[];
+  accent: "primary" | "secondary";
+  muted?: boolean;
+}) {
+  const accentColor = accent === "primary" ? "text-primary" : "text-secondary";
+  return (
+    <div>
+      <p
+        className={`font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.25em] mb-2 ${accentColor}`}
+      >
+        {label}
+      </p>
+      <ol className={`flex gap-2 overflow-x-auto pb-2 ${muted ? "opacity-90" : ""}`}>
+        {items.length === 0 ? (
+          <li className="text-xs italic text-on-surface-variant/60">
+            No casts in the opener window.
+          </li>
+        ) : (
+          items.map((it, idx) => (
             <li
-              key={idx}
+              key={it.key}
               className="flex flex-col items-center gap-1 shrink-0 w-16"
             >
               <span className="font-[family-name:var(--font-label)] text-[10px] text-on-surface-variant/70 tabular-nums">
                 {idx + 1}
               </span>
               <SpellIcon
-                spellId={c.s}
-                ability={ability}
-                size={48}
+                spellId={it.spellId}
+                ability={{ name: it.name, icon: it.icon, category: "unknown" }}
+                size={44}
               />
               <span className="text-[9px] text-center text-on-surface-variant font-[family-name:var(--font-label)] leading-tight truncate w-full">
-                {ability?.name ?? `#${c.s}`}
+                {it.name}
               </span>
-              <span className="text-[9px] text-on-surface-variant/60 tabular-nums">
-                {formatClock(c.t)}
-              </span>
+              {it.sub && (
+                <span className="text-[9px] text-on-surface-variant/60 tabular-nums truncate w-full text-center">
+                  {it.sub}
+                </span>
+              )}
             </li>
-          );
-        })}
+          ))
+        )}
       </ol>
     </div>
   );
 }
 
-/** How often each ability was cast across the run, sorted by frequency. */
+/** How often each ability was cast, sorted by frequency. When the
+ *  player's spec has curated data, splits into Rotation / Cooldowns /
+ *  Utility sections so the user can scan each role separately. */
 function FrequencyTable({
   casts,
   abilities,
+  classified,
 }: {
   casts: RotationCast[];
   abilities: Record<string, RotationAbility>;
+  classified: boolean;
 }) {
+  type Row = {
+    spellId: number;
+    count: number;
+    pct: number;
+    category: RotationCategory;
+    ability: RotationAbility | undefined;
+  };
+
   const counts = new Map<number, number>();
   for (const c of casts) counts.set(c.s, (counts.get(c.s) ?? 0) + 1);
   const total = casts.length;
-  const rows = [...counts.entries()]
-    .map(([spellId, count]) => ({
-      spellId,
-      count,
-      pct: total > 0 ? (count / total) * 100 : 0,
-      ability: abilities[String(spellId)],
-    }))
+  const rows: Row[] = [...counts.entries()]
+    .map(([spellId, count]) => {
+      const ability = abilities[String(spellId)];
+      return {
+        spellId,
+        count,
+        pct: total > 0 ? (count / total) * 100 : 0,
+        category: ability?.category ?? "unknown",
+        ability,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
-  const maxCount = rows[0]?.count ?? 1;
+  // Unclassified path — single flat list (Phase 1 behavior).
+  if (!classified) {
+    return (
+      <div className="bg-surface-container-high rounded-xl p-6">
+        <SectionHeader
+          eyebrow="Cast Frequency"
+          title={`${rows.length} abilities, ${total} total casts`}
+        />
+        <FrequencyList rows={rows} maxCount={rows[0]?.count ?? 1} />
+      </div>
+    );
+  }
+
+  // Classified path — group rows by category, render each section.
+  const grouped: Record<RotationCategory, Row[]> = {
+    rotation: [],
+    cooldown: [],
+    utility: [],
+    unknown: [],
+  };
+  for (const row of rows) grouped[row.category].push(row);
 
   return (
-    <div className="bg-surface-container-high rounded-xl p-6">
-      <div className="flex items-end justify-between mb-4 flex-wrap gap-2">
-        <div>
-          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-1">
-            Cast Frequency
-          </p>
-          <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl tracking-tighter uppercase text-on-surface italic">
-            {rows.length} abilities, {total} total casts
-          </h3>
-        </div>
-      </div>
-      <ul className="space-y-1.5">
-        {rows.map((r) => (
-          <li
-            key={r.spellId}
-            className="flex items-center gap-3 bg-surface-container-highest/60 rounded px-3 py-2"
-          >
-            <SpellIcon spellId={r.spellId} ability={r.ability} size={28} />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-on-surface truncate font-[family-name:var(--font-body)]">
-                {r.ability?.name ?? `Spell #${r.spellId}`}
+    <div className="bg-surface-container-high rounded-xl p-6 space-y-6">
+      <SectionHeader
+        eyebrow="Cast Frequency"
+        title="Grouped by ability type"
+      />
+      {CATEGORY_ORDER.map((cat) => {
+        const sectionRows = grouped[cat];
+        if (sectionRows.length === 0) return null;
+        const sectionMax = sectionRows[0]?.count ?? 1;
+        const sectionTotal = sectionRows.reduce((s, r) => s + r.count, 0);
+        return (
+          <div key={cat} className="space-y-2">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <p className="font-[family-name:var(--font-label)] text-[11px] uppercase tracking-[0.25em] text-primary">
+                {CATEGORY_TITLES[cat]}
               </p>
-              <div className="mt-1 h-1 bg-surface-container rounded overflow-hidden">
-                <div
-                  className="h-full bg-primary/60"
-                  style={{ width: `${(r.count / maxCount) * 100}%` }}
-                />
-              </div>
-            </div>
-            <div className="text-right tabular-nums shrink-0 w-20">
-              <p className="text-sm font-bold text-on-surface">{r.count}x</p>
-              <p className="text-[10px] text-on-surface-variant">
-                {r.pct.toFixed(1)}%
+              <p className="font-[family-name:var(--font-label)] text-[10px] tabular-nums text-on-surface-variant/70">
+                {sectionRows.length} abilities ·{" "}
+                {total > 0
+                  ? `${((sectionTotal / total) * 100).toFixed(1)}% of casts`
+                  : "—"}
               </p>
             </div>
-          </li>
-        ))}
-      </ul>
+            <FrequencyList rows={sectionRows} maxCount={sectionMax} />
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+}: {
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <div>
+      <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-1">
+        {eyebrow}
+      </p>
+      <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl tracking-tighter uppercase text-on-surface italic">
+        {title}
+      </h3>
+    </div>
+  );
+}
+
+function FrequencyList({
+  rows,
+  maxCount,
+}: {
+  rows: Array<{
+    spellId: number;
+    count: number;
+    pct: number;
+    ability: RotationAbility | undefined;
+  }>;
+  maxCount: number;
+}) {
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li
+          key={r.spellId}
+          className="flex items-center gap-3 bg-surface-container-highest/60 rounded px-3 py-2"
+        >
+          <SpellIcon spellId={r.spellId} ability={r.ability} size={28} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-on-surface truncate font-[family-name:var(--font-body)]">
+              {r.ability?.name ?? `Spell #${r.spellId}`}
+            </p>
+            <div className="mt-1 h-1 bg-surface-container rounded overflow-hidden">
+              <div
+                className="h-full bg-primary/60"
+                style={{ width: `${(r.count / Math.max(1, maxCount)) * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="text-right tabular-nums shrink-0 w-20">
+            <p className="text-sm font-bold text-on-surface">{r.count}x</p>
+            <p className="text-[10px] text-on-surface-variant">
+              {r.pct.toFixed(1)}%
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -329,7 +553,6 @@ function CastTimeline({
   abilities: Record<string, RotationAbility>;
   pulls: Pull[] | null;
 }) {
-  // If pulls aren't available, fall back to a single continuous track.
   const segments =
     pulls && pulls.length > 0
       ? pulls.map((p) => ({
@@ -349,17 +572,8 @@ function CastTimeline({
 
   return (
     <div className="bg-surface-container-high rounded-xl p-6">
-      <div className="flex items-end justify-between mb-4 flex-wrap gap-2">
-        <div>
-          <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-[0.3em] text-primary mb-1">
-            Timeline
-          </p>
-          <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-xl tracking-tighter uppercase text-on-surface italic">
-            Cast order by pull
-          </h3>
-        </div>
-      </div>
-      <ol className="space-y-4">
+      <SectionHeader eyebrow="Timeline" title="Cast order by pull" />
+      <ol className="space-y-4 mt-4">
         {segments.map((seg, idx) => (
           <TimelineSegment
             key={idx}
