@@ -1,0 +1,75 @@
+name: Announce changelog entries in Discord
+
+# When master's frontend/src/lib/changelog.ts is modified, compare its
+# top entry (newest first) against the previous commit's version.
+# If the top entry changed (a new entry was added above it), post it
+# to the Discord webhook. Editing existing entries (typo fixes) leaves
+# the top entry unchanged and triggers no post.
+#
+# Shares the DISCORD_RELEASE_WEBHOOK secret with release.yml: both
+# post to #announcements in the Umbra server.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'frontend/src/lib/changelog.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          # Full history so github.event.before is reachable regardless
+          # of how many commits the push contained.
+          fetch-depth: 0
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Extract pre-push version of the file
+        id: prev
+        env:
+          PREV_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          # Branch creation / force-push-from-zero pushes have an all-zero
+          # `before` SHA. Nothing to diff against in either case.
+          if [ -z "${PREV_SHA:-}" ] || [ "$PREV_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No pre-push SHA; skipping."
+            echo "has_previous=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git cat-file -e "${PREV_SHA}:frontend/src/lib/changelog.ts" 2>/dev/null; then
+            git show "${PREV_SHA}:frontend/src/lib/changelog.ts" > /tmp/changelog-prev.ts
+            echo "has_previous=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Pre-push commit didn't contain changelog.ts; skipping."
+            echo "has_previous=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Diff top entry and post if changed
+        if: steps.prev.outputs.has_previous == 'true'
+        env:
+          DISCORD_ANNOUNCE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DISCORD_ANNOUNCE_WEBHOOK:-}" ]; then
+            echo "DISCORD_RELEASE_WEBHOOK not set; skipping announcement."
+            exit 0
+          fi
+          if node scripts/announce_changelog_entry.js diff \
+              /tmp/changelog-prev.ts \
+              frontend/src/lib/changelog.ts; then
+            node scripts/announce_changelog_entry.js post \
+              frontend/src/lib/changelog.ts
+          else
+            echo "Top changelog entry unchanged; skipping post."
+          fi
