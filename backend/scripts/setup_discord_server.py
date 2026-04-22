@@ -402,6 +402,51 @@ async def _ensure_role_channels(
             )
 
 
+BOT_CATEGORY_NAME = "BOT"
+
+
+async def _ensure_setup_channel(
+    guild: discord.Guild, summary: list[str]
+) -> discord.TextChannel | None:
+    """Create #how-to-setup under the pre-existing BOT category if it's
+    missing, or return the existing channel otherwise.
+
+    Unlike the ROLES category the script owns wholesale, the BOT
+    category was created by hand when the server was first set up and
+    we don't want to recreate it — so this helper only looks for an
+    existing category by name (case-insensitive) and bails if it's
+    missing.
+    """
+    existing = discord.utils.get(guild.text_channels, name="how-to-setup")
+    if existing is not None:
+        return existing
+
+    bot_category = next(
+        (c for c in guild.categories if c.name.upper() == BOT_CATEGORY_NAME),
+        None,
+    )
+    if bot_category is None:
+        summary.append(
+            f"  ! BOT category not found; can't create #how-to-setup "
+            "(create the category manually, re-run)"
+        )
+        return None
+    try:
+        channel = await guild.create_text_channel(
+            name="how-to-setup",
+            category=bot_category,
+            topic=CHANNEL_TOPICS["how-to-setup"],
+            reason="Umbra bot-install explainer channel",
+        )
+        summary.append(f"  + channel created #how-to-setup")
+        return channel
+    except discord.Forbidden:
+        summary.append(
+            "  ! can't create #how-to-setup (needs Manage Channels)"
+        )
+        return None
+
+
 async def _run(client: discord.Client, guild_id: int) -> None:
     guild = client.get_guild(guild_id)
     if guild is None:
@@ -470,10 +515,12 @@ async def _run(client: discord.Client, guild_id: int) -> None:
             channels["umbra-lookups"], LOOKUPS_USAGE_MESSAGE, client.user, summary
         )
 
-    # 7. Bot-install instructions in how-to-setup.
-    if "how-to-setup" in channels:
+    # 7. Create #how-to-setup under BOT category if missing, then post
+    # the bot-install instructions there.
+    setup_channel = await _ensure_setup_channel(guild, summary)
+    if setup_channel is not None:
         await _upsert_bot_message(
-            channels["how-to-setup"], HOW_TO_SETUP_MESSAGE, client.user, summary
+            setup_channel, HOW_TO_SETUP_MESSAGE, client.user, summary
         )
 
     logger.info("Setup summary:\n%s", "\n".join(summary))
