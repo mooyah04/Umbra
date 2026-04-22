@@ -47,6 +47,7 @@ CHANNEL_TOPICS: dict[str, str] = {
     ),
     "suggestions": "Feature ideas and improvements for Umbra.",
     "umbra-lookups": "Look up M+ grades with /umbra name-realm region.",
+    "how-to-setup": "Install the Umbra bot in your own Discord server.",
 }
 
 # @everyone: read yes, send no. @Devs: send yes. Other roles fall through
@@ -123,6 +124,52 @@ Use `/umbra <name-realm> <region>` to look up any character's M+ grade.
 **Supported regions**: `us`, `eu`, `kr`, `tw`, `cn`
 
 Characters not yet indexed on wowumbra.gg will receive a link to claim with a Warcraft Logs URL.
+"""
+
+# Public OAuth URL for installing the Umbra bot in another server.
+# Encodes: scopes=bot+applications.commands, permissions=2147502080
+# (Send Messages + Embed Links + Use Slash Commands), integration_type=0
+# (Guild Install). Matches the URL generated in the Discord Developer
+# Portal's OAuth2 -> URL Generator for the Umbra application.
+BOT_INSTALL_URL = (
+    "https://discord.com/oauth2/authorize"
+    "?client_id=1496568641540325508"
+    "&permissions=2147502080"
+    "&integration_type=0"
+    "&scope=bot+applications.commands"
+)
+
+HOW_TO_SETUP_MESSAGE = f"""\
+## Add the Umbra bot to your server
+
+The `/umbra` bot can be installed in any Discord server you administer, so your own community can look up M+ grades without leaving the chat.
+
+### One-click install
+
+{BOT_INSTALL_URL}
+
+Click that link, pick your server from the dropdown, and authorize. The bot requests only three permissions: **Send Messages**, **Embed Links**, and **Use Slash Commands**. It does not request admin, message history, or member list access.
+
+### Using the bot
+
+In any channel the bot can see, type `/umbra` and fill in one field:
+- **query**: `name-realm region` (e.g. `elonmunk-tarrenmill eu`)
+
+Supported regions: `us`, `eu`, `kr`, `tw`, `cn`.
+
+Example: `/umbra mooyuh-tarrenmill eu`
+
+### Restricting to one channel (optional)
+
+If you'd rather `/umbra` only work in a dedicated channel on your server:
+1. Your server's **Settings** -> **Integrations** -> find **Umbra**
+2. Under **Channels**, remove "All Channels" and add only the channel(s) you want
+
+Admins bypass this restriction by design so you can always test commands anywhere.
+
+### Questions or issues
+
+Ask in <#general> or ping **@Devs**. Full methodology and profiles at https://wowumbra.gg.
 """
 
 # Channels referenced inside the welcome copy. Rendered as Discord mentions
@@ -421,6 +468,12 @@ async def _run(client: discord.Client, guild_id: int) -> None:
     if "umbra-lookups" in channels:
         await _upsert_bot_message(
             channels["umbra-lookups"], LOOKUPS_USAGE_MESSAGE, client.user, summary
+        )
+
+    # 7. Bot-install instructions in how-to-setup.
+    if "how-to-setup" in channels:
+        await _upsert_bot_message(
+            channels["how-to-setup"], HOW_TO_SETUP_MESSAGE, client.user, summary
         )
 
     logger.info("Setup summary:\n%s", "\n".join(summary))
