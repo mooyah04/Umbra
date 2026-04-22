@@ -2,6 +2,51 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.10] - 2026-04-22
+
+### Changed
+- Interface version bumped to 120005 for the WoW 12.0.5 client patch.
+  Addon now loads without the out-of-date warning on updated clients.
+
+## [0.3.9] - 2026-04-22
+
+### Changed
+- Bundled grade data refreshed (automated daily release).
+
+## [0.3.8] - 2026-04-21
+
+### Changed
+- Bundled grade data refreshed (automated daily release).
+
+## [0.3.7] - 2026-04-20
+
+### Changed
+- Bundled grade data refreshed (automated daily release).
+
+## [0.3.6] - 2026-04-19
+
+### Fixed
+- Addon being marked "Incompatible" on current live clients. The
+  .toc's Interface was bumped to 120005 in anticipation of a WoW 12.0.5
+  client update that hasn't shipped yet; live clients still report
+  120001, so the higher value made WoW treat the addon as targeting
+  a future version and refuse to load it. Rolled back to 120001.
+
+## [0.3.5] - 2026-04-19
+
+### Changed
+- Bundled grade data refreshed (automated daily release).
+
+## [0.3.4] - 2026-04-18
+
+### Changed
+- Bundled grade data refreshed against the live database. CurseForge
+  and Wago installs now carry the same freshness the direct download
+  has had since 0.3.3 shipped (the direct zip rebuilds every hour;
+  store installs only pick up data when we cut a new version).
+- `X-Curse-Project-ID` now wired into the .toc so the CurseForge app
+  matches installed copies to the listing and auto-updates correctly.
+
 ## [0.3.3] - 2026-04-17
 
 ### Fixed

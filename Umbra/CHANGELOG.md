@@ -2,6 +2,12 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.10] - 2026-04-22
+
+### Changed
+- Interface version bumped to 120005 for the WoW 12.0.5 client patch.
+  Addon now loads without the out-of-date warning on updated clients.
+
 ## [0.3.9] - 2026-04-22
 
 ### Changed

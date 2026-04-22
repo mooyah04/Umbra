@@ -91,18 +91,28 @@ jobs:
           sed -i "s/^## Version: .*/## Version: ${NEW_VERSION}/" Umbra-dev/Umbra.toc
 
           # Prepend a new entry above the first existing ## heading.
-          awk -v v="$NEW_VERSION" -v d="$DATE" '
-            /^## / && !inserted {
-              print "## [" v "] - " d
-              print ""
-              print "### Changed"
-              print "- Bundled grade data refreshed (automated daily release)."
-              print ""
-              inserted = 1
-            }
-            { print }
-          ' Umbra/CHANGELOG.md > Umbra/CHANGELOG.md.new
-          mv Umbra/CHANGELOG.md.new Umbra/CHANGELOG.md
+          # Apply to BOTH CHANGELOGs so promote-addon.py (which wholesale
+          # mirrors Umbra-dev/ -> Umbra/) doesn't strip auto-release history.
+          # Idempotent: if a manual commit already pre-inserted a ## heading
+          # for NEW_VERSION, skip the prepend so we don't create duplicates.
+          for f in Umbra/CHANGELOG.md Umbra-dev/CHANGELOG.md; do
+            if grep -q "^## \[${NEW_VERSION}\]" "$f"; then
+              echo "  $f already has ${NEW_VERSION}; skipping prepend"
+              continue
+            fi
+            awk -v v="$NEW_VERSION" -v d="$DATE" '
+              /^## / && !inserted {
+                print "## [" v "] - " d
+                print ""
+                print "### Changed"
+                print "- Bundled grade data refreshed (automated daily release)."
+                print ""
+                inserted = 1
+              }
+              { print }
+            ' "$f" > "$f.new"
+            mv "$f.new" "$f"
+          done
 
       - name: Rebuild public zips
         if: steps.decide.outputs.skip == 'false'
@@ -119,7 +129,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-          git add Umbra/Umbra.toc Umbra-dev/Umbra.toc Umbra/CHANGELOG.md \
+          git add Umbra/Umbra.toc Umbra-dev/Umbra.toc \
+                  Umbra/CHANGELOG.md Umbra-dev/CHANGELOG.md \
                   frontend/public/Umbra.zip frontend/public/Umbra-dev.zip
 
           git commit -m "Auto-release ${NEW_TAG}: daily data refresh
