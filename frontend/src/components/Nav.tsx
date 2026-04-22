@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import InstallButtons from "@/components/InstallButtons";
+import { DISCORD_INVITE_URL } from "@/lib/api";
 
 export default function Nav() {
   return (
@@ -46,6 +47,14 @@ export default function Nav() {
             >
               Suggest
             </Link>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface hover:text-primary transition-colors"
+            >
+              Discord
+            </a>
           </nav>
           <div className="hidden md:block">
             <InstallButtons size="sm" />
@@ -91,6 +100,17 @@ export default function Nav() {
             Suggest
           </span>
         </Link>
+        <a
+          href={DISCORD_INVITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center text-on-surface/50 pt-1 hover:text-primary"
+        >
+          <span className="material-symbols-outlined">forum</span>
+          <span className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest">
+            Discord
+          </span>
+        </a>
       </nav>
     </>
   );

@@ -4,6 +4,7 @@ import RecentlyGradedCarousel from "@/components/RecentlyGradedCarousel";
 import InstallButtons from "@/components/InstallButtons";
 import HeroBackdrop from "@/components/HeroBackdrop";
 import {
+  DISCORD_INVITE_URL,
   getStatsSummary,
   getTopPlayers,
 } from "@/lib/api";
@@ -355,6 +356,16 @@ export default async function Home() {
             Install through CurseForge or Wago — both update Umbra
             automatically alongside your other addons.
           </p>
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary hover:underline"
+          >
+            <span className="material-symbols-outlined text-sm">forum</span>
+            Join the Umbra Discord
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </a>
         </div>
       </section>
 
@@ -388,6 +399,14 @@ export default async function Home() {
             className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
           >
             Wago
+          </a>
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Discord
           </a>
           <Link
             href="/changelog"

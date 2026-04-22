@@ -3,6 +3,10 @@
 Mythic+ performance grading on tooltips and the Group Finder.
 Backed by combat-log data ingested at https://wowumbra.gg.
 
+**Community Discord**: https://discord.gg/Vc6vjJ2N9R — release
+announcements, scoring discussion, bug reports, and `/umbra` lookups
+inside your own Discord servers.
+
 ## Install
 
 1. Close World of Warcraft completely.
