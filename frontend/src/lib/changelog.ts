@@ -17,13 +17,6 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-22",
-    title: "Join the Umbra Discord",
-    category: "new",
-    body:
-      "The community server is live at https://discord.gg/Vc6vjJ2N9R. Release announcements, scoring debates, bug reports, and role-based discussion channels (tanks, healers, DPS). New members walk through a short onboarding flow to pick their role and get matched to the right channels automatically. There's also an Umbra bot you can install in your own Discord server. Type `/umbra name-realm region` (e.g. `/umbra elonmunk-tarrenmill eu`) and you'll get an embed with that player's grade, role, spec, and category breakdown. The bot reads directly from our database, so lookups are instant.",
-  },
-  {
-    date: "2026-04-22",
     title: "Addon updated for WoW 12.0.5",
     category: "improved",
     body:
