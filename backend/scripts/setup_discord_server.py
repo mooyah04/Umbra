@@ -126,18 +126,11 @@ Use `/umbra <name-realm> <region>` to look up any character's M+ grade.
 Characters not yet indexed on wowumbra.gg will receive a link to claim with a Warcraft Logs URL.
 """
 
-# Public OAuth URL for installing the Umbra bot in another server.
-# Encodes: scopes=bot+applications.commands, permissions=2147502080
-# (Send Messages + Embed Links + Use Slash Commands), integration_type=0
-# (Guild Install). Matches the URL generated in the Discord Developer
-# Portal's OAuth2 -> URL Generator for the Umbra application.
-BOT_INSTALL_URL = (
-    "https://discord.com/oauth2/authorize"
-    "?client_id=1496568641540325508"
-    "&permissions=2147502080"
-    "&integration_type=0"
-    "&scope=bot+applications.commands"
-)
+# Public branded URL users can share to install the Umbra bot into
+# their own Discord server. Redirects on Vercel to the full OAuth2
+# authorize page (see frontend/next.config.ts). The long-form URL is
+# kept in the redirect config, not here, so it lives in one place.
+BOT_INSTALL_URL = "https://wowumbra.gg/bot"
 
 HOW_TO_SETUP_MESSAGE = f"""\
 ## Add the Umbra bot to your server

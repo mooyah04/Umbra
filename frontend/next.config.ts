@@ -16,6 +16,25 @@ const nextConfig: NextConfig = {
       static: 30,
     },
   },
+
+  async redirects() {
+    return [
+      {
+        // Short branded URL users can share when telling others to
+        // install the Umbra bot in their own Discord server. Points
+        // at the OAuth2 Guild-Install authorize page with the exact
+        // scopes + permissions the bot needs (Send Messages,
+        // Embed Links, Use Slash Commands — nothing else).
+        //
+        // permanent: false (307) so we can change the destination
+        // without the redirect being cached forever by browsers.
+        source: "/bot",
+        destination:
+          "https://discord.com/oauth2/authorize?client_id=1496568641540325508&permissions=2147502080&integration_type=0&scope=bot+applications.commands",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
