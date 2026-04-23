@@ -50,7 +50,14 @@ def fetch_sample(encounter_id: int) -> dict:
         f"?encounter_id={encounter_id}&top_n={TOP_N}&consensus_pct={CONSENSUS_PCT}"
     )
     req = urllib.request.Request(
-        url, headers={"X-API-Key": ADMIN_API_KEY or ""},
+        url,
+        headers={
+            "X-API-Key": ADMIN_API_KEY or "",
+            # Cloudflare's browser-integrity-check rejects the default
+            # `Python-urllib/3.x` UA with code 1010. Any non-default
+            # UA passes, so just identify ourselves.
+            "User-Agent": "umbra-admin-cli/1.0",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
