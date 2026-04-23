@@ -1,17 +1,22 @@
+import Link from "next/link";
 import { getGradeColor } from "@/lib/grades";
 import type { PerDungeonGrade } from "@/lib/types";
 
 /**
  * Per-dungeon grade grid for the player page. Shows 8 tiles (one per
  * active-season dungeon); dungeons the player hasn't run yet render
- * dimmed as coverage-gap markers.
+ * dimmed as coverage-gap markers. Tiles with runs link to the dungeon
+ * detail page so users can drill into per-dungeon aggregates.
  *
  * Server component — just renders props from PlayerProfileResponse.
  */
 export default function DungeonBreakdown({
   tiles,
+  playerPath,
 }: {
   tiles: PerDungeonGrade[];
+  /** Base path for building dungeon links, e.g. "/player/eu/realm/name". */
+  playerPath: string;
 }) {
   if (!tiles || tiles.length === 0) return null;
 
@@ -29,20 +34,30 @@ export default function DungeonBreakdown({
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {tiles.map((t) => (
-          <DungeonTile key={t.encounter_id} tile={t} />
+          <DungeonTile
+            key={t.encounter_id}
+            tile={t}
+            playerPath={playerPath}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function DungeonTile({ tile }: { tile: PerDungeonGrade }) {
+function DungeonTile({
+  tile,
+  playerPath,
+}: {
+  tile: PerDungeonGrade;
+  playerPath: string;
+}) {
   const hasRuns = tile.runs_count > 0 && tile.grade;
   const gradeColor = hasRuns && tile.grade ? getGradeColor(tile.grade) : "#6b6b6b";
 
-  return (
+  const body = (
     <div
-      className={`rounded-xl p-4 border transition-colors ${
+      className={`rounded-xl p-4 border transition-colors h-full ${
         hasRuns
           ? "bg-surface-container-high border-outline-variant/20 hover:bg-surface-bright"
           : "bg-surface-container-low border-outline-variant/10 opacity-60"
@@ -89,5 +104,14 @@ function DungeonTile({ tile }: { tile: PerDungeonGrade }) {
         </p>
       )}
     </div>
+  );
+
+  // Only tiles with runs link through — empty tiles have nothing to show
+  // on the dungeon page.
+  if (!hasRuns) return body;
+  return (
+    <Link href={`${playerPath}/dungeon/${tile.encounter_id}`} className="block">
+      {body}
+    </Link>
   );
 }

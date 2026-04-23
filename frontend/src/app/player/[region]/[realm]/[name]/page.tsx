@@ -527,7 +527,7 @@ export default async function PlayerProfilePage({ params }: Props) {
 
       {/* ── Per-dungeon grade breakdown ── */}
       {profile.per_dungeon && profile.per_dungeon.length > 0 && (
-        <DungeonBreakdown tiles={profile.per_dungeon} />
+        <DungeonBreakdown tiles={profile.per_dungeon} playerPath={playerPath} />
       )}
 
       {/* ── Run history ── */}

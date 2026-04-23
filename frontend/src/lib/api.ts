@@ -1,4 +1,5 @@
 import type {
+  DungeonSummaryResponse,
   HistoryResponse,
   MethodologyResponse,
   PlayerProfileResponse,
@@ -168,6 +169,24 @@ export async function getRunDetail(
   // window. Always fresh.
   return fetchApi(
     `/api/player/${region}/${realm}/${name}/runs/${runId}`,
+    "no-store",
+  );
+}
+
+export async function getDungeonSummary(
+  region: string,
+  realm: string,
+  name: string,
+  encounterId: number,
+  role?: string,
+): Promise<DungeonSummaryResponse> {
+  // No-store: dungeon summary pulls from the same run set the profile's
+  // recent-runs list shows. A fresh ingest should reflect here
+  // immediately — scoring is re-derived each request from the live row
+  // set, and the backend cache makes it cheap.
+  const qs = role ? `?role=${encodeURIComponent(role)}` : "";
+  return fetchApi(
+    `/api/player/${region}/${realm}/${name}/dungeon/${encounterId}${qs}`,
     "no-store",
   );
 }

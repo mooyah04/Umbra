@@ -14,54 +14,51 @@ import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import BreakdownTabs from "./BreakdownTabs";
 import type {
-  DungeonAggregateStats,
   PartyMember,
   Pull,
   PullEvent,
   PullEventType,
   PullVerdict,
+  RunResponse,
 } from "@/lib/types";
 
 /**
  * Per-category "receipts" on the run breakdown tiles — raw counts
- * summed across the dungeon subset so the numbers match the score
- * bar's denominator. Pulled from dungeon_stats (the backend computes
- * these from the same run set the scorer iterated), not from the
- * single-run fields on RunResponse, so e.g. "12 dispels" on the tile
- * is "across 3 runs", not "this one fight".
+ * from THIS single fight so the numbers match what happened on the
+ * pulls the user is inspecting. The dungeon-aggregate view lives on
+ * the new dungeon page (/player/.../dungeon/{encounter_id}) so the
+ * two concepts don't muddy each other.
  */
-function dataPointsForDungeonCategory(
+function dataPointsForRunCategory(
   key: string,
-  stats: DungeonAggregateStats | null | undefined,
+  run: RunResponse,
 ): Array<{ label: string; value: string }> | undefined {
-  if (!stats) return undefined;
   switch (key) {
     case "utility":
       return [
-        { label: "Total interrupts", value: String(stats.total_interrupts) },
-        { label: "Total dispels", value: String(stats.total_dispels) },
-        { label: "Total CC casts", value: String(stats.total_cc_casts) },
-        { label: "Critical kicks", value: String(stats.total_critical_interrupts) },
+        { label: "Interrupts", value: String(run.interrupts) },
+        { label: "Dispels", value: String(run.dispels) },
+        { label: "CC casts", value: String(run.cc_casts ?? 0) },
+        { label: "Critical kicks", value: String(run.critical_interrupts ?? 0) },
       ];
     case "survivability":
       return [
-        { label: "Total deaths", value: String(stats.total_deaths) },
-        { label: "Avoidable deaths", value: String(stats.total_avoidable_deaths) },
-        { label: "Avoidable dmg taken", value: formatNumber(stats.total_avoidable_damage) },
-        { label: "Total dmg taken", value: formatNumber(stats.total_damage_taken) },
+        { label: "Deaths", value: String(run.deaths) },
+        { label: "Avoidable deaths", value: String(run.avoidable_deaths ?? 0) },
+        { label: "Avoidable dmg taken", value: formatNumber(run.avoidable_damage_taken) },
+        { label: "Total dmg taken", value: formatNumber(run.damage_taken_total) },
       ];
     case "casts_per_minute": {
-      const minutes = stats.total_duration_ms / 60000;
-      const avgCpm = minutes > 0 ? (stats.total_casts / minutes).toFixed(1) : "0";
+      const minutes = run.duration / 60000;
+      const cpm = minutes > 0 ? (run.casts_total / minutes).toFixed(1) : "0";
       return [
-        { label: "Total casts", value: stats.total_casts.toLocaleString() },
-        { label: "Avg CPM", value: avgCpm },
-        { label: "Runs analyzed", value: String(stats.runs_count) },
+        { label: "Total casts", value: run.casts_total.toLocaleString() },
+        { label: "CPM", value: cpm },
       ];
     }
     case "cooldown_usage":
       return [
-        { label: "Runs analyzed", value: String(stats.runs_count) },
+        { label: "CD usage", value: `${run.cooldown_usage_pct.toFixed(0)}%` },
       ];
     default:
       return undefined;
@@ -118,11 +115,10 @@ export default async function RunDetailPage({ params }: Props) {
   const pulls = run.pulls ?? null;
   const wclUrl = `https://www.warcraftlogs.com/reports/${run.wcl_report_id}?fight=${run.fight_id}`;
 
-  // Category breakdown scoped to this dungeon's aggregate — same shape
-  // as the profile's overall breakdown but populated from
-  // dungeon_category_scores (all the player's runs at this encounter+role).
-  // Mirrors the profile's filtering: skip timing_modifier because it's on
-  // a ±8 scale that CategoryExplainer renders as /100 and reads as failure.
+  // Category breakdown scoped to THIS SINGLE RUN — the dungeon
+  // aggregate view lives on the /dungeon/{encounterId} page now. Keeps
+  // the run page focused on "how did this specific fight go" while the
+  // dungeon page answers "how do I do at this dungeon in general".
   const runRole = run.role.toLowerCase();
   const dungeonWeightMap: Record<string, number> = Object.fromEntries(
     (ROLE_WEIGHT_PROFILES[runRole as "dps" | "healer" | "tank"] ?? []).map(
@@ -133,21 +129,21 @@ export default async function RunDetailPage({ params }: Props) {
   // `damage_output` when WCL hasn't ranked this character yet). Showing a
   // zero-width bar reads as a failing score; omitting it matches how the
   // composite was actually computed.
-  const excludedCategories = new Set(run.dungeon_excluded_categories ?? []);
-  const dungeonCategoryBlocks = run.dungeon_category_scores
+  const excludedCategories = new Set(run.run_excluded_categories ?? []);
+  const runCategoryBlocks = run.run_category_scores
     ? getCategoriesForRole(runRole)
         .filter(
           (c) =>
             c.key !== "timing_modifier" &&
-            run.dungeon_category_scores != null &&
-            c.key in run.dungeon_category_scores &&
+            run.run_category_scores != null &&
+            c.key in run.run_category_scores &&
             !excludedCategories.has(c.key),
         )
         .map((c) => ({
           explanation: c,
-          score: run.dungeon_category_scores?.[c.key] ?? 0,
+          score: run.run_category_scores?.[c.key] ?? 0,
           weight: dungeonWeightMap[c.key],
-          dataPoints: dataPointsForDungeonCategory(c.key, run.dungeon_stats),
+          dataPoints: dataPointsForRunCategory(c.key, run),
         }))
     : [];
 
@@ -482,20 +478,25 @@ export default async function RunDetailPage({ params }: Props) {
             runs so users can see where the per-dungeon grade came from.
             Sits as a col-span-12 card to match the other full-width
             sections (Team Composition, Full Stat Sheet) below it. */}
-        {dungeonCategoryBlocks.length > 0 && (
+        {runCategoryBlocks.length > 0 && (
           <div className="md:col-span-12 bg-surface-container-high rounded-lg p-8">
             <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
               <div>
                 <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-                  How Your {dungeonName(run.encounter_id)} Grade Breaks Down
+                  How This Run Graded
                 </p>
                 <h3 className="font-[family-name:var(--font-headline)] font-extrabold text-2xl tracking-tighter uppercase text-on-surface italic">
                   The Breakdown
                 </h3>
                 <p className="text-on-surface-variant text-sm mt-2 max-w-xl">
-                  Across your {run.dungeon_runs_count ?? 0}{" "}
-                  {(run.dungeon_runs_count ?? 0) === 1 ? "run" : "runs"} of this
-                  dungeon.
+                  Scored from this fight alone. For{" "}
+                  <Link
+                    href={`${playerPath}/dungeon/${run.encounter_id}`}
+                    className="text-primary hover:underline"
+                  >
+                    your overall {dungeonName(run.encounter_id)} grade
+                  </Link>
+                  , click through.
                 </p>
               </div>
               <Link
@@ -509,7 +510,7 @@ export default async function RunDetailPage({ params }: Props) {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dungeonCategoryBlocks.map((c) => {
+              {runCategoryBlocks.map((c) => {
                 const specCopy = methodology?.categories?.[c.explanation.key];
                 return (
                   <CategoryExplainer

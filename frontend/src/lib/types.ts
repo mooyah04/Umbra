@@ -23,6 +23,19 @@ export interface PlayerSearchResult {
   rank?: number | null;
 }
 
+export interface DungeonSummaryResponse {
+  encounter_id: number;
+  dungeon_name: string;
+  role: string;
+  runs_count: number;
+  composite_score: number | null;
+  grade: string | null;
+  category_scores: Record<string, number>;
+  excluded_categories: string[];
+  stats: DungeonAggregateStats | null;
+  runs: RunResponse[];
+}
+
 /** Aggregate utility/survivability/CPM counters across the player's
  *  runs at this encounter+role combo. Mirrors the subset the scorer
  *  used, so the numbers and the category bars on each breakdown tile
@@ -86,6 +99,11 @@ export interface RunResponse {
    *  lighter response shape. */
   run_grade?: string | null;
   run_composite_score?: number | null;
+  /** Per-category scores for this single run. Same shape as
+   *  dungeon_category_scores but scoped to [run]. Drives the run
+   *  page's breakdown tiles. */
+  run_category_scores?: Record<string, number> | null;
+  run_excluded_categories?: string[] | null;
   /** Player's aggregate grade across every run they have at this
    *  encounter+role. Only populated by the single-run detail endpoint.
    *  Null when the run's role has no scored runs at all. */
