@@ -146,6 +146,17 @@ class DungeonRun(Base):
     #     "fight_start_ms": int (absolute ms epoch, for debugging)
     #   }
     rotation_events: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Utility ability breakdown cache, populated on first hit to
+    # /runs/{id}/utility. Shape:
+    #   {
+    #     "abilities": [
+    #       {"id": int, "name": str, "category": "interrupt"|"cc"|"dispel",
+    #        "count": int},
+    #       ...
+    #     ]
+    #   }
+    # Null on runs that haven't had the utility tile opened yet.
+    utility_events: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     player: Mapped["Player"] = relationship(back_populates="runs")
 

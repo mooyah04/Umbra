@@ -36,6 +36,8 @@ from app.schemas import (
     IngestRequest,
     IngestResponse,
     MethodologyResponse,
+    RunUtilityAbility,
+    RunUtilityResponse,
     ParseResponse,
     PerDungeonGrade,
     PlayerProfileResponse,
@@ -3415,6 +3417,161 @@ def get_run_rotation(
         spec_key=classified["spec_key"],
         reference_opener=classified["reference_opener"],
         guide_url=classified["guide_url"],
+    )
+
+
+@app.get(
+    "/api/player/{region}/{realm}/{name}/runs/{run_id}/utility",
+    response_model=RunUtilityResponse,
+)
+@limiter.limit(settings.rate_limit_public)
+def get_run_utility(
+    request: Request,
+    region: str,
+    realm: str,
+    name: str,
+    run_id: int,
+    session: Session = Depends(get_session),
+):
+    """Per-run utility ability breakdown.
+
+    Returns the abilities the player cast during this fight that count
+    toward utility — interrupts, CC, dispels — with per-ability cast
+    counts so the run page's Utility tile can show "Solar Beam x3,
+    Mighty Bash x1, Nature's Cure x4" instead of just "8 interrupts".
+
+    Lazy-fetched from WCL on first request, cached in DungeonRun.
+    utility_events for subsequent views. Same rate-limit + error
+    shape as /rotation.
+    """
+    name, realm, region = _canonical_identity(name, realm, region)
+    player = _find_player(session, region, realm, name)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    run = session.execute(
+        select(DungeonRun).where(
+            DungeonRun.id == run_id,
+            DungeonRun.player_id == player.id,
+        )
+    ).scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    cached = run.utility_events is not None
+    if not cached:
+        # Build the class/spec-specific spell-ID lookup. Empty when
+        # the player has no tracked utility abilities at all (rare —
+        # would only happen on a class we haven't codified).
+        from app.scoring.interrupt_abilities import build_utility_lookup
+        lookup = build_utility_lookup(player.class_id, run.spec_name)
+        if not lookup:
+            run.utility_events = {"abilities": []}
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+            return RunUtilityResponse(run_id=run.id, abilities=[], cached=False)
+
+        from app.wcl.client import (
+            WCLQueryError,
+            WCLRateLimitedError,
+            wcl_client,
+        )
+
+        # Resolve player's actor id in the report — same path rotation
+        # takes.
+        try:
+            header = wcl_client.get_report_header_and_fights(run.wcl_report_id)
+        except WCLRateLimitedError as e:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "wcl_rate_limited",
+                    "retry_after": e.retry_after,
+                    "message": (
+                        "Warcraft Logs is rate-limiting us. Try again in "
+                        f"{e.retry_after}s."
+                    ),
+                },
+            )
+        except WCLQueryError as e:
+            logger.warning(
+                "utility: get_report_header_and_fights failed for %s: %s",
+                run.wcl_report_id, e,
+            )
+            raise HTTPException(status_code=502, detail="Warcraft Logs query failed")
+
+        actors_by_name = header.get("actors_by_name", {}) or {}
+        actor_ids = actors_by_name.get(player.name) or []
+        if not actor_ids:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Could not locate the player in the source Warcraft "
+                    "Logs report. The log may have been deleted."
+                ),
+            )
+        source_id = actor_ids[0]
+
+        # Pull the player's cast events and count per tracked ability.
+        # get_player_events already paginates and returns every cast.
+        try:
+            events = wcl_client.get_player_events(
+                run.wcl_report_id, [run.fight_id],
+                data_type="Casts", source_id=source_id,
+            )
+        except WCLRateLimitedError as e:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "wcl_rate_limited",
+                    "retry_after": e.retry_after,
+                    "message": (
+                        "Warcraft Logs is rate-limiting us. Try again in "
+                        f"{e.retry_after}s."
+                    ),
+                },
+            )
+        except WCLQueryError as e:
+            logger.warning(
+                "utility: get_player_events failed for %s/%d: %s",
+                run.wcl_report_id, run.fight_id, e,
+            )
+            raise HTTPException(status_code=502, detail="Warcraft Logs query failed")
+
+        counts: dict[int, int] = {}
+        for ev in events:
+            if ev.get("type") != "cast":
+                continue
+            aid = ev.get("abilityGameID")
+            if not isinstance(aid, int):
+                continue
+            if aid in lookup:
+                counts[aid] = counts.get(aid, 0) + 1
+
+        abilities_list = [
+            {
+                "id": aid,
+                "name": lookup[aid][0],
+                "category": lookup[aid][1],
+                "count": counts[aid],
+            }
+            for aid in counts
+        ]
+        # Sort by count desc so the "headline" abilities lead. Ties
+        # broken by name for stable output.
+        abilities_list.sort(key=lambda a: (-a["count"], a["name"]))
+        run.utility_events = {"abilities": abilities_list}
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+
+    data = run.utility_events or {"abilities": []}
+    abilities = [RunUtilityAbility(**a) for a in data.get("abilities", [])]
+    return RunUtilityResponse(
+        run_id=run.id,
+        abilities=abilities,
+        cached=cached,
     )
 
 

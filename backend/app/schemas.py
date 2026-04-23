@@ -123,6 +123,29 @@ class PlayerSearchResult(BaseModel):
     rank: int | None = None
 
 
+class RunUtilityAbility(BaseModel):
+    """One ability the player cast during a run that counts toward
+    their utility grade — a kick, CC, or dispel. The run page's
+    Utility tile lists these with counts ("Solar Beam x3") so players
+    can see exactly what's powering their score."""
+    id: int
+    name: str
+    category: str  # "interrupt" | "cc" | "dispel"
+    count: int
+
+
+class RunUtilityResponse(BaseModel):
+    """Per-run utility ability breakdown. Lazy-fetched on first view,
+    cached in DungeonRun.utility_events for subsequent requests.
+
+    abilities is sorted descending by count so the most-used abilities
+    lead the list — makes the 2-column tile layout read cleanly.
+    """
+    run_id: int
+    abilities: list[RunUtilityAbility]
+    cached: bool
+
+
 class DungeonAggregateStats(BaseModel):
     """Sums across the player's runs at a single encounter+role combo.
 

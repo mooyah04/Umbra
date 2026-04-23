@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getMethodology, getRunDetail } from "@/lib/api";
-import type { MethodologyResponse } from "@/lib/types";
+import { getMethodology, getRunDetail, getRunUtility } from "@/lib/api";
+import type { MethodologyResponse, RunUtilityResponse } from "@/lib/types";
 import { getGradeColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
@@ -28,13 +28,26 @@ import type {
  * pulls the user is inspecting. The dungeon-aggregate view lives on
  * the new dungeon page (/player/.../dungeon/{encounter_id}) so the
  * two concepts don't muddy each other.
+ *
+ * Utility gets special treatment: when we have the per-ability
+ * breakdown from /runs/{id}/utility, show "Solar Beam x3, Mighty Bash
+ * x1, Nature's Cure x4" so the player sees exactly which abilities
+ * they cast. Falls back to the aggregate counters until the breakdown
+ * lands (first view on a run, or a WCL outage).
  */
 function dataPointsForRunCategory(
   key: string,
   run: RunResponse,
+  utility: RunUtilityResponse | null,
 ): Array<{ label: string; value: string }> | undefined {
   switch (key) {
     case "utility":
+      if (utility && utility.abilities.length > 0) {
+        return utility.abilities.map((a) => ({
+          label: a.name,
+          value: `x${a.count}`,
+        }));
+      }
       return [
         { label: "Interrupts", value: String(run.interrupts) },
         { label: "Dispels", value: String(run.dispels) },
@@ -99,11 +112,20 @@ export default async function RunDetailPage({ params }: Props) {
   // so a follow-up view for the same spec skips the round-trip. A
   // failure here degrades cleanly: the tiles fall back to generic copy.
   let methodology: MethodologyResponse | null = null;
+  let utility: RunUtilityResponse | null = null;
   if (run.class_id && run.spec_name) {
+    // Fetch both in parallel — methodology is small static data and
+    // utility is the lazy-filled per-run breakdown. A failure in
+    // either degrades cleanly: the tiles fall back to generic copy
+    // or aggregate counts.
     try {
-      methodology = await getMethodology(run.class_id, run.spec_name);
+      [methodology, utility] = await Promise.all([
+        getMethodology(run.class_id, run.spec_name),
+        getRunUtility(region, realm, name, parseInt(runId, 10)).catch(() => null),
+      ]);
     } catch {
       methodology = null;
+      utility = null;
     }
   }
 
@@ -143,7 +165,7 @@ export default async function RunDetailPage({ params }: Props) {
           explanation: c,
           score: run.run_category_scores?.[c.key] ?? 0,
           weight: dungeonWeightMap[c.key],
-          dataPoints: dataPointsForRunCategory(c.key, run),
+          dataPoints: dataPointsForRunCategory(c.key, run, utility),
         }))
     : [];
 

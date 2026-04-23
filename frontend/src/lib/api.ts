@@ -7,6 +7,7 @@ import type {
   RunListResponse,
   RunResponse,
   RunRotationResponse,
+  RunUtilityResponse,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -200,6 +201,21 @@ export async function getMethodology(
   // window is well under what the copy actually lives for.
   const encoded = encodeURIComponent(specName);
   return fetchApi(`/api/methodology/${classId}/${encoded}`, 3600);
+}
+
+export async function getRunUtility(
+  region: string,
+  realm: string,
+  name: string,
+  runId: number,
+): Promise<RunUtilityResponse> {
+  // 1hr cache — first request pays a WCL round-trip; subsequent hits
+  // are served from the DB cache on DungeonRun.utility_events.
+  // Rotation uses the same shape / same reasoning.
+  return fetchApi(
+    `/api/player/${region}/${realm}/${name}/runs/${runId}/utility`,
+    3600,
+  );
 }
 
 export async function getRunRotation(

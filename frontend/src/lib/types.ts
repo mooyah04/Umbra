@@ -283,6 +283,19 @@ export interface ReferenceOpenerStep {
   note: string | null;
 }
 
+export interface RunUtilityAbility {
+  id: number;
+  name: string;
+  category: "interrupt" | "cc" | "dispel";
+  count: number;
+}
+
+export interface RunUtilityResponse {
+  run_id: number;
+  abilities: RunUtilityAbility[];
+  cached: boolean;
+}
+
 export interface RunRotationResponse {
   run_id: number;
   encounter_id: number;
