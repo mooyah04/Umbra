@@ -30,6 +30,7 @@ from app.schemas import (
     ClaimRequest,
     ClaimResponse,
     HistoryPoint,
+    DungeonAggregateStats,
     HistoryResponse,
     IngestRequest,
     IngestResponse,
@@ -3074,6 +3075,30 @@ def get_run_detail(
         response.dungeon_runs_count = len(dungeon_runs)
         response.dungeon_category_scores = dungeon_result.category_scores
         response.dungeon_excluded_categories = list(dungeon_result.excluded_categories)
+        # Aggregate counters drive the per-tile "receipts" display.
+        # Summed over the same subset the scorer used so the numbers
+        # and the score bar on each tile stay consistent.
+        response.dungeon_stats = DungeonAggregateStats(
+            runs_count=len(dungeon_runs),
+            total_interrupts=sum(r.interrupts for r in dungeon_runs),
+            total_dispels=sum(r.dispels for r in dungeon_runs),
+            total_cc_casts=sum((r.cc_casts or 0) for r in dungeon_runs),
+            total_critical_interrupts=sum(
+                (r.critical_interrupts or 0) for r in dungeon_runs
+            ),
+            total_deaths=sum(r.deaths for r in dungeon_runs),
+            total_avoidable_deaths=sum(
+                (r.avoidable_deaths or 0) for r in dungeon_runs
+            ),
+            total_avoidable_damage=sum(
+                r.avoidable_damage_taken for r in dungeon_runs
+            ),
+            total_damage_taken=sum(
+                r.damage_taken_total for r in dungeon_runs
+            ),
+            total_casts=sum(r.casts_total for r in dungeon_runs),
+            total_duration_ms=sum(r.duration for r in dungeon_runs),
+        )
 
     return response
 

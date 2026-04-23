@@ -14,12 +14,59 @@ import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import BreakdownTabs from "./BreakdownTabs";
 import type {
+  DungeonAggregateStats,
   PartyMember,
   Pull,
   PullEvent,
   PullEventType,
   PullVerdict,
 } from "@/lib/types";
+
+/**
+ * Per-category "receipts" on the run breakdown tiles — raw counts
+ * summed across the dungeon subset so the numbers match the score
+ * bar's denominator. Pulled from dungeon_stats (the backend computes
+ * these from the same run set the scorer iterated), not from the
+ * single-run fields on RunResponse, so e.g. "12 dispels" on the tile
+ * is "across 3 runs", not "this one fight".
+ */
+function dataPointsForDungeonCategory(
+  key: string,
+  stats: DungeonAggregateStats | null | undefined,
+): Array<{ label: string; value: string }> | undefined {
+  if (!stats) return undefined;
+  switch (key) {
+    case "utility":
+      return [
+        { label: "Total interrupts", value: String(stats.total_interrupts) },
+        { label: "Total dispels", value: String(stats.total_dispels) },
+        { label: "Total CC casts", value: String(stats.total_cc_casts) },
+        { label: "Critical kicks", value: String(stats.total_critical_interrupts) },
+      ];
+    case "survivability":
+      return [
+        { label: "Total deaths", value: String(stats.total_deaths) },
+        { label: "Avoidable deaths", value: String(stats.total_avoidable_deaths) },
+        { label: "Avoidable dmg taken", value: formatNumber(stats.total_avoidable_damage) },
+        { label: "Total dmg taken", value: formatNumber(stats.total_damage_taken) },
+      ];
+    case "casts_per_minute": {
+      const minutes = stats.total_duration_ms / 60000;
+      const avgCpm = minutes > 0 ? (stats.total_casts / minutes).toFixed(1) : "0";
+      return [
+        { label: "Total casts", value: stats.total_casts.toLocaleString() },
+        { label: "Avg CPM", value: avgCpm },
+        { label: "Runs analyzed", value: String(stats.runs_count) },
+      ];
+    }
+    case "cooldown_usage":
+      return [
+        { label: "Runs analyzed", value: String(stats.runs_count) },
+      ];
+    default:
+      return undefined;
+  }
+}
 
 const RUN_UPLOAD_TITLE = "Got another log?";
 const RUN_UPLOAD_DESCRIPTION =
@@ -100,6 +147,7 @@ export default async function RunDetailPage({ params }: Props) {
           explanation: c,
           score: run.dungeon_category_scores?.[c.key] ?? 0,
           weight: dungeonWeightMap[c.key],
+          dataPoints: dataPointsForDungeonCategory(c.key, run.dungeon_stats),
         }))
     : [];
 
@@ -469,6 +517,7 @@ export default async function RunDetailPage({ params }: Props) {
                     explanation={c.explanation}
                     score={c.score}
                     weight={c.weight}
+                    dataPoints={c.dataPoints}
                     specDescription={specCopy?.description}
                     specHowToImprove={specCopy?.howToImprove}
                   />

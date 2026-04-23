@@ -123,6 +123,31 @@ class PlayerSearchResult(BaseModel):
     rank: int | None = None
 
 
+class DungeonAggregateStats(BaseModel):
+    """Sums across the player's runs at a single encounter+role combo.
+
+    Powers the "receipts" display on the run page's breakdown tiles
+    (e.g. "15 interrupts / 4 dispels / 8 CC across 3 runs") so users
+    can see why the score is what it is. The values match what the
+    scorer iterates when computing category_scores for this
+    encounter+role subset, so the numbers and the score are consistent.
+    """
+    runs_count: int
+    # Utility
+    total_interrupts: int
+    total_dispels: int
+    total_cc_casts: int
+    total_critical_interrupts: int
+    # Survivability
+    total_deaths: int
+    total_avoidable_deaths: int
+    total_avoidable_damage: float
+    total_damage_taken: float
+    # Casts / CPM
+    total_casts: int
+    total_duration_ms: int
+
+
 class RunResponse(BaseModel):
     id: int
     encounter_id: int
@@ -195,6 +220,11 @@ class RunResponse(BaseModel):
     # this character yet, so damage_output has no percentile). The frontend
     # uses this to hide the 0-valued bar instead of implying a failing score.
     dungeon_excluded_categories: list[str] | None = None
+    # Aggregate utility/survivability/CPM counters across the dungeon
+    # subset. Drives the per-category "receipts" display on the run
+    # page's breakdown tiles. Only populated by the single-run endpoint
+    # (same scope as dungeon_category_scores).
+    dungeon_stats: DungeonAggregateStats | None = None
 
 
 class RunListResponse(BaseModel):

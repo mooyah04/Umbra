@@ -23,6 +23,24 @@ export interface PlayerSearchResult {
   rank?: number | null;
 }
 
+/** Aggregate utility/survivability/CPM counters across the player's
+ *  runs at this encounter+role combo. Mirrors the subset the scorer
+ *  used, so the numbers and the category bars on each breakdown tile
+ *  stay consistent. */
+export interface DungeonAggregateStats {
+  runs_count: number;
+  total_interrupts: number;
+  total_dispels: number;
+  total_cc_casts: number;
+  total_critical_interrupts: number;
+  total_deaths: number;
+  total_avoidable_deaths: number;
+  total_avoidable_damage: number;
+  total_damage_taken: number;
+  total_casts: number;
+  total_duration_ms: number;
+}
+
 export interface RunResponse {
   id: number;
   encounter_id: number;
@@ -83,6 +101,10 @@ export interface RunResponse {
    *  the per-fight DPS percentile lookup came back empty, so the score
    *  would otherwise render as a misleading 0. Frontend hides these. */
   dungeon_excluded_categories?: string[] | null;
+  /** Aggregate counters across the dungeon subset. Drives the per-tile
+   *  "receipts" display on the run breakdown so users see the numbers
+   *  that produced each category score. */
+  dungeon_stats?: DungeonAggregateStats | null;
 }
 
 export type PullEventType =
