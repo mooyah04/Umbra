@@ -205,6 +205,13 @@ class RunResponse(BaseModel):
     # endpoint.
     run_grade: str | None = None
     run_composite_score: float | None = None
+    # Per-category scores for this single run. Powers the run page's
+    # breakdown tiles so each category reflects the fight the user is
+    # looking at, not the dungeon aggregate. Same shape as
+    # dungeon_category_scores but scoped to [run] rather than
+    # all-runs-in-this-dungeon-and-role.
+    run_category_scores: dict[str, float] | None = None
+    run_excluded_categories: list[str] | None = None
     # Per-dungeon aggregate context — same scoring math applied across
     # every run the player has in this encounter+role. Answers "where
     # does this run sit inside my overall grade for this dungeon?"
@@ -232,6 +239,32 @@ class RunListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class DungeonSummaryResponse(BaseModel):
+    """Aggregate view for a single (player, encounter_id, role) combo.
+    Powers the new dungeon-overview page: click a per-dungeon tile on
+    the profile → land here → see the dungeon-wide grade + breakdown +
+    run list, then drill into any single run for its fight-specific
+    detail.
+
+    Shape mirrors the dungeon_* fields that used to live on the run
+    response, promoted to a first-class endpoint so the dungeon page
+    doesn't need a run_id to fetch dungeon-level data.
+    """
+    encounter_id: int
+    dungeon_name: str
+    role: str
+    runs_count: int
+    composite_score: float | None = None
+    grade: str | None = None
+    category_scores: dict[str, float] = {}
+    excluded_categories: list[str] = []
+    stats: DungeonAggregateStats | None = None
+    # Run summaries ordered newest-first. Each is the same shape as a
+    # /runs list item — enough for tile rendering + linking to the
+    # single-run page for detail.
+    runs: list[RunResponse] = []
 
 
 class RunRotationResponse(BaseModel):

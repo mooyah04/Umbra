@@ -31,6 +31,7 @@ from app.schemas import (
     ClaimResponse,
     HistoryPoint,
     DungeonAggregateStats,
+    DungeonSummaryResponse,
     HistoryResponse,
     IngestRequest,
     IngestResponse,
@@ -3056,6 +3057,8 @@ def get_run_detail(
     )
     response.run_grade = run_result.overall_grade
     response.run_composite_score = run_result.composite_score
+    response.run_category_scores = run_result.category_scores
+    response.run_excluded_categories = list(run_result.excluded_categories)
 
     dungeon_runs = list(session.execute(
         select(DungeonRun).where(
@@ -3101,6 +3104,102 @@ def get_run_detail(
         )
 
     return response
+
+
+@app.get(
+    "/api/player/{region}/{realm}/{name}/dungeon/{encounter_id}",
+    response_model=DungeonSummaryResponse,
+)
+@limiter.limit(settings.rate_limit_public)
+def get_player_dungeon_summary(
+    request: Request,
+    region: str,
+    realm: str,
+    name: str,
+    encounter_id: int,
+    role: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Dungeon-level summary for a player. Powers the new dungeon page
+    you reach by clicking a per-dungeon tile on the profile.
+
+    Scoped to (player, encounter_id, role). If `role` is omitted we
+    pick the player's primary role — matches the profile's per-dungeon
+    tile behavior (which also uses primary role). Pass `?role=tank`
+    etc. to view the same dungeon through a different role's lens when
+    the player has runs in more than one.
+    """
+    name, realm, region = _canonical_identity(name, realm, region)
+    player = _find_player(session, region, realm, name)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Resolve which role we're summarizing. Explicit ?role=X wins;
+    # otherwise fall back to the player's primary-role PlayerScore.
+    resolved_role: Role | None = None
+    if role:
+        try:
+            resolved_role = Role(role.lower())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="invalid role")
+    else:
+        primary_score = next(
+            (s for s in player.scores if s.primary_role), None,
+        )
+        resolved_role = primary_score.role if primary_score else None
+    if resolved_role is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Player has no scored role to summarize",
+        )
+
+    from app.scoring.dungeons.registry import _DUNGEONS
+    dungeon = _DUNGEONS.get(encounter_id)
+    if dungeon is None:
+        raise HTTPException(status_code=404, detail="Unknown dungeon")
+
+    runs = list(session.execute(
+        select(DungeonRun).where(
+            DungeonRun.player_id == player.id,
+            DungeonRun.encounter_id == encounter_id,
+            DungeonRun.role == resolved_role,
+        ).order_by(DungeonRun.logged_at.desc())
+    ).scalars())
+
+    resp = DungeonSummaryResponse(
+        encounter_id=encounter_id,
+        dungeon_name=dungeon.name,
+        role=resolved_role.value,
+        runs_count=len(runs),
+    )
+    if not runs:
+        return resp
+
+    from app.scoring.engine import score_player_runs
+    result = score_player_runs(
+        runs=runs, role=resolved_role, class_id=player.class_id,
+    )
+    resp.composite_score = result.composite_score
+    resp.grade = result.overall_grade
+    resp.category_scores = result.category_scores
+    resp.excluded_categories = list(result.excluded_categories)
+    resp.stats = DungeonAggregateStats(
+        runs_count=len(runs),
+        total_interrupts=sum(r.interrupts for r in runs),
+        total_dispels=sum(r.dispels for r in runs),
+        total_cc_casts=sum((r.cc_casts or 0) for r in runs),
+        total_critical_interrupts=sum(
+            (r.critical_interrupts or 0) for r in runs
+        ),
+        total_deaths=sum(r.deaths for r in runs),
+        total_avoidable_deaths=sum((r.avoidable_deaths or 0) for r in runs),
+        total_avoidable_damage=sum(r.avoidable_damage_taken for r in runs),
+        total_damage_taken=sum(r.damage_taken_total for r in runs),
+        total_casts=sum(r.casts_total for r in runs),
+        total_duration_ms=sum(r.duration for r in runs),
+    )
+    resp.runs = [_run_to_response(r, class_id=player.class_id) for r in runs]
+    return resp
 
 
 @app.get(
