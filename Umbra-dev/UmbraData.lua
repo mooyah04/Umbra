@@ -12,6 +12,16 @@ Umbra_Database = {
         cpm = 87,
         timed_pct = 56,
         runs = 128,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 21 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 5, best_timed = 21 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 4, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 7, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 6, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 8, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 4, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 6, best_timed = 19 },
+        },
     },
     ["Themartyr-TarrenMill"] = {
         role = "dps",
@@ -25,6 +35,15 @@ Umbra_Database = {
         cpm = 82,
         timed_pct = 65,
         runs = 48,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 2, best_timed = 16 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 18 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 3, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 3, best_timed = 19 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 5, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 3, best_timed = 18 },
+        },
     },
     ["Mauta-Talnivarr"] = {
         role = "dps",
@@ -38,6 +57,14 @@ Umbra_Database = {
         cpm = 89,
         timed_pct = 67,
         runs = 76,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 1, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 2, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 4, best_timed = 13 },
+        },
     },
     ["Hiyo-TarrenMill"] = {
         role = "dps",
@@ -51,6 +78,13 @@ Umbra_Database = {
         cpm = 87,
         timed_pct = 36,
         runs = 11,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 16 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 5, best_timed = 16 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 16 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 1, best_timed = nil },
+        },
     },
     ["Rhyming-Outland"] = {
         role = "tank",
@@ -64,6 +98,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 95,
         runs = 63,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 16 },
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 2, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "S", runs = 4, best_timed = 16 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 3, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 2, best_timed = 16 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 3, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 16 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 3, best_timed = 16 },
+        },
     },
     ["Johka-Khadgar"] = {
         role = "dps",
@@ -77,6 +121,16 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 58,
         runs = 133,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 17 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 3, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 4, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 3, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 16 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 5, best_timed = 17 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 17 },
+        },
     },
     ["Brookzilla-Bloodhoof"] = {
         role = "tank",
@@ -90,6 +144,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 77,
         runs = 95,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 4, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 5, best_timed = 13 },
+        },
     },
     ["Balensiaga-Silvermoon"] = {
         role = "healer",
@@ -104,6 +165,14 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 67,
         runs = 121,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 1, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 6, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 12 },
+        },
     },
     ["Nihaobaobao-Silvermoon"] = {
         role = "healer",
@@ -118,6 +187,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 86,
         runs = 9,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 20 },
+        },
     },
     ["Chiäotzu-Bloodhoof"] = {
         role = "healer",
@@ -132,6 +207,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 95,
         runs = 42,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 4, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 4, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 4, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 7, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 4, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 5, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 6, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 7, best_timed = 12 },
+        },
     },
     ["Khaelt-Sylvanas"] = {
         role = "dps",
@@ -145,6 +230,16 @@ Umbra_Database = {
         cpm = 93,
         timed_pct = 42,
         runs = 60,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 6, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 5, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 12, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 12, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 9, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 11, best_timed = 20 },
+        },
     },
     ["Chåzboy-TarrenMill"] = {
         role = "dps",
@@ -158,6 +253,16 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 78,
         runs = 18,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 3, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 4, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 14 },
+        },
     },
     ["Spingødxx-Draenor"] = {
         role = "healer",
@@ -172,6 +277,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 57,
         runs = 21,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 5, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 3, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 4, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 3, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 2, best_timed = 18 },
+        },
     },
     ["Testolokki-TwistingNether"] = {
         role = "dps",
@@ -185,6 +300,13 @@ Umbra_Database = {
         cpm = 88,
         timed_pct = 58,
         runs = 87,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 3, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 5, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 2, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 1, best_timed = 10 },
+        },
     },
     ["Durmakshaman-Sanguino"] = {
         role = "dps",
@@ -198,6 +320,9 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 65,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 3, best_timed = 15 },
+        },
     },
     ["Mâartac-Proudmoore"] = {
         role = "healer",
@@ -212,6 +337,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 63,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 11 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 1, best_timed = 12 },
+        },
     },
     ["Dadswaggy-Silvermoon"] = {
         role = "dps",
@@ -225,6 +355,15 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 88,
         runs = 34,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C", runs = 1, best_timed = 9 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C-", runs = 2, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "D+", runs = 1, best_timed = 6 },
+        },
     },
     ["Kepsuda-Sylvanas"] = {
         role = "dps",
@@ -238,6 +377,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 80,
         runs = 53,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 4, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 2, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 7, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 9, best_timed = 19 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Renwikk-Bloodhoof"] = {
         role = "dps",
@@ -251,6 +398,13 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 64,
         runs = 55,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 3, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 2, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = 12 },
+        },
     },
     ["Dcalqué-Hyjal"] = {
         role = "dps",
@@ -264,6 +418,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 67,
         runs = 19,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 10 },
+        },
     },
     ["Azkarus-Khadgar"] = {
         role = "dps",
@@ -277,6 +435,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 84,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 15 },
+        },
     },
     ["Ethasmite-Bloodhoof"] = {
         role = "healer",
@@ -291,6 +453,12 @@ Umbra_Database = {
         cpm = 84,
         timed_pct = 100,
         runs = 5,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 2, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "D+", runs = 1, best_timed = 9 },
+        },
     },
     ["Piyhaf-Bloodhoof"] = {
         role = "dps",
@@ -304,6 +472,16 @@ Umbra_Database = {
         cpm = 88,
         timed_pct = 95,
         runs = 37,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 5, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 5, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 3, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 4, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 4, best_timed = 12 },
+        },
     },
     ["Frankzapper-Khadgar"] = {
         role = "dps",
@@ -317,6 +495,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 94,
         runs = 17,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 4, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 3, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 2, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 14 },
+        },
     },
     ["Nerthas-Sylvanas"] = {
         role = "dps",
@@ -330,6 +518,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 8,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 1, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Chlenojuy-Silvermoon"] = {
         role = "tank",
@@ -343,6 +540,14 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 58,
         runs = 19,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 3, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "S+", runs = 4, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 2, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 3, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 3, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 4, best_timed = 19 },
+        },
     },
     ["Roq-Silvermoon"] = {
         role = "tank",
@@ -356,6 +561,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 75,
         runs = 4,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 1, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Uglybaby-Draenor"] = {
         role = "tank",
@@ -369,6 +579,14 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 86,
         runs = 9,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 1, best_timed = 18 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "S", runs = 1, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 1, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = nil },
+        },
     },
     ["Acemonkey-TwistingNether"] = {
         role = "tank",
@@ -382,6 +600,16 @@ Umbra_Database = {
         cpm = 89,
         timed_pct = 42,
         runs = 62,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 6, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 2, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "S", runs = 12, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 10, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 5, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 4, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 10, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 13, best_timed = 19 },
+        },
     },
     ["Grucgor-Archimonde"] = {
         role = "dps",
@@ -395,6 +623,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 7,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 2, best_timed = 7 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 7 },
+        },
     },
     ["Vickman-TarrenMill"] = {
         role = "healer",
@@ -409,6 +644,16 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 23,
         runs = 65,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 5, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 3, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 7, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 15, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 20, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 9, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 2, best_timed = nil },
+        },
     },
     ["Binouze-Bloodhoof"] = {
         role = "dps",
@@ -422,6 +667,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 86,
         runs = 7,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 11 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 1, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 2, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "D-", runs = 1, best_timed = 2 },
+        },
     },
     ["Cäsey-Dalaran"] = {
         role = "tank",
@@ -435,6 +688,16 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 54,
         runs = 41,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S+", runs = 2, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 3, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "S", runs = 4, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 2, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "S", runs = 5, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 5, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 10, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 10, best_timed = 19 },
+        },
     },
     ["Kazowarior-Kazzak"] = {
         role = "tank",
@@ -448,6 +711,16 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 42,
         runs = 24,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 16 },
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 3, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 18 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 18 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 4, best_timed = 18 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 6, best_timed = 18 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 5, best_timed = 18 },
+        },
     },
     ["Drmedbaum-Blackhand"] = {
         role = "healer",
@@ -462,6 +735,12 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 100,
         runs = 4,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C-", runs = 1, best_timed = 8 },
+        },
     },
     ["Steacrack-TarrenMill"] = {
         role = "tank",
@@ -475,6 +754,15 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 26,
         runs = 19,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 1, best_timed = 18 },
+            [10658] = { name = "Pit of Saron", grade = "S+", runs = 1, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "S+", runs = 1, best_timed = nil },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 2, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 2, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 1, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 11, best_timed = 19 },
+        },
     },
     ["Ayasha-Khadgar"] = {
         role = "dps",
@@ -488,6 +776,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 67,
         runs = 3,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 1, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 1, best_timed = 9 },
+        },
     },
     ["Shamonk-Khadgar"] = {
         role = "tank",
@@ -501,6 +794,16 @@ Umbra_Database = {
         cpm = 96,
         timed_pct = 84,
         runs = 25,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 5, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 5, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 3, best_timed = 11 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 4, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 1, best_timed = 2 },
+        },
     },
     ["Neijynezwei-Blackmoore"] = {
         role = "dps",
@@ -514,6 +817,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 95,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 15 },
+        },
     },
     ["Philzhsorts-Dalaran"] = {
         role = "dps",
@@ -527,6 +838,15 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 61,
         runs = 90,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 4, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 3, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "C", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 2, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 4, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 3, best_timed = 14 },
+        },
     },
     ["Xasmia-Kaelthas"] = {
         role = "tank",
@@ -540,6 +860,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 70,
         runs = 75,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 3, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 10 },
+        },
     },
     ["Reversible-Blackhand"] = {
         role = "dps",
@@ -553,6 +881,12 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 75,
         runs = 4,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 1, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 1, best_timed = nil },
+        },
     },
     ["Blodknekt-TarrenMill"] = {
         role = "dps",
@@ -566,6 +900,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 30,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 11 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 14 },
+        },
     },
     ["Bangobingo-TarrenMill"] = {
         role = "dps",
@@ -579,6 +920,14 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 100,
         runs = 40,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Korcád-TarrenMill"] = {
         role = "healer",
@@ -593,6 +942,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 46,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 2, best_timed = 12 },
+        },
     },
     ["Zuggmugg-TarrenMill"] = {
         role = "tank",
@@ -606,6 +962,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 55,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 2, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 3, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 4, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 12 },
+        },
     },
     ["Brickadin-TarrenMill"] = {
         role = "healer",
@@ -620,6 +985,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 41,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 1, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 3, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "D", runs = 1, best_timed = 5 },
+        },
     },
     ["Kombat-Ragnaros"] = {
         role = "tank",
@@ -633,6 +1006,15 @@ Umbra_Database = {
         cpm = 85,
         timed_pct = 38,
         runs = 64,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 5, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 10, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 8, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 4, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 16, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 15, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 6, best_timed = 19 },
+        },
     },
     ["Vyailan-TwistingNether"] = {
         role = "dps",
@@ -646,6 +1028,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 44,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 1, best_timed = 10 },
+        },
     },
     ["Valravon-Kargath"] = {
         role = "dps",
@@ -659,6 +1047,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 96,
         runs = 85,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 4, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 3, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 3, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 4, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 3, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 4, best_timed = 12 },
+        },
     },
     ["Zerkadin-ShatteredHand"] = {
         role = "healer",
@@ -673,6 +1071,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 86,
         runs = 38,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 2, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 11 },
+        },
     },
     ["Minnie-Destromath"] = {
         role = "healer",
@@ -687,6 +1092,10 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 75,
         runs = 4,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 3, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C-", runs = 1, best_timed = 7 },
+        },
     },
     ["Gabadinho-Bloodhoof"] = {
         role = "healer",
@@ -701,6 +1110,13 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 100,
         runs = 6,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C-", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "D", runs = 1, best_timed = 4 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D", runs = 2, best_timed = 10 },
+        },
     },
     ["Suin-Bloodhoof"] = {
         role = "tank",
@@ -714,6 +1130,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 17,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 13 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 2, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 1, best_timed = nil },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 4, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 3, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 4, best_timed = 10 },
+        },
     },
     ["Trbbstd-TwistingNether"] = {
         role = "dps",
@@ -727,6 +1153,16 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 41,
         runs = 44,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 4, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 4, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 4, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 5, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 11, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 5, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 7, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 4, best_timed = 19 },
+        },
     },
     ["Fixec-Blackrock"] = {
         role = "dps",
@@ -740,6 +1176,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 85,
         runs = 13,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 16 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 16 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = nil },
+        },
     },
     ["Bennybegood-Bloodhoof"] = {
         role = "tank",
@@ -753,6 +1198,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 3,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 8 },
+        },
     },
     ["Voidbattery-Kazzak"] = {
         role = "dps",
@@ -766,6 +1216,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 3,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "D+", runs = 1, best_timed = 10 },
+        },
     },
     ["Qronk-ArgentDawn"] = {
         role = "dps",
@@ -779,6 +1234,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 6,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 3, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 1, best_timed = 6 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 10 },
+        },
     },
     ["Lïsbeth-Cthun"] = {
         role = "tank",
@@ -792,6 +1253,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 83,
         runs = 12,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 2, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 13 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 2, best_timed = 11 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 3, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Poohlee-Blackrock"] = {
         role = "tank",
@@ -805,6 +1274,13 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 50,
         runs = 76,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 1, best_timed = nil },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 12 },
+        },
     },
     ["Ahmedbest-Sylvanas"] = {
         role = "dps",
@@ -818,6 +1294,16 @@ Umbra_Database = {
         cpm = 93,
         timed_pct = 44,
         runs = 59,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 5, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 6, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 12, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 9, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 12, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 9, best_timed = 20 },
+        },
     },
     ["Haui-KultDerVerdammten"] = {
         role = "healer",
@@ -832,6 +1318,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 27,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 1, best_timed = 5 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 2, best_timed = 10 },
+        },
     },
     ["Balancedcdh-TarrenMill"] = {
         role = "dps",
@@ -845,6 +1338,11 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 67,
         runs = 114,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 3, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 19 },
+        },
     },
     ["Chder-Kaelthas"] = {
         role = "dps",
@@ -858,6 +1356,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 80,
         runs = 106,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 1, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = nil },
+        },
     },
     ["Yükí-Ravencrest"] = {
         role = "dps",
@@ -871,6 +1378,11 @@ Umbra_Database = {
         cpm = 83,
         timed_pct = 50,
         runs = 164,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 3, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 6, best_timed = 19 },
+        },
     },
     ["Docdrake-Ysondre"] = {
         role = "healer",
@@ -885,6 +1397,15 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 73,
         runs = 31,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 3, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 3, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D+", runs = 1, best_timed = 10 },
+        },
     },
     ["Æktýr-Ysondre"] = {
         role = "dps",
@@ -898,6 +1419,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 5,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 10 },
+        },
     },
     ["Papychettetv-Hyjal"] = {
         role = "tank",
@@ -911,6 +1437,15 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 91,
         runs = 11,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 2, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 3, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 1, best_timed = 8 },
+        },
     },
     ["Brõdixx-Hyjal"] = {
         role = "tank",
@@ -924,6 +1459,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 5,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 13 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 1, best_timed = 6 },
+        },
     },
     ["Freay-Kazzak"] = {
         role = "healer",
@@ -938,6 +1479,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 35,
+        dungeons = {
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 11 },
+        },
     },
     ["Jisoodc-TwistingNether"] = {
         role = "dps",
@@ -951,6 +1499,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 8,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = nil },
+        },
     },
     ["Elyssra-Bloodhoof"] = {
         role = "healer",
@@ -965,6 +1522,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 3,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 1, best_timed = 11 },
+        },
     },
     ["Minifurry-Khadgar"] = {
         role = "dps",
@@ -978,6 +1540,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 95,
         runs = 49,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 4, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 3, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 2, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 3, best_timed = 12 },
+        },
     },
     ["Grimlightx-Kazzak"] = {
         role = "dps",
@@ -991,6 +1563,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 53,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 12 },
+        },
     },
     ["Fauni-Stormreaver"] = {
         role = "dps",
@@ -1004,6 +1581,16 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 31,
         runs = 35,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 19 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 4, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 2, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 7, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 3, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 7, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 9, best_timed = 19 },
+        },
     },
     ["Craynium-Draenor"] = {
         role = "healer",
@@ -1018,6 +1605,13 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 86,
         runs = 7,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 2, best_timed = 7 },
+        },
     },
     ["Zantek-GrimBatol"] = {
         role = "dps",
@@ -1031,6 +1625,15 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 77,
         runs = 13,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 1, best_timed = 17 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 17 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 18 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 2, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 4, best_timed = 17 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 17 },
+        },
     },
     ["Nexaz-Khadgar"] = {
         role = "dps",
@@ -1044,6 +1647,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 43,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 4, best_timed = 12 },
+        },
     },
     ["Atel-Khadgar"] = {
         role = "dps",
@@ -1057,6 +1667,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 78,
         runs = 9,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 3, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = nil },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "C-", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 1, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "D-", runs = 1, best_timed = 2 },
+        },
     },
     ["Nirithene-Kazzak"] = {
         role = "dps",
@@ -1070,6 +1688,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 6,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 2, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 1, best_timed = 12 },
+        },
     },
     ["Ceslock-Bloodhoof"] = {
         role = "dps",
@@ -1083,6 +1707,14 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 100,
         runs = 12,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 3, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 4, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Amazinghehe-Ravencrest"] = {
         role = "dps",
@@ -1096,6 +1728,12 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 67,
         runs = 42,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = nil },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 3, best_timed = 12 },
+        },
     },
     ["Kuplindmert-Hyjal"] = {
         role = "dps",
@@ -1109,6 +1747,12 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 82,
         runs = 11,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 4, best_timed = 17 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 4, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Dreki-Khadgar"] = {
         role = "dps",
@@ -1122,6 +1766,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 63,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 1, best_timed = 8 },
+        },
     },
     ["Hyped-Sylvanas"] = {
         role = "dps",
@@ -1135,6 +1784,16 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 47,
         runs = 38,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 4, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 5, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 5, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 6, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 7, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 9, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = nil },
+        },
     },
     ["Dämony-Rexxar"] = {
         role = "tank",
@@ -1148,6 +1807,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 40,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 10 },
+        },
     },
     ["Gnómeslasher-TarrenMill"] = {
         role = "tank",
@@ -1161,6 +1826,13 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 62,
         runs = 57,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 16 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 3, best_timed = 13 },
+        },
     },
     ["Draleech-Draenor"] = {
         role = "dps",
@@ -1174,6 +1846,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 90,
         runs = 77,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 3, best_timed = 16 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 15 },
+        },
     },
     ["Piciu-Khadgar"] = {
         role = "dps",
@@ -1187,6 +1867,11 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 100,
         runs = 53,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 2, best_timed = 10 },
+        },
     },
     ["Jaackbrew-Bloodhoof"] = {
         role = "tank",
@@ -1200,6 +1885,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 78,
         runs = 36,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "S+", runs = 1, best_timed = 17 },
+            [10658] = { name = "Pit of Saron", grade = "S+", runs = 2, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 1, best_timed = 17 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 1, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 3, best_timed = 15 },
+        },
     },
     ["Zyya-TwistingNether"] = {
         role = "dps",
@@ -1213,6 +1906,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 76,
         runs = 30,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 3, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 7, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 2, best_timed = 16 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D", runs = 2, best_timed = 15 },
+        },
     },
     ["Homorsompson-Executus"] = {
         role = "healer",
@@ -1227,6 +1929,12 @@ Umbra_Database = {
         cpm = 73,
         timed_pct = 100,
         runs = 5,
+        dungeons = {
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 9 },
+            [12874] = { name = "Maisara Caverns", grade = "C-", runs = 2, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D+", runs = 1, best_timed = 10 },
+        },
     },
     ["Jawadruid-Sylvanas"] = {
         role = "healer",
@@ -1241,6 +1949,16 @@ Umbra_Database = {
         cpm = 88,
         timed_pct = 50,
         runs = 36,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 6, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 3, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 7, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 3, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 3, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 5, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = nil },
+        },
     },
     ["Spritzpups-Kazzak"] = {
         role = "dps",
@@ -1254,6 +1972,14 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 100,
         runs = 44,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 3, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 3, best_timed = 10 },
+        },
     },
     ["Befal-Kazzak"] = {
         role = "dps",
@@ -1267,6 +1993,14 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 100,
         runs = 61,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 1, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 15 },
+        },
     },
     ["Tikla-Bloodhoof"] = {
         role = "dps",
@@ -1280,6 +2014,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 93,
         runs = 28,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 3, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 2, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 3, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 10 },
+        },
     },
     ["Jhinn-Garrosh"] = {
         role = "dps",
@@ -1293,6 +2036,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 20,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 8 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 10 },
+        },
     },
     ["Khinkêa-TwistingNether"] = {
         role = "tank",
@@ -1306,6 +2055,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 73,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 4, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 1, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 2, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 2, best_timed = 15 },
+        },
     },
     ["Bobthefarmer-TarrenMill"] = {
         role = "dps",
@@ -1319,6 +2078,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 89,
         runs = 54,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 6, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = nil },
+        },
     },
     ["Thørdir-Garrosh"] = {
         role = "dps",
@@ -1332,6 +2096,15 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 62,
         runs = 34,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 5, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 11 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 4, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 2, best_timed = 10 },
+        },
     },
     ["Calwa-Perenolde"] = {
         role = "tank",
@@ -1345,6 +2118,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 55,
         runs = 54,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 2, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 6, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 5, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 4, best_timed = 12 },
+        },
     },
     ["Kreja-Blackmoore"] = {
         role = "healer",
@@ -1359,6 +2142,12 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 80,
         runs = 6,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "C-", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "D+", runs = 1, best_timed = 10 },
+        },
     },
     ["Deezshots-Antonidas"] = {
         role = "dps",
@@ -1372,6 +2161,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 58,
         runs = 59,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 6, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 7, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 3, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 1, best_timed = 8 },
+        },
     },
     ["Aenosdruid-Ragnaros"] = {
         role = "healer",
@@ -1386,6 +2185,12 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 100,
         runs = 36,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 9 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 1, best_timed = 10 },
+        },
     },
     ["Honéliä-Hyjal"] = {
         role = "healer",
@@ -1400,6 +2205,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 83,
         runs = 34,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 4, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 5, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 2, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 4, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "C", runs = 2, best_timed = 12 },
+        },
     },
     ["Alper-Antonidas"] = {
         role = "tank",
@@ -1413,6 +2228,12 @@ Umbra_Database = {
         cpm = 89,
         timed_pct = 78,
         runs = 65,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 2, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 2, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 3, best_timed = 15 },
+        },
     },
     ["Vänishvoker-TarrenMill"] = {
         role = "dps",
@@ -1426,6 +2247,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 7,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 12 },
+        },
     },
     ["Playfulpush-Draenor"] = {
         role = "dps",
@@ -1439,6 +2265,14 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 80,
         runs = 29,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 1, best_timed = 9 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 1, best_timed = 6 },
+            [10658] = { name = "Pit of Saron", grade = "D+", runs = 3, best_timed = 10 },
+        },
     },
     ["Casanova-Bloodhoof"] = {
         role = "tank",
@@ -1452,6 +2286,16 @@ Umbra_Database = {
         cpm = 92,
         timed_pct = 86,
         runs = 35,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 4, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 3, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 3, best_timed = 12 },
+        },
     },
     ["Peeli-TwistingNether"] = {
         role = "healer",
@@ -1466,6 +2310,16 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 46,
         runs = 159,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 5, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 3, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 5, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 5, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 1, best_timed = nil },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = nil },
+        },
     },
     ["Shiraya-TwistingNether"] = {
         role = "dps",
@@ -1479,6 +2333,10 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 83,
         runs = 70,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 4, best_timed = 16 },
+        },
     },
     ["Mélopia-Hyjal"] = {
         role = "dps",
@@ -1492,6 +2350,14 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 88,
         runs = 29,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 12 },
+        },
     },
     ["Bopcat-ArgentDawn"] = {
         role = "healer",
@@ -1506,6 +2372,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 36,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Thiccmomma-ShatteredHand"] = {
         role = "dps",
@@ -1519,6 +2393,10 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 100,
         runs = 71,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 13 },
+        },
     },
     ["Дыниксвар-HowlingFjord"] = {
         role = "dps",
@@ -1532,6 +2410,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 89,
         runs = 104,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 1, best_timed = 17 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 4, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Miaøu-Stormscale"] = {
         role = "healer",
@@ -1546,6 +2432,15 @@ Umbra_Database = {
         cpm = 96,
         timed_pct = 83,
         runs = 49,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 11 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 2, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 1, best_timed = 8 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 3, best_timed = 10 },
+        },
     },
     ["Роузи-HowlingFjord"] = {
         role = "dps",
@@ -1559,6 +2454,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 85,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 3, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 10 },
+        },
     },
     ["Ocar-Silvermoon"] = {
         role = "dps",
@@ -1572,6 +2474,12 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 83,
         runs = 36,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 9 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 13 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 2, best_timed = 10 },
+        },
     },
     ["Jimeth-Sunstrider"] = {
         role = "tank",
@@ -1585,6 +2493,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 50,
         runs = 45,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 11 },
+        },
     },
     ["Atom-Bloodhoof"] = {
         role = "healer",
@@ -1599,6 +2511,11 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 100,
         runs = 37,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "D+", runs = 1, best_timed = 8 },
+            [61209] = { name = "Skyreach", grade = "D", runs = 1, best_timed = 5 },
+        },
     },
     ["Афилянда-Gordunni"] = {
         role = "dps",
@@ -1612,6 +2529,10 @@ Umbra_Database = {
         cpm = 96,
         timed_pct = 100,
         runs = 19,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 11 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 2, best_timed = 10 },
+        },
     },
     ["Расллок-HowlingFjord"] = {
         role = "dps",
@@ -1625,6 +2546,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 93,
         runs = 55,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 2, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 4, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 2, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 1, best_timed = 13 },
+        },
     },
     ["Tiki-Sunstrider"] = {
         role = "healer",
@@ -1639,6 +2570,11 @@ Umbra_Database = {
         cpm = 81,
         timed_pct = 33,
         runs = 31,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "D+", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "F", runs = 1, best_timed = nil },
+        },
     },
     ["Puddycat-Eredar"] = {
         role = "healer",
@@ -1653,6 +2589,11 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 100,
         runs = 32,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 10 },
+        },
     },
     ["Шиаману-HowlingFjord"] = {
         role = "dps",
@@ -1666,6 +2607,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 92,
         runs = 59,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 4, best_timed = 13 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 3, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = nil },
+        },
     },
     ["Razbit-Bloodhoof"] = {
         role = "dps",
@@ -1679,6 +2629,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 90,
         runs = 90,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 2, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 2, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 3, best_timed = 13 },
+        },
     },
     ["Теомаатрр-HowlingFjord"] = {
         role = "healer",
@@ -1693,6 +2650,14 @@ Umbra_Database = {
         cpm = 90,
         timed_pct = 41,
         runs = 88,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 1, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 4, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 4, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 3, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "D+", runs = 8, best_timed = 20 },
+        },
     },
     ["Lizardust-TarrenMill"] = {
         role = "healer",
@@ -1707,6 +2672,15 @@ Umbra_Database = {
         cpm = 76,
         timed_pct = 54,
         runs = 13,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "C-", runs = 3, best_timed = 2 },
+            [12874] = { name = "Maisara Caverns", grade = "C-", runs = 2, best_timed = 5 },
+            [10658] = { name = "Pit of Saron", grade = "C-", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D+", runs = 2, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "D", runs = 2, best_timed = nil },
+        },
     },
     ["Diasina-Blackmoore"] = {
         role = "dps",
@@ -1720,6 +2694,12 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 100,
         runs = 71,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 3, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 10 },
+        },
     },
     ["Dobbermon-Tarrenmill"] = {
         role = "healer",
@@ -1734,6 +2714,15 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 82,
         runs = 23,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 4, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 1, best_timed = 5 },
+        },
     },
     ["Iverolas-Silvermoon"] = {
         role = "dps",
@@ -1747,6 +2736,16 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 50,
         runs = 71,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 18 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 3, best_timed = 17 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 6, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 18 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 1, best_timed = nil },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B", runs = 3, best_timed = 18 },
+        },
     },
     ["Jexxan-Draenor"] = {
         role = "dps",
@@ -1760,6 +2759,12 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 100,
         runs = 32,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Corgitotem-Khadgar"] = {
         role = "healer",
@@ -1774,6 +2779,14 @@ Umbra_Database = {
         cpm = 93,
         timed_pct = 100,
         runs = 44,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 12 },
+        },
     },
     ["Thirikzal-Bloodhoof"] = {
         role = "dps",
@@ -1787,6 +2800,16 @@ Umbra_Database = {
         cpm = 96,
         timed_pct = 92,
         runs = 58,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 6, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 3, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 6, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 3, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 8, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 5, best_timed = 12 },
+        },
     },
     ["Garcias-Khadgar"] = {
         role = "dps",
@@ -1800,6 +2823,14 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 80,
         runs = 65,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 4, best_timed = 16 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 2, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "C", runs = 1, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 3, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 4, best_timed = 14 },
+        },
     },
     ["Yunayevon-Blackmoore"] = {
         role = "dps",
@@ -1813,6 +2844,15 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 57,
         runs = 57,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 2, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 5, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 5, best_timed = 13 },
+        },
     },
     ["Nyokota-Draenor"] = {
         role = "tank",
@@ -1826,6 +2866,12 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 67,
         runs = 74,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 1, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 2, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 1, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 5, best_timed = 15 },
+        },
     },
     ["Elfennacht-Archimonde"] = {
         role = "dps",
@@ -1839,6 +2885,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 77,
         runs = 66,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 3, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 3, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 9 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 10 },
+        },
     },
     ["Boroda-Terokkar"] = {
         role = "tank",
@@ -1852,6 +2906,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 46,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 13 },
+        },
     },
     ["Hùncho-Blackrock"] = {
         role = "healer",
@@ -1866,6 +2925,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 17,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 12 },
+        },
     },
     ["Овердпс-Gordunni"] = {
         role = "dps",
@@ -1879,6 +2944,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 16,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 2, best_timed = 9 },
+        },
     },
     ["Shesburger-Stormscale"] = {
         role = "dps",
@@ -1892,6 +2962,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 32,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 12 },
+        },
     },
     ["Nahkajesu-Stormscale"] = {
         role = "dps",
@@ -1905,6 +2979,14 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 88,
         runs = 76,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 1, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 18 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 18 },
+        },
     },
     ["Snakesenpai-Blackmoore"] = {
         role = "dps",
@@ -1918,6 +3000,16 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 54,
         runs = 101,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "S", runs = 1, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 1, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "A", runs = 2, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 3, best_timed = 15 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 2, best_timed = 15 },
+        },
     },
     ["Dõpalõne-Draenor"] = {
         role = "dps",
@@ -1931,6 +3023,13 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 73,
         runs = 106,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 5, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 15 },
+        },
     },
     ["Daynine-TwistingNether"] = {
         role = "dps",
@@ -1944,6 +3043,15 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 50,
         runs = 88,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 3, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 3, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 5, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 3, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 3, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 1, best_timed = nil },
+        },
     },
     ["Anfara-TarrenMill"] = {
         role = "dps",
@@ -1957,6 +3065,14 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 50,
         runs = 112,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 3, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 2, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 4, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 19 },
+        },
     },
     ["Xephyris-Blackrock"] = {
         role = "dps",
@@ -1970,6 +3086,16 @@ Umbra_Database = {
         cpm = 87,
         timed_pct = 46,
         runs = 93,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 2, best_timed = 18 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 18 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 12, best_timed = 18 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 5, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 6, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 7, best_timed = 18 },
+        },
     },
     ["Estilante-Sanguino"] = {
         role = "dps",
@@ -1983,6 +3109,11 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 100,
         runs = 28,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 9 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 2, best_timed = 5 },
+        },
     },
     ["Escabrew-Blackhand"] = {
         role = "tank",
@@ -1996,6 +3127,14 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 89,
         runs = 78,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Trîxxý-Blackhand"] = {
         role = "dps",
@@ -2009,6 +3148,13 @@ Umbra_Database = {
         cpm = 83,
         timed_pct = 100,
         runs = 13,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "D", runs = 2, best_timed = 10 },
+        },
     },
     ["Mooyuh-TarrenMill"] = {
         role = "dps",
@@ -2022,6 +3168,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 19,
+        dungeons = {
+            [61209] = { name = "Skyreach", grade = "C", runs = 2, best_timed = 8 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C", runs = 1, best_timed = 8 },
+        },
     },
     ["Snakemain-Blackrock"] = {
         role = "dps",
@@ -2035,6 +3185,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 27,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "D+", runs = 2, best_timed = 8 },
+            [12874] = { name = "Maisara Caverns", grade = "D", runs = 1, best_timed = 7 },
+            [12805] = { name = "Windrunner Spire", grade = "D-", runs = 1, best_timed = 9 },
+        },
     },
     ["Spacegoat-Khadgar"] = {
         role = "healer",
@@ -2049,6 +3204,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 49,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 11 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = nil },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 3, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 2, best_timed = 10 },
+        },
     },
     ["Lehif-Hyjal"] = {
         role = "dps",
@@ -2062,6 +3224,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 12,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "D-", runs = 1, best_timed = 6 },
+            [12874] = { name = "Maisara Caverns", grade = "D-", runs = 1, best_timed = 2 },
+            [12805] = { name = "Windrunner Spire", grade = "F", runs = 1, best_timed = 9 },
+        },
     },
     ["Ragingkech-Ravencrest"] = {
         role = "dps",
@@ -2075,6 +3242,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 67,
         runs = 44,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = nil },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Mythvoker-Kazzak"] = {
         role = "dps",
@@ -2088,6 +3260,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 62,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 4, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 3, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 3, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 8, best_timed = 11 },
+        },
     },
     ["Voleth-Bloodhoof"] = {
         role = "tank",
@@ -2101,6 +3281,12 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 86,
         runs = 53,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 4, best_timed = 10 },
+        },
     },
     ["Cheveubleu-Archimonde"] = {
         role = "dps",
@@ -2114,6 +3300,13 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 62,
         runs = 81,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 17 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 3, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = nil },
+        },
     },
     ["Dalveni-Blackrock"] = {
         role = "dps",
@@ -2127,6 +3320,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 40,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 2, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 3, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "C-", runs = 2, best_timed = 11 },
+        },
     },
     ["Holykumshot-Khadgar"] = {
         role = "healer",
@@ -2141,6 +3343,13 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 60,
         runs = 15,
+        dungeons = {
+            [61209] = { name = "Skyreach", grade = "C+", runs = 1, best_timed = 6 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 8 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C-", runs = 1, best_timed = nil },
+            [12811] = { name = "Magister's Terrace", grade = "C-", runs = 1, best_timed = nil },
+            [10658] = { name = "Pit of Saron", grade = "D", runs = 1, best_timed = 8 },
+        },
     },
     ["Optiswipe-Kazzak"] = {
         role = "tank",
@@ -2154,6 +3363,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 83,
         runs = 33,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = nil },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Weelan-Khadgar"] = {
         role = "dps",
@@ -2167,6 +3382,10 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 100,
         runs = 20,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 3, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "D", runs = 1, best_timed = 10 },
+        },
     },
     ["Osyr-Ysondre"] = {
         role = "dps",
@@ -2180,6 +3399,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 85,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 1, best_timed = 10 },
+        },
     },
     ["Krinkle-TwistingNether"] = {
         role = "dps",
@@ -2193,6 +3417,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 66,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 1, best_timed = 10 },
+        },
     },
     ["Raidlyx-Blackmoore"] = {
         role = "healer",
@@ -2207,6 +3436,14 @@ Umbra_Database = {
         cpm = 88,
         timed_pct = 92,
         runs = 87,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 1, best_timed = 6 },
+            [10658] = { name = "Pit of Saron", grade = "C", runs = 1, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "F", runs = 1, best_timed = 7 },
+        },
     },
     ["Ancientlord-Bloodhoof"] = {
         role = "healer",
@@ -2221,6 +3458,15 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 94,
         runs = 143,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 3, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 2, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 2, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 5, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "C+", runs = 2, best_timed = 7 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 7 },
+            [61209] = { name = "Skyreach", grade = "C", runs = 1, best_timed = 9 },
+        },
     },
     ["Värkki-TarrenMill"] = {
         role = "tank",
@@ -2234,6 +3480,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 22,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 11 },
+        },
     },
     ["Stéelglové-Khadgar"] = {
         role = "healer",
@@ -2248,6 +3498,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 94,
         runs = 118,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 3, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 3, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 3, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B-", runs = 2, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 2, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 2, best_timed = 12 },
+        },
     },
     ["Dotdotdot-TwistingNether"] = {
         role = "dps",
@@ -2261,6 +3520,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 86,
         runs = 87,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 15 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 2, best_timed = 16 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C+", runs = 1, best_timed = 15 },
+        },
     },
     ["Turboblbec-Drakthul"] = {
         role = "tank",
@@ -2274,6 +3541,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 64,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 2, best_timed = 10 },
+        },
     },
     ["Lasco-Khazgoroth"] = {
         role = "tank",
@@ -2287,6 +3559,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 78,
         runs = 72,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = nil },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 4, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 3, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 5 },
+        },
     },
     ["Darilldruide-Ysondre"] = {
         role = "dps",
@@ -2300,6 +3578,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 82,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 2, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 12 },
+        },
     },
     ["Nyhsea-Hyjal"] = {
         role = "dps",
@@ -2313,6 +3598,11 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 100,
         runs = 77,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 1, best_timed = 10 },
+        },
     },
     ["Torjan-Alleria"] = {
         role = "dps",
@@ -2326,6 +3616,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 90,
         runs = 43,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 2, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = 11 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 3, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 3, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 3, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 4, best_timed = 12 },
+        },
     },
     ["Maxaggromage-Ambossar"] = {
         role = "dps",
@@ -2339,6 +3639,16 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 92,
         runs = 116,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 3, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 1, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 4, best_timed = 13 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 4, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 4, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 3, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 4, best_timed = 13 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 4, best_timed = 12 },
+        },
     },
     ["Elonmunk-Tarrenmill"] = {
         role = "tank",
@@ -2352,6 +3662,14 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 82,
         runs = 29,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 4, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 1, best_timed = 9 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 1, best_timed = 5 },
+        },
     },
     ["Kahélem-Ysondre"] = {
         role = "dps",
@@ -2365,6 +3683,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 94,
         runs = 18,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = 11 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 11 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 2, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B-", runs = 2, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 3, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "C+", runs = 3, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 2, best_timed = 11 },
+        },
     },
     ["Aethralon-Draenor"] = {
         role = "healer",
@@ -2379,6 +3707,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 38,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C+", runs = 4, best_timed = 10 },
+        },
     },
     ["Donaldsmonk-TarrenMill"] = {
         role = "healer",
@@ -2393,6 +3725,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 13,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 9 },
+            [12874] = { name = "Maisara Caverns", grade = "C-", runs = 1, best_timed = 9 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "D+", runs = 1, best_timed = 8 },
+            [61209] = { name = "Skyreach", grade = "D", runs = 1, best_timed = 8 },
+        },
     },
     ["Xoang-Hyjal"] = {
         role = "tank",
@@ -2406,6 +3744,15 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 50,
         runs = 162,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 5, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "S", runs = 2, best_timed = 18 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 2, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 1, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 2, best_timed = 16 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 3, best_timed = 18 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 11, best_timed = 19 },
+        },
     },
     ["Lumînes-Ysondre"] = {
         role = "healer",
@@ -2420,6 +3767,16 @@ Umbra_Database = {
         cpm = 70,
         timed_pct = 58,
         runs = 103,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 3, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 3, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 5, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 2, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 8, best_timed = 15 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 4, best_timed = 14 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 4, best_timed = 14 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "C+", runs = 4, best_timed = 14 },
+        },
     },
     ["Bizentein-Silvermoon"] = {
         role = "dps",
@@ -2433,6 +3790,14 @@ Umbra_Database = {
         cpm = 90,
         timed_pct = 42,
         runs = 19,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 1, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 8, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "B-", runs = 3, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 5, best_timed = 20 },
+        },
     },
     ["Bodenaggro-Thrall"] = {
         role = "dps",
@@ -2446,6 +3811,16 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 29,
         runs = 155,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 4, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 10, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 9, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 8, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 4, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 9, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 3, best_timed = 19 },
+        },
     },
     ["Tahuao-Archimonde"] = {
         role = "dps",
@@ -2459,6 +3834,13 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 88,
         runs = 59,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 3, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 1, best_timed = nil },
+        },
     },
     ["Lairas-Nemesis"] = {
         role = "healer",
@@ -2473,6 +3855,16 @@ Umbra_Database = {
         cpm = 80,
         timed_pct = 42,
         runs = 174,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 6, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 4, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 7, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 1, best_timed = nil },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 6, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 5, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 5, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = nil },
+        },
     },
     ["Xalcadaver-Khadgar"] = {
         role = "dps",
@@ -2486,6 +3878,14 @@ Umbra_Database = {
         cpm = 93,
         timed_pct = 79,
         runs = 79,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 3, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 2, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 4, best_timed = 9 },
+        },
     },
     ["Lohrina-Blackmoore"] = {
         role = "tank",
@@ -2499,6 +3899,14 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 100,
         runs = 65,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 2, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 10 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 2, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 13 },
+        },
     },
     ["Goodzilun-Kazzak"] = {
         role = "dps",
@@ -2512,6 +3920,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 53,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 1, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 13 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 2, best_timed = 11 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 12 },
+        },
     },
     ["Malmi-Bloodhoof"] = {
         role = "dps",
@@ -2525,6 +3939,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 74,
         runs = 76,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 1, best_timed = nil },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 5, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 2, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 4, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 4, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 4, best_timed = 10 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 3, best_timed = 5 },
+        },
     },
     ["Zæxïs-Hyjal"] = {
         role = "dps",
@@ -2538,6 +3961,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 39,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 1, best_timed = 14 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 11 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = 11 },
+        },
     },
     ["Yuyevon-Blackmoore"] = {
         role = "dps",
@@ -2551,6 +3981,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 52,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 1, best_timed = 15 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "C+", runs = 2, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 10 },
+        },
     },
     ["Citrêve-Arakarahm"] = {
         role = "dps",
@@ -2564,6 +4001,13 @@ Umbra_Database = {
         cpm = 97,
         timed_pct = 92,
         runs = 184,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 1, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 17 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 16 },
+        },
     },
     ["Диксигодх-Gordunni"] = {
         role = "dps",
@@ -2577,6 +4021,16 @@ Umbra_Database = {
         cpm = 94,
         timed_pct = 30,
         runs = 147,
+        dungeons = {
+            [61209] = { name = "Skyreach", grade = "A", runs = 1, best_timed = nil },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 5, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 17 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 3, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 13, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 4, best_timed = 18 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 13, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 6, best_timed = 16 },
+        },
     },
     ["Zobil-Silvermoon"] = {
         role = "tank",
@@ -2590,6 +4044,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 74,
         runs = 125,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 5, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "S", runs = 1, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 7, best_timed = 16 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 6, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 4, best_timed = 15 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A+", runs = 4, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 5, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 10 },
+        },
     },
     ["Huntmee-Kazzak"] = {
         role = "dps",
@@ -2603,6 +4067,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 86,
         runs = 79,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 2, best_timed = 11 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 2, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B", runs = 1, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 2, best_timed = 12 },
+        },
     },
     ["Sylva-Zuljin"] = {
         role = "dps",
@@ -2616,6 +4086,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 54,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 3, best_timed = 12 },
+        },
     },
     ["Tîme-Archimonde"] = {
         role = "dps",
@@ -2629,6 +4103,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 80,
         runs = 138,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 1, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 1, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 3, best_timed = 19 },
+        },
     },
     ["Brewdrama-TarrenMill"] = {
         role = "tank",
@@ -2642,6 +4121,14 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 71,
         runs = 219,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "S+", runs = 1, best_timed = 19 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "S+", runs = 4, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 10, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "S", runs = 1, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "A+", runs = 2, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 3, best_timed = 19 },
+        },
     },
     ["Conito-Uldum"] = {
         role = "healer",
@@ -2656,6 +4143,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 88,
         runs = 69,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 16 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 2, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 3, best_timed = 16 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 15 },
+        },
     },
     ["Sunnyt-Ragnaros"] = {
         role = "dps",
@@ -2669,6 +4163,15 @@ Umbra_Database = {
         cpm = 92,
         timed_pct = 39,
         runs = 138,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 3, best_timed = 16 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 2, best_timed = nil },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 1, best_timed = nil },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 5, best_timed = 13 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = nil },
+        },
     },
     ["Nevers-GrimBatol"] = {
         role = "healer",
@@ -2683,6 +4186,15 @@ Umbra_Database = {
         cpm = 82,
         timed_pct = 64,
         runs = 137,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 1, best_timed = 17 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 18 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 1, best_timed = 17 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 1, best_timed = 17 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 5, best_timed = 17 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 16 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 3, best_timed = 17 },
+        },
     },
     ["Startcasting-Kazzak"] = {
         role = "healer",
@@ -2697,6 +4209,15 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 31,
+        dungeons = {
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 15 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B-", runs = 2, best_timed = 13 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B-", runs = 2, best_timed = 10 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 3, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 10 },
+            [12805] = { name = "Windrunner Spire", grade = "C", runs = 1, best_timed = 10 },
+        },
     },
     ["Seatbelton-Draenor"] = {
         role = "dps",
@@ -2710,6 +4231,15 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 30,
         runs = 234,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 2, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 9, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 8, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 4, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "B+", runs = 1, best_timed = nil },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 8, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 5, best_timed = 19 },
+        },
     },
     ["Purplecake-Kazzak"] = {
         role = "dps",
@@ -2723,6 +4253,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 26,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 15 },
+        },
     },
     ["Ethaslayer-Bloodhoof"] = {
         role = "tank",
@@ -2736,6 +4271,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 53,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "S", runs = 2, best_timed = 14 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 2, best_timed = 10 },
+        },
     },
     ["Trollda-Ravencrest"] = {
         role = "dps",
@@ -2749,6 +4288,11 @@ Umbra_Database = {
         cpm = 78,
         timed_pct = 100,
         runs = 27,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "B", runs = 1, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 2, best_timed = 9 },
+        },
     },
     ["Smasherdude-Draenor"] = {
         role = "dps",
@@ -2762,6 +4306,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 26,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 14 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 13 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 1, best_timed = 12 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 10 },
+        },
     },
     ["Vivimnk-TarrenMill"] = {
         role = "tank",
@@ -2775,6 +4325,15 @@ Umbra_Database = {
         cpm = 88,
         timed_pct = 43,
         runs = 75,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "S+", runs = 5, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 4, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 5, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 3, best_timed = 19 },
+            [12874] = { name = "Maisara Caverns", grade = "A+", runs = 4, best_timed = nil },
+            [61209] = { name = "Skyreach", grade = "A", runs = 11, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 10, best_timed = 19 },
+        },
     },
     ["Razguit-Zuljin"] = {
         role = "healer",
@@ -2789,6 +4348,10 @@ Umbra_Database = {
         cpm = 86,
         timed_pct = 100,
         runs = 52,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 2, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B-", runs = 1, best_timed = 12 },
+        },
     },
     ["Ктототанкует-Gordunni"] = {
         role = "dps",
@@ -2802,6 +4365,13 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 83,
         runs = 47,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 1, best_timed = 11 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 2, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "C", runs = 1, best_timed = 8 },
+            [10658] = { name = "Pit of Saron", grade = "C-", runs = 1, best_timed = 5 },
+            [12811] = { name = "Magister's Terrace", grade = "F", runs = 1, best_timed = nil },
+        },
     },
     ["Saltiga-Silvermoon"] = {
         role = "dps",
@@ -2815,6 +4385,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 30,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 2, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 10 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 10 },
+        },
     },
     ["Tryphena-Aegwynn"] = {
         role = "healer",
@@ -2829,6 +4404,12 @@ Umbra_Database = {
         cpm = 95,
         timed_pct = 100,
         runs = 28,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "B+", runs = 1, best_timed = 13 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 12 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 1, best_timed = 12 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "D+", runs = 1, best_timed = 10 },
+        },
     },
     ["Keshia-Kazzak"] = {
         role = "dps",
@@ -2842,6 +4423,10 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 18,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "C+", runs = 1, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C-", runs = 2, best_timed = 10 },
+        },
     },
     ["Shamua-Blackmoore"] = {
         role = "dps",
@@ -2855,6 +4440,14 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 168,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = 12 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 3, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "B+", runs = 5, best_timed = 12 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 3, best_timed = 10 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B", runs = 2, best_timed = 10 },
+        },
     },
     ["Purplecake-Kazzak"] = {
         role = "dps",
@@ -2868,6 +4461,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 26,
+        dungeons = {
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 1, best_timed = 12 },
+            [10658] = { name = "Pit of Saron", grade = "B", runs = 1, best_timed = 13 },
+            [12811] = { name = "Magister's Terrace", grade = "C", runs = 1, best_timed = 15 },
+        },
     },
     ["Topshotte-Hyjal"] = {
         role = "tank",
@@ -2881,6 +4479,12 @@ Umbra_Database = {
         cpm = 98,
         timed_pct = 100,
         runs = 67,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S+", runs = 1, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "S", runs = 1, best_timed = 14 },
+            [12811] = { name = "Magister's Terrace", grade = "S", runs = 2, best_timed = 16 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 3, best_timed = 16 },
+        },
     },
     ["Fountastic-TwistingNether"] = {
         role = "dps",
@@ -2894,6 +4498,16 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 62,
         runs = 152,
+        dungeons = {
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 4, best_timed = 20 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 2, best_timed = 20 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 4, best_timed = 20 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 3, best_timed = 20 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A", runs = 7, best_timed = 20 },
+            [61209] = { name = "Skyreach", grade = "A", runs = 7, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A", runs = 3, best_timed = 20 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 4, best_timed = 19 },
+        },
     },
     ["Ðexter-Kazzak"] = {
         role = "healer",
@@ -2908,6 +4522,16 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 80,
         runs = 127,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A+", runs = 1, best_timed = 16 },
+            [12805] = { name = "Windrunner Spire", grade = "A+", runs = 1, best_timed = 16 },
+            [12811] = { name = "Magister's Terrace", grade = "A", runs = 2, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "A", runs = 3, best_timed = 17 },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 3, best_timed = 16 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 4, best_timed = 16 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 3, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 3, best_timed = 16 },
+        },
     },
     ["Varuuk-Antonidas"] = {
         role = "dps",
@@ -2921,6 +4545,12 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 100,
         runs = 32,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 1, best_timed = 11 },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 3, best_timed = 11 },
+            [61209] = { name = "Skyreach", grade = "B-", runs = 1, best_timed = 11 },
+        },
     },
     ["Kalounane-Hyjal"] = {
         role = "tank",
@@ -2934,6 +4564,16 @@ Umbra_Database = {
         cpm = 93,
         timed_pct = 65,
         runs = 63,
+        dungeons = {
+            [361753] = { name = "The Seat of the Triumvirate", grade = "S", runs = 3, best_timed = 16 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "S", runs = 2, best_timed = 16 },
+            [61209] = { name = "Skyreach", grade = "S", runs = 4, best_timed = 16 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 3, best_timed = 15 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 5, best_timed = 14 },
+            [12874] = { name = "Maisara Caverns", grade = "A", runs = 3, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 2, best_timed = nil },
+            [112526] = { name = "Algeth'ar Academy", grade = "B+", runs = 4, best_timed = 16 },
+        },
     },
     ["Girgoth-Archimonde"] = {
         role = "healer",
@@ -2948,6 +4588,14 @@ Umbra_Database = {
         cpm = 90,
         timed_pct = 83,
         runs = 62,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 2, best_timed = 13 },
+            [12874] = { name = "Maisara Caverns", grade = "B+", runs = 1, best_timed = 13 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 3, best_timed = 14 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B", runs = 3, best_timed = 12 },
+            [12805] = { name = "Windrunner Spire", grade = "B-", runs = 2, best_timed = 10 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C", runs = 1, best_timed = 10 },
+        },
     },
     ["Boopbeep-Thrall"] = {
         role = "healer",
@@ -2962,6 +4610,16 @@ Umbra_Database = {
         cpm = 99,
         timed_pct = 76,
         runs = 126,
+        dungeons = {
+            [12874] = { name = "Maisara Caverns", grade = "S", runs = 2, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A+", runs = 1, best_timed = 18 },
+            [12811] = { name = "Magister's Terrace", grade = "A+", runs = 3, best_timed = 19 },
+            [10658] = { name = "Pit of Saron", grade = "A+", runs = 3, best_timed = 19 },
+            [12805] = { name = "Windrunner Spire", grade = "A", runs = 3, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "A", runs = 3, best_timed = 18 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "A-", runs = 4, best_timed = 18 },
+            [61209] = { name = "Skyreach", grade = "A-", runs = 2, best_timed = 19 },
+        },
     },
     ["Fazo-TwistingNether"] = {
         role = "dps",
@@ -2975,6 +4633,16 @@ Umbra_Database = {
         cpm = 91,
         timed_pct = 26,
         runs = 171,
+        dungeons = {
+            [10658] = { name = "Pit of Saron", grade = "A-", runs = 4, best_timed = 20 },
+            [12805] = { name = "Windrunner Spire", grade = "A-", runs = 1, best_timed = nil },
+            [12874] = { name = "Maisara Caverns", grade = "A-", runs = 10, best_timed = 19 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "A-", runs = 7, best_timed = 19 },
+            [12811] = { name = "Magister's Terrace", grade = "A-", runs = 7, best_timed = 20 },
+            [361753] = { name = "The Seat of the Triumvirate", grade = "B+", runs = 5, best_timed = 19 },
+            [61209] = { name = "Skyreach", grade = "B+", runs = 11, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "C+", runs = 16, best_timed = 19 },
+        },
     },
     ["Klacid-Nemesis"] = {
         role = "dps",
@@ -2988,5 +4656,11 @@ Umbra_Database = {
         cpm = 100,
         timed_pct = 78,
         runs = 71,
+        dungeons = {
+            [112526] = { name = "Algeth'ar Academy", grade = "A-", runs = 1, best_timed = 10 },
+            [12915] = { name = "Nexus-Point Xenas", grade = "B+", runs = 2, best_timed = 12 },
+            [61209] = { name = "Skyreach", grade = "B", runs = 2, best_timed = 15 },
+            [12805] = { name = "Windrunner Spire", grade = "B", runs = 4, best_timed = 15 },
+        },
     },
 }
