@@ -1364,23 +1364,32 @@ def sample_dungeon_dispels(
     encounter_id: int,
     top_n: int = Query(default=10, le=20),
     consensus_pct: float = Query(default=30.0, ge=0, le=100),
+    mode: str = Query(default="defensive"),
 ):
-    """Sample top-N WCL logs for a dungeon, aggregate dispel events across
-    them, and return the debuff IDs that got dispelled in at least
-    `consensus_pct`% of the sampled logs. Feeds the
-    `dispellable_debuffs` field on dungeon modules.
+    """Sample top-N WCL logs for a dungeon and aggregate dispel events,
+    split by target type so healer-relevant data isn't conflated with
+    offensive purges.
 
-    The consensus filter is load-bearing: a log might have one healer who
-    dispelled something weird once — cross-log aggregation surfaces only
-    the debuffs that real parties actually dispel across runs. Empty
-    result means the dungeon has no regularly-dispelled debuffs (which
-    should then be recorded as `dispellable_debuffs=()` so scoring stops
-    penalizing healers who landed 0 dispels there).
+    Mode:
+      - "defensive" (default): debuffs the party dispelled OFF FRIENDLY
+        PLAYERS. This is what healers should be dispelling — used to
+        populate `dispellable_debuffs` on dungeon modules for utility
+        scoring.
+      - "offensive": buffs purged OFF ENEMY NPCs (Tranquilizing Shot,
+        Spellsteal, Purge). DPS utility, not healer utility.
+      - "both": returns both buckets, for diagnostics.
+
+    Per-event target classification uses the report's masterData actors
+    list (Player vs NPC/Boss). Events where targetID isn't resolvable
+    are skipped rather than guessed.
 
     Writes nothing to our DB. Pure read against WCL.
     """
     from collections import defaultdict
     from app.wcl.client import wcl_client
+
+    if mode not in {"defensive", "offensive", "both"}:
+        raise HTTPException(status_code=400, detail="mode must be defensive/offensive/both")
 
     top_logs = wcl_client.get_top_logs_for_encounter(
         encounter_id, metric="speed", limit=top_n,
@@ -1388,42 +1397,83 @@ def sample_dungeon_dispels(
     if not top_logs:
         return {"error": "no rankings returned for this encounter", "encounter_id": encounter_id}
 
-    appearances: dict[int, set] = defaultdict(set)
-    total_count: dict[int, int] = defaultdict(int)
-    per_debuff_samples: dict[int, dict] = {}  # first-seen sample event for name resolution
+    # Two buckets, populated in parallel from a single events pass.
+    def _empty():
+        return {
+            "appearances": defaultdict(set),
+            "total_count": defaultdict(int),
+            "per_debuff_samples": {},
+        }
+    defensive = _empty()
+    offensive = _empty()
     successful_logs = 0
+    report_codes_seen: set[str] = set()
+
     for log in top_logs:
+        report_code = log["report_code"]
+        # 1. Pull the report's actor list so we can classify target IDs.
+        try:
+            master = wcl_client.get_report_master_data(report_code)
+        except Exception:
+            continue
+        actors = master.get("actors") or []
+        player_ids = {
+            a["id"] for a in actors
+            if a.get("type") == "Player" and isinstance(a.get("id"), int)
+        }
+        enemy_ids = {
+            a["id"] for a in actors
+            if a.get("type") in ("NPC", "Boss") and isinstance(a.get("id"), int)
+        }
+        if not player_ids:
+            continue  # corrupt report metadata; skip
+
+        # 2. Pull the dispel events.
         try:
             events = wcl_client.get_player_events(
-                log["report_code"], [log["fight_id"]], data_type="Dispels",
+                report_code, [log["fight_id"]], data_type="Dispels",
             )
         except Exception:
             continue
         if not events:
             continue
         successful_logs += 1
-        seen_in_this_log: set[int] = set()
+        report_codes_seen.add(report_code)
+
+        defensive_seen: set[int] = set()
+        offensive_seen: set[int] = set()
         for ev in events:
             if ev.get("type") != "dispel":
                 continue
             did = ev.get("extraAbilityGameID")
+            tid = ev.get("targetID")
             if not isinstance(did, int):
                 continue
-            seen_in_this_log.add(did)
-            total_count[did] += 1
-            per_debuff_samples.setdefault(did, {"report": log["report_code"]})
-        for did in seen_in_this_log:
-            appearances[did].add(log["report_code"])
+            if tid in player_ids:
+                bucket = defensive
+                defensive_seen.add(did)
+            elif tid in enemy_ids:
+                bucket = offensive
+                offensive_seen.add(did)
+            else:
+                # targetID unresolvable (missing from masterData — rare
+                # but happens with some petty summons). Skip rather than
+                # bucket arbitrarily.
+                continue
+            bucket["total_count"][did] += 1
+            bucket["per_debuff_samples"].setdefault(did, {"report": report_code})
+        for did in defensive_seen:
+            defensive["appearances"][did].add(report_code)
+        for did in offensive_seen:
+            offensive["appearances"][did].add(report_code)
 
     if successful_logs == 0:
         return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}
 
-    # Resolve debuff names. Each debuff appeared in at least one log; we
-    # query the masterData.abilities list on the first such log per
-    # debuff to pick up names. Cheap: one extra query per log we touch.
+    # Name resolution — single batch query per report is cheaper than
+    # per-debuff. Covers both buckets.
     name_by_id: dict[int, str] = {}
-    report_codes_needed = {s["report"] for s in per_debuff_samples.values()}
-    for code in report_codes_needed:
+    for code in report_codes_seen:
         try:
             mq = """
             query($code: String!) {
@@ -1444,34 +1494,54 @@ def sample_dungeon_dispels(
             continue
 
     threshold = (consensus_pct / 100.0) * successful_logs
-    consensus = [
-        {
-            "guid": did,
-            "name": name_by_id.get(did, "?"),
-            "logs_seen_in": len(appearances[did]),
-            "logs_pct": round(100 * len(appearances[did]) / successful_logs, 1),
-            "total_dispels": total_count[did],
-        }
-        for did in appearances
-        if len(appearances[did]) >= threshold
-    ]
-    consensus.sort(key=lambda x: x["total_dispels"], reverse=True)
 
-    return {
+    def _consensus(bucket):
+        return sorted(
+            [
+                {
+                    "guid": did,
+                    "name": name_by_id.get(did, "?"),
+                    "logs_seen_in": len(bucket["appearances"][did]),
+                    "logs_pct": round(
+                        100 * len(bucket["appearances"][did]) / successful_logs, 1,
+                    ),
+                    "total_dispels": bucket["total_count"][did],
+                }
+                for did in bucket["appearances"]
+                if len(bucket["appearances"][did]) >= threshold
+            ],
+            key=lambda x: x["total_dispels"],
+            reverse=True,
+        )
+
+    def_consensus = _consensus(defensive)
+    off_consensus = _consensus(offensive)
+
+    out: dict = {
         "encounter_id": encounter_id,
         "logs_sampled": successful_logs,
         "consensus_threshold_pct": consensus_pct,
-        "debuffs_passing_threshold": len(consensus),
-        "debuffs": consensus[:30],
-        # If this is zero, the dungeon legitimately has no consistently-
-        # dispelled debuffs. Record `dispellable_debuffs=()` on the
-        # module so scoring skips dispel contribution for it.
-        "note": (
-            "0 debuffs passed threshold — record dispellable_debuffs=() on the module"
-            if len(consensus) == 0
-            else f"{len(consensus)} debuffs passed — paste into module as dispellable_debuffs tuple"
-        ),
+        "mode": mode,
     }
+    if mode in ("defensive", "both"):
+        out["defensive_debuffs_passing"] = len(def_consensus)
+        out["defensive_debuffs"] = def_consensus[:30]
+    if mode in ("offensive", "both"):
+        out["offensive_buffs_passing"] = len(off_consensus)
+        out["offensive_buffs"] = off_consensus[:30]
+    # Back-compat for the CLI's current shape — it expects a top-level
+    # `debuffs` list. Route the defensive bucket through when
+    # mode=defensive (the intended default for the healer-utility
+    # use case).
+    if mode == "defensive":
+        out["debuffs_passing_threshold"] = len(def_consensus)
+        out["debuffs"] = def_consensus[:30]
+        out["note"] = (
+            "0 defensive dispellable debuffs found — record dispellable_debuffs=() on the module"
+            if len(def_consensus) == 0
+            else f"{len(def_consensus)} defensive debuffs — paste into module as dispellable_debuffs tuple"
+        )
+    return out
 
 
 @app.get("/api/admin/sample-dungeon-mechanics", dependencies=[Depends(require_api_key)])
