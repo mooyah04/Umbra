@@ -131,6 +131,90 @@ end
 -- No shared state mutation, no leaks. We can revisit a fancy display
 -- later using a custom FontString we own — but that's a bigger refactor.
 
+-- Build "best N" + "weakest 1" views of the player's per-dungeon data
+-- for the tooltip's dungeon section. The per-dungeon list the backend
+-- sends is already sorted by composite desc (best first), so we just
+-- slice — no re-sort needed here. Returns nil when the player has no
+-- per-dungeon data (stub rows, or players with only out-of-season
+-- runs).
+local function GetDungeonHighlights(data)
+    if not data or not data.dungeons then return nil end
+    local list = {}
+    -- dungeons table uses encounter_id keys; iterate to preserve the
+    -- backend's best-first order via the _order array fallback. The
+    -- lua export renders the sub-table as {[id] = {...}, [id] = {...}}
+    -- which preserves insertion order in Lua 5.1+, so a simple pairs()
+    -- traversal matches the backend's sort. To be safe we re-rank here
+    -- by the same composite heuristic the backend used: grade letter.
+    local GRADE_RANK = {
+        ["S+"] = 16, ["S"] = 15,
+        ["A+"] = 14, ["A"] = 13, ["A-"] = 12,
+        ["B+"] = 11, ["B"] = 10, ["B-"] = 9,
+        ["C+"] = 8,  ["C"] = 7,  ["C-"] = 6,
+        ["D+"] = 5,  ["D"] = 4,  ["D-"] = 3,
+        ["F"] = 2,   ["F-"] = 1,
+    }
+    for enc_id, d in pairs(data.dungeons) do
+        table.insert(list, {
+            encounter_id = enc_id,
+            name = d.name,
+            grade = d.grade,
+            runs = d.runs,
+            best_timed = d.best_timed,
+            _rank = GRADE_RANK[d.grade] or 0,
+        })
+    end
+    if #list == 0 then return nil end
+    table.sort(list, function(a, b)
+        if a._rank ~= b._rank then return a._rank > b._rank end
+        -- Tiebreak on run count (more evidence = more confidence).
+        return (a.runs or 0) > (b.runs or 0)
+    end)
+    return list
+end
+
+-- Render up to `bestN` dungeons from the top of the list as "best",
+-- and if there are more than bestN entries, show the weakest one
+-- separately as "weak". Keeps the tooltip compact while surfacing
+-- both strengths and a coaching target.
+local function AddDungeonSection(tooltip, dungeons, bestN)
+    if not dungeons or #dungeons == 0 then return end
+    bestN = bestN or 2
+
+    tooltip:AddLine(" ")
+    tooltip:AddLine(GREY .. "Dungeons:|r")
+
+    local bestCount = math.min(bestN, #dungeons)
+    for i = 1, bestCount do
+        local d = dungeons[i]
+        local gradeColor = GetGradeColor(d.grade)
+        local label = d.name
+        if d.best_timed then
+            label = label .. GREY .. " (+" .. d.best_timed .. ")|r"
+        end
+        tooltip:AddDoubleLine(
+            GREY .. "  Best: |r" .. WHITE .. label .. "|r",
+            gradeColor .. d.grade .. "|r"
+        )
+    end
+
+    -- Only show "weak" when there's a meaningful gap (more entries
+    -- than we listed as best). Otherwise it'd just be the last of
+    -- the bestN list, which is noise.
+    if #dungeons > bestCount then
+        local weakest = dungeons[#dungeons]
+        local gradeColor = GetGradeColor(weakest.grade)
+        local label = weakest.name
+        if weakest.best_timed then
+            label = label .. GREY .. " (+" .. weakest.best_timed .. ")|r"
+        end
+        tooltip:AddDoubleLine(
+            GREY .. "  Weak: |r" .. WHITE .. label .. "|r",
+            gradeColor .. weakest.grade .. "|r"
+        )
+    end
+end
+
 local function AddUmbraTooltip(tooltip, data, compact)
     tooltip:AddLine(" ")
 
@@ -162,6 +246,13 @@ local function AddUmbraTooltip(tooltip, data, compact)
         end
     end
 
+    -- Per-dungeon section: best 2 + weakest 1. Useful context for LFG
+    -- ("this person is strong in Skyreach but shaky in Algeth'ar").
+    -- Compact tooltips (LFG hover) get only the best 1 to save space.
+    local dungeons = GetDungeonHighlights(data)
+    if dungeons then
+        AddDungeonSection(tooltip, dungeons, compact and 1 or 2)
+    end
 end
 
 -- Compact grade string for inline display (e.g., on LFG applicant rows)

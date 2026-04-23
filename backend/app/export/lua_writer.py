@@ -1,5 +1,7 @@
 """Generates UmbraData.lua from the player_scores table."""
 
+from collections import defaultdict
+
 from sqlalchemy import Integer, select, func
 from sqlalchemy.orm import Session, selectinload
 
@@ -29,8 +31,21 @@ def _escape_lua_string(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def _build_player_entry(player: Player, score: PlayerScore, timed_pct: int, spec_name: str) -> str:
-    """Build a single Lua table entry for a player."""
+def _build_player_entry(
+    player: Player,
+    score: PlayerScore,
+    timed_pct: int,
+    spec_name: str,
+    per_dungeon: list[dict],
+) -> str:
+    """Build a single Lua table entry for a player.
+
+    per_dungeon: list of {encounter_id, name, grade, runs, best_timed}
+    dicts, one per dungeon the player has runs in under their primary
+    role. Empty list for players with no ingested runs yet. Rendered
+    as a nested Lua table the addon iterates for the tooltip's
+    per-dungeon section.
+    """
     key = f"{player.name}-{player.realm}"
     lines = [f'    ["{_escape_lua_string(key)}"] = {{']
     lines.append(f'        role = "{score.role.value}",')
@@ -46,6 +61,25 @@ def _build_player_entry(player: Player, score: PlayerScore, timed_pct: int, spec
 
     lines.append(f"        timed_pct = {timed_pct},")
     lines.append(f"        runs = {score.runs_analyzed},")
+
+    # Per-dungeon breakdown. Keyed by encounter_id so the addon can
+    # look up the specific dungeon a player is applying to in the LFG
+    # viewer (future enhancement) and also rank-sort to show "best /
+    # weak" in the world tooltip today. Omitted entirely when the
+    # player has no runs — keeps the file small for stub rows.
+    if per_dungeon:
+        lines.append("        dungeons = {")
+        for d in per_dungeon:
+            bt = d["best_timed"] if d["best_timed"] is not None else "nil"
+            lines.append(
+                f'            [{d["encounter_id"]}] = {{ '
+                f'name = "{_escape_lua_string(d["name"])}", '
+                f'grade = "{d["grade"]}", '
+                f'runs = {d["runs"]}, '
+                f'best_timed = {bt} }},'
+            )
+        lines.append("        },")
+
     lines.append("    },")
     return "\n".join(lines)
 
@@ -95,6 +129,79 @@ def _get_primary_specs(session: Session, player_ids: list[int]) -> dict[int, str
     return spec_map
 
 
+def _get_per_dungeon(
+    session: Session, player_scores: list[PlayerScore],
+) -> dict[int, list[dict]]:
+    """Compute per-dungeon grade/runs/best-timed for each player (keyed
+    by player_id). Only the player's primary-role runs are scored —
+    matches the lua export's single-entry-per-player shape.
+
+    Output per player: list of dicts sorted by grade desc (best first)
+    so the addon can render "best N / weakest 1" by slicing.
+    Each dict: {encounter_id, name, grade, runs, best_timed}.
+    """
+    from app.scoring.dungeons.registry import _DUNGEONS
+    from app.scoring.engine import composite_to_grade, score_player_runs
+
+    if not player_scores:
+        return {}
+
+    # We score per (player, role, encounter) by fetching all the
+    # player's runs in their primary role at each encounter. Bulk
+    # fetch is one query per player — the alternative (one big IN
+    # with group-by in SQL) doesn't slot cleanly into
+    # score_player_runs' object-oriented API. O(n_players * avg_enc)
+    # scoring calls, all in-memory once runs are loaded.
+    out: dict[int, list[dict]] = {}
+
+    for ps in player_scores:
+        player_id = ps.player_id
+        player_runs = list(session.execute(
+            select(DungeonRun).where(
+                DungeonRun.player_id == player_id,
+                DungeonRun.role == ps.role,
+            )
+        ).scalars())
+        if not player_runs:
+            out[player_id] = []
+            continue
+
+        by_enc: dict[int, list[DungeonRun]] = defaultdict(list)
+        for r in player_runs:
+            by_enc[r.encounter_id].append(r)
+
+        entries: list[dict] = []
+        class_id = ps.player.class_id
+        for enc_id, runs_here in by_enc.items():
+            dungeon_meta = _DUNGEONS.get(enc_id)
+            if dungeon_meta is None:
+                # Out-of-season dungeon — skip rather than surface a
+                # "Dungeon 12345" entry the addon can't render cleanly.
+                continue
+            result = score_player_runs(
+                runs=runs_here, role=ps.role, class_id=class_id,
+            )
+            timed_levels = [r.keystone_level for r in runs_here if r.timed]
+            entries.append({
+                "encounter_id": enc_id,
+                "name": dungeon_meta.name,
+                "grade": result.overall_grade,
+                "runs": result.runs_analyzed,
+                "best_timed": max(timed_levels) if timed_levels else None,
+                # keep composite around internally for sort ordering;
+                # stripped before rendering.
+                "_composite": result.composite_score,
+            })
+
+        # Sort best → worst by composite so addon can take top-N / bottom-1.
+        entries.sort(key=lambda e: -e["_composite"])
+        for e in entries:
+            e.pop("_composite", None)
+        out[player_id] = entries
+
+    return out
+
+
 def generate_lua(session: Session, region: str | None = None) -> str:
     """Generate UmbraData.lua content, optionally filtered by region."""
     stmt = (
@@ -113,12 +220,16 @@ def generate_lua(session: Session, region: str | None = None) -> str:
     player_ids = [s.player_id for s in scores]
     timed_pcts = _get_timed_percentages(session, player_ids)
     spec_names = _get_primary_specs(session, player_ids)
+    per_dungeon = _get_per_dungeon(session, scores)
 
     entries = []
     for score in scores:
         timed_pct = timed_pcts.get(score.player_id, 0)
         spec_name = spec_names.get(score.player_id, "Unknown")
-        entries.append(_build_player_entry(score.player, score, timed_pct, spec_name))
+        entries.append(_build_player_entry(
+            score.player, score, timed_pct, spec_name,
+            per_dungeon.get(score.player_id, []),
+        ))
 
     body = "\n".join(entries) if entries else "    -- No data yet"
 
