@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -916,6 +917,7 @@ def ingest_player(
     skipped_fuzzy = 0
     skipped_not_present = 0  # fights where target player didn't participate
     skipped_out_of_season = 0  # fights from dungeons outside the active pool
+    skipped_race = 0  # DB unique constraint caught a concurrent insert we missed
     fetched_fights = 0
 
     logger.info("Processing %d reports for %s-%s", len(reports), name, realm)
@@ -1266,22 +1268,41 @@ def ingest_player(
                 pulls=pulls,
                 aug_uplift_damage=aug_uplift,
             )
-            session.add(run)
-            runs.append(run)
+            # Savepoint-per-insert so a concurrent ingest that already
+            # wrote this (wcl_report_id, fight_id) for the same player
+            # surfaces as an IntegrityError we can swallow without
+            # tanking the whole batch commit. The exact/fuzzy in-memory
+            # checks above still catch the common case; this is the
+            # belt-and-braces layer for the race window between the
+            # set build and the commit.
+            try:
+                with session.begin_nested():
+                    session.add(run)
+                    session.flush()
+                runs.append(run)
+            except IntegrityError:
+                # Savepoint rollback already expunged the offending
+                # instance. Record the skip and refresh the exact set
+                # so any further fights in this loop see the row that
+                # beat us to the insert.
+                skipped_race += 1
+                exact_runs.add((report_code, fight_id))
 
         # Stop if we have enough runs
         if len(runs) >= settings.max_runs_to_analyze:
             break
 
     if (skipped_exact or skipped_fuzzy or skipped_not_present
-            or skipped_out_of_season or fetched_fights):
+            or skipped_out_of_season or skipped_race or fetched_fights):
         # "not-present" skips save ~5 queries each (playerDetails + 4 tables).
         # Dedup + out-of-season skips save ~2 each (playerDetails + auras).
+        # skipped_race != 0 indicates a concurrent ingest beat us; visible
+        # in logs lets us see if the race-guard is actually firing.
         logger.info(
             "Ingest %s-%s: fetched=%d fights, skipped exact=%d fuzzy=%d "
-            "not-present=%d out-of-season=%d (WCL queries saved ~%d)",
+            "race=%d not-present=%d out-of-season=%d (WCL queries saved ~%d)",
             name, realm, fetched_fights, skipped_exact, skipped_fuzzy,
-            skipped_not_present, skipped_out_of_season,
+            skipped_race, skipped_not_present, skipped_out_of_season,
             (skipped_exact + skipped_fuzzy + skipped_out_of_season) * 2
             + skipped_not_present * 5,
         )

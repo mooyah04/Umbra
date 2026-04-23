@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -60,6 +61,18 @@ class Player(Base):
 
 class DungeonRun(Base):
     __tablename__ = "dungeon_runs"
+    __table_args__ = (
+        # Closes a concurrency race between ingest calls for the same
+        # player. Application-level dedup builds an in-memory set from
+        # existing rows, but two ingests that race past each other can
+        # both pass the check before either commits. The DB constraint
+        # is the backstop — the losing-side insert raises IntegrityError
+        # and the ingest path swallows it (see pipeline/ingest.py).
+        UniqueConstraint(
+            "player_id", "wcl_report_id", "fight_id",
+            name="uq_dungeon_runs_player_report_fight",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False)
