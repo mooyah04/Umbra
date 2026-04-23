@@ -16,6 +16,41 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-23",
+    title: "See exactly which abilities moved your utility score",
+    category: "new",
+    body:
+      "The Utility tile on every run page now lists the specific abilities you cast during that fight with counts. Instead of \"Total interrupts: 8\" you see \"Solar Beam x3, Mass Entanglement x1, Mighty Bash x2, Nature's Cure x4\". You can scan the list and tell immediately whether a low score came from missing dispels, sparse CC, or an untouched kick. Every class's kit is covered: Warrior Pummel, Priest Silence, Evoker Quell, Druid's spec-specific kicks, the full CC toolkit, and every dispel spell across paladin/priest/shaman/druid/mage/monk/hunter/warlock/evoker. First view on a run pulls the data from Warcraft Logs; every view after that is instant.",
+  },
+  {
+    date: "2026-04-23",
+    title: "Dedicated overall-dungeon page, plus clearer run pages",
+    category: "new",
+    body:
+      "Clicking a dungeon tile on your profile now takes you to a dedicated page for that dungeon: aggregate grade, category breakdown across every run you have there, and a list of individual runs you can drill into. Before, the run page mixed two things: your specific fight plus the dungeon-wide aggregate in the same breakdown tiles. The run page now shows just this fight's numbers and score. Three pages, three questions: \"how am I graded overall?\" (profile), \"how do I do at this dungeon?\" (dungeon overall), \"how did this one run go?\" (run). Every tile links the right direction so you can jump between them in one click.",
+  },
+  {
+    date: "2026-04-23",
+    title: "How your grade breaks down, now explained for your spec",
+    category: "improved",
+    body:
+      "When you open \"How this is measured\" on any breakdown tile, it reads for your actual class and spec instead of the generic role-level blurb. A Resto Druid sees their dispel toolkit (Nature's Cure, Remove Corruption) and CC kit (Hibernate, Mighty Bash, Mass Entanglement) named directly, with a note that Resto Druid doesn't have a baseline interrupt so kicks don't count toward utility. Holy Paladin sees Rebuke called out as their kick. Assassination Rogue sees \"no dispel in your kit, so that weight shifts to CC instead.\" The Cooldown Usage tile names the specific cooldowns we're tracking for your spec (Tranquility, Convoke the Spirits, etc.) with their expected uptime. The Casts Per Minute tile shows the actual thresholds for your spec instead of a universal curve. If you're a hybrid who has runs in multiple specs of the same role (Sin+Outlaw+Sub Rogue, Ret+Prot Paladin, Feral+Balance Druid), the profile breakdown gets a tab strip to flip between \"All\" and each individual spec.",
+  },
+  {
+    date: "2026-04-23",
+    title: "Healers in dispel-poor dungeons graded fairly",
+    category: "fixed",
+    body:
+      "Healer utility used a single flat benchmark of \"about 8 dispels per run is a perfect score\" across every dungeon. That punished healers in dungeons where few debuffs exist to dispel (Skyreach averages 6 dispellable events per run) and gave a free pass in dispel-heavy dungeons (Pit of Saron runs 65+). We sampled the top logs of every Midnight Season 1 dungeon for the debuffs real healers actually cleanse off allies, separated them from offensive purges (Tranquilizing Shot, Mage Spellsteal) that were wrongly bucketed with them, and scaled each dungeon's benchmark to its real volume. Skyreach healers who cleanse the few debuffs that are there can now hit 100; Pit of Saron healers who miss half the debuffs score in the 50s. Same execution, consistent grading across the dungeon pool. This fixed a meaningful bias against healers who played dispel-poor dungeons most often.",
+  },
+  {
+    date: "2026-04-23",
+    title: "Duplicate runs cleaned from profiles",
+    category: "fixed",
+    body:
+      "Some profiles showed the same run listed twice. Root cause was a race condition during refresh: if two of your party members triggered a refresh on your profile at the same moment, the ingest pipeline could insert the same fight twice before the dedup check caught it. We cleaned up every duplicate row in the database and added a database-level uniqueness constraint so it can't happen again. Flagged by a user who spotted seven duplicates on a single profile (Luminès on Ysondre); same fix applied across every player on the site.",
+  },
+  {
     date: "2026-04-22",
     title: "Join the Umbra Discord",
     category: "new",
