@@ -26,6 +26,17 @@ class DungeonData:
     #            (non-empty -> opportunity exists); future tuning can use
     #            the specific IDs to build a per-dungeon benchmark.
     dispellable_debuffs: tuple[tuple[int, str], ...] | None = None
+    # Average defensive dispels the party lands per run in top logs
+    # (sum of total_dispels / logs_sampled from the dispel sampler,
+    # filtered to defensive-only). Healer utility scoring uses this as
+    # the per-run denominator instead of a flat 8 — otherwise healers
+    # in dispel-poor dungeons (Skyreach ~6/run) can never hit 100 on
+    # the dispel component, while healers in dispel-heavy dungeons
+    # (Pit of Saron ~65/run) get credit for just a handful.
+    # None = use the legacy flat-8 benchmark. 0 or None when
+    # dispellable_debuffs is also (), since there's nothing to cast
+    # against.
+    expected_defensive_dispels_per_run: float | None = None
     # Appearances in M+ seasons, newest first. Informational.
     appearances: tuple[str, ...] = field(default_factory=tuple)
     # Date this writeup was last reviewed against live game data (YYYY-MM-DD).

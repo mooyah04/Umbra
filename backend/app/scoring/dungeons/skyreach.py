@@ -48,6 +48,10 @@ DUNGEON = DungeonData(
         (1254475, "Blade Rush"),
         (153757, "Fan of Blades"),
     ),
+    # Sampler 2026-04-23: 46 dispels across 8 logs ≈ 6/run. Skyreach
+    # is a genuinely dispel-poor dungeon; per-dungeon scaling here is
+    # what the user flagged as the root fairness issue for healers.
+    expected_defensive_dispels_per_run=5.75,
     appearances=("Midnight S1", "Shadowlands S4", "WoD"),
     last_reviewed="2026-04-23",
     verified=True,

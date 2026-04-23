@@ -48,6 +48,8 @@ DUNGEON = DungeonData(
         (1262519, "Backstab"),
         (245742, "Shadow Pounce"),
     ),
+    # Sampler 2026-04-23: 386 dispels across 10 logs ≈ 39/run.
+    expected_defensive_dispels_per_run=38.6,
     appearances=("Midnight S1", "Legion"),
     last_reviewed="2026-04-23",
     verified=True,

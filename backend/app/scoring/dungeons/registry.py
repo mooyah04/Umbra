@@ -77,6 +77,18 @@ def get_critical_interrupt_ids(encounter_id: int) -> set[int]:
     return {spell_id for spell_id, _ in dungeon.critical_interrupts}
 
 
+def get_expected_defensive_dispels_per_run(encounter_id: int) -> float | None:
+    """Per-dungeon dispel volume for healer utility scoring.
+
+    Returns None when the dungeon hasn't been sampled for volume (or
+    is unknown). Caller should fall back to the legacy flat benchmark.
+    """
+    dungeon = _DUNGEONS.get(encounter_id)
+    if dungeon is None:
+        return None
+    return dungeon.expected_defensive_dispels_per_run
+
+
 def get_dispellable_debuffs(
     encounter_id: int,
 ) -> tuple[tuple[int, str], ...] | None:

@@ -48,6 +48,8 @@ DUNGEON = DungeonData(
         (1269283, "Suppression Field"),
         (1281636, "Creeping Void"),
     ),
+    # Sampler 2026-04-23: 290 dispels across 9 logs ≈ 32/run.
+    expected_defensive_dispels_per_run=32.2,
     appearances=("Midnight S1",),
     last_reviewed="2026-04-23",
     verified=True,

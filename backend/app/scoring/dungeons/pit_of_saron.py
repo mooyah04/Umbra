@@ -43,6 +43,9 @@ DUNGEON = DungeonData(
         (1261921, "Cryoshards"),
         (1262930, "Rotting Strikes"),
     ),
+    # Sampler 2026-04-23: 588 dispels across 9 logs ≈ 65/run. The
+    # opposite extreme from Skyreach — very dispel-heavy dungeon.
+    expected_defensive_dispels_per_run=65.3,
     appearances=("Midnight S1", "Legion Timewalking", "WotLK Heroic"),
     last_reviewed="2026-04-23",
     verified=True,

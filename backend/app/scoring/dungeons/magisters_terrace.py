@@ -51,6 +51,8 @@ DUNGEON = DungeonData(
         (1245068, "Consuming Void"),
         (1269631, "Entropy Orb"),
     ),
+    # Sampler 2026-04-23: 331 dispels across 9 logs ≈ 37/run.
+    expected_defensive_dispels_per_run=36.8,
     appearances=("Midnight S1", "TBC Heroic"),
     last_reviewed="2026-04-23",
     verified=True,

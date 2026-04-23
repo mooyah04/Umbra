@@ -50,6 +50,8 @@ DUNGEON = DungeonData(
         (1282244, "Vile Bite"),
         (388392, "Monotonous Lecture"),
     ),
+    # Sampler 2026-04-23: 134 dispels across 10 logs ≈ 13/run.
+    expected_defensive_dispels_per_run=13.4,
     appearances=("Midnight S1", "Dragonflight S1"),
     last_reviewed="2026-04-23",
     verified=True,

@@ -139,6 +139,61 @@ def test_healer_sampled_with_data_matches_legacy():
     assert sampled == legacy
 
 
+def test_healer_per_dungeon_benchmark_scales_with_volume():
+    """Same number of landed dispels should score differently in a
+    dispel-poor dungeon vs a dispel-heavy one. Pre-fix both scored
+    against a flat 8. Post-fix Skyreach's ~6/run expected vs Pit of
+    Saron's ~65/run expected produces very different outcomes."""
+    # 5 dispels in dispel-heavy (benchmark 65) = 5/65 * 100 ≈ 7.7
+    # 5 dispels in dispel-poor (benchmark 6) = 5/6 * 100 ≈ 83 (capped at 100 naturally)
+    runs_heavy = [_mk_run(
+        encounter_id=99, dispels=5, interrupts=0, cc_casts=None,
+        role=Role.healer, spec="Restoration",
+    )]
+    with patch(
+        "app.scoring.engine.get_dispellable_debuffs",
+        return_value=((1, "X"),),
+    ), patch(
+        "app.scoring.engine.get_expected_defensive_dispels_per_run",
+        return_value=65.0,
+    ):
+        heavy_score = _score_utility_healer(runs_heavy, class_id=11)
+
+    with patch(
+        "app.scoring.engine.get_dispellable_debuffs",
+        return_value=((1, "X"),),
+    ), patch(
+        "app.scoring.engine.get_expected_defensive_dispels_per_run",
+        return_value=6.0,
+    ):
+        poor_score = _score_utility_healer(runs_heavy, class_id=11)
+
+    # Same 5 dispels should look much better in the dispel-poor dungeon.
+    assert poor_score > heavy_score
+    assert poor_score > 75
+    assert heavy_score < 15
+
+
+def test_healer_unsampled_dungeon_uses_legacy_benchmark():
+    """A dungeon without a per-dungeon benchmark should fall back to 8,
+    preserving back-compat during rollout before every dungeon's been
+    sampled for volume."""
+    runs = [_mk_run(
+        encounter_id=99, dispels=8, interrupts=0, cc_casts=None,
+        role=Role.healer, spec="Restoration",
+    )]
+    with patch(
+        "app.scoring.engine.get_dispellable_debuffs",
+        return_value=((1, "X"),),
+    ), patch(
+        "app.scoring.engine.get_expected_defensive_dispels_per_run",
+        return_value=None,  # unsampled
+    ):
+        score = _score_utility_healer(runs, class_id=11)
+    # 8 dispels / flat 8 benchmark * 100 = 100
+    assert score == 100
+
+
 def test_healer_no_opportunity_no_kicks_no_cc_fallback_to_neutral():
     """Edge case: Resto Druid (no kick) in a no-dispel dungeon that
     somehow also has no CC tracked on the run. Score must not crash

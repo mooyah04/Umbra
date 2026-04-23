@@ -56,6 +56,8 @@ DUNGEON = DungeonData(
         (468659, "Throw Axe"),
         (1216985, "Puncturing Bite"),
     ),
+    # Sampler 2026-04-23: 163 dispels across 5 logs ≈ 33/run.
+    expected_defensive_dispels_per_run=32.6,
     appearances=("Midnight S1",),
     last_reviewed="2026-04-23",
     verified=True,

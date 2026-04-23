@@ -94,11 +94,19 @@ def test_healer_cc_raises_utility_score():
 
 
 def test_healer_no_cc_data_falls_back_to_dispel_only():
-    """Old runs without cc_casts tracking shouldn't be penalized."""
+    """Old runs without cc_casts tracking shouldn't be penalized.
+
+    Uses a sentinel encounter_id not in the registry so the healer
+    scorer falls back to the legacy flat-8 dispel benchmark. If this
+    test used a real active-season encounter, the per-dungeon
+    benchmark (e.g. Pit of Saron ~65) would dominate the assertion
+    and make "8 dispels should be a perfect score" wrong — which is
+    a different behavior we test in test_scoring_dispel_opportunity.
+    """
     runs = [_run(role=Role.healer, spec="Mistweaver", dispels=8, interrupts=0,
-                 cc_casts=None)]
+                 cc_casts=None, encounter_id=99999)]
     score = _score_utility_healer(runs, class_id=10)
-    # 8/8 dispels = 100
+    # 8/8 dispels against the flat fallback benchmark = 100
     assert score == 100
 
 

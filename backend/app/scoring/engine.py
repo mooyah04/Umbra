@@ -11,7 +11,10 @@ from dataclasses import dataclass, field
 from app.models import DungeonRun, Role
 from app.scoring.cpm_benchmarks import get_benchmark, score_cpm
 from app.scoring.dispel_capability import class_has_dispel
-from app.scoring.dungeons.registry import get_dispellable_debuffs
+from app.scoring.dungeons.registry import (
+    get_dispellable_debuffs,
+    get_expected_defensive_dispels_per_run,
+)
 from app.scoring.roles import healer_can_interrupt
 
 
@@ -210,8 +213,17 @@ def _score_utility_healer(runs: list[DungeonRun], class_id: int | None = None) -
         opportunity = _dispel_opportunity(run.encounter_id)
         run_can_dispel = can_dispel and opportunity is not False
 
-        # Dispels — 8+ per run = excellent for a healer
-        dispel_score = min(100, (run.dispels / 8) * 100) if run_can_dispel else 0
+        # Per-dungeon benchmark. Dispel volume varies massively: top
+        # logs show Skyreach at ~6 dispels/run and Pit of Saron at
+        # ~65. A flat 8 denominator crushed Skyreach healers and
+        # gave Pit healers a free pass. Fall back to 8 only when the
+        # dungeon hasn't been sampled (None) so back-compat holds.
+        benchmark = get_expected_defensive_dispels_per_run(run.encounter_id)
+        if benchmark is None or benchmark <= 0:
+            benchmark = 8.0
+        dispel_score = (
+            min(100, (run.dispels / benchmark) * 100) if run_can_dispel else 0
+        )
 
         # Per-run CC availability (old runs predate cc_casts tracking)
         has_cc = getattr(run, "cc_casts", None) is not None

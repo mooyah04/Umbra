@@ -61,6 +61,8 @@ DUNGEON = DungeonData(
         (1254175, "Cries of the Fallen"),
         (1266381, "Hooked Snare"),
     ),
+    # Sampler 2026-04-23: 329 dispels across 10 logs ≈ 33/run.
+    expected_defensive_dispels_per_run=32.9,
     appearances=("Midnight S1",),
     last_reviewed="2026-04-23",
     verified=True,
