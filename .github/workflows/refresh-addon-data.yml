@@ -77,4 +77,23 @@ jobs:
           rebuilt both addon zips. Ingested runs since the last refresh
           are now reflected in the downloadable addon.
           "
-          git push origin HEAD:master
+          # Pull+rebase before push to survive the race where a
+          # developer push landed between our checkout and our commit.
+          # Seen 2026-04-19 (x2) and 2026-04-23 when concurrent pushes
+          # on master made the plain push rejected with non-ff.
+          # Since this workflow only ever modifies data files
+          # (UmbraData.lua + zips), a rebase can't conflict with code
+          # changes upstream — it always fast-forwards cleanly.
+          # Retry up to 3 times in case multiple developer pushes
+          # stack up during the rebase window.
+          for attempt in 1 2 3; do
+            git pull --rebase origin master
+            if git push origin HEAD:master; then
+              echo "Push succeeded on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected — another push beat us. Retrying..."
+            sleep 5
+          done
+          echo "::error::Push failed after 3 rebase+retry attempts."
+          exit 1
