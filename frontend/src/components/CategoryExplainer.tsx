@@ -16,6 +16,13 @@ interface Props {
   dataPoints?: DataPoint[];
   /** Weight (0-1) this category carries in the composite for this role. */
   weight?: number;
+  /** Spec-aware override for the "How this is measured" description.
+   *  When provided, replaces `explanation.description` in the expander
+   *  so Resto Druid sees their actual dispel/CC list instead of the
+   *  generic role-level copy. */
+  specDescription?: string;
+  /** Spec-aware override for the "How to improve" box. */
+  specHowToImprove?: string;
 }
 
 /**
@@ -28,9 +35,13 @@ export default function CategoryExplainer({
   score,
   dataPoints,
   weight,
+  specDescription,
+  specHowToImprove,
 }: Props) {
   const color = getStatColor(score);
   const rounded = Math.round(score);
+  const description = specDescription ?? explanation.description;
+  const howToImprove = specHowToImprove ?? explanation.howToImprove;
 
   return (
     <div className="bg-surface-container rounded-xl overflow-hidden">
@@ -106,12 +117,12 @@ export default function CategoryExplainer({
             How this is measured
           </summary>
           <div className="mt-3 pl-6 space-y-3 text-sm text-on-surface-variant leading-relaxed">
-            <p>{explanation.description}</p>
+            <p>{description}</p>
             <div className="bg-surface-container-low rounded p-3 border-l-2 border-primary/40">
               <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-primary mb-1">
                 How to improve
               </p>
-              <p>{explanation.howToImprove}</p>
+              <p>{howToImprove}</p>
             </div>
           </div>
         </details>

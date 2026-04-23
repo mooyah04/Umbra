@@ -9,9 +9,9 @@ import {
 import { formatDuration, CLASS_COLORS, CLASS_NAMES } from "@/lib/utils";
 import { specIconUrl, classIdFromName, classifyDpsSpec } from "@/lib/wow-assets";
 import { dungeonName } from "@/lib/dungeons";
-import CategoryExplainer from "@/components/CategoryExplainer";
 import ClaimForm from "@/components/ClaimForm";
 import DungeonBreakdown from "@/components/DungeonBreakdown";
+import RoleBreakdownTabs from "./RoleBreakdownTabs";
 import InstallButtons from "@/components/InstallButtons";
 import ParseButton from "@/components/ParseButton";
 import RefreshButton from "@/components/RefreshButton";
@@ -513,17 +513,15 @@ export default async function PlayerProfilePage({ params }: Props) {
               </span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {categoryScoresForRole.map((c) => (
-              <CategoryExplainer
-                key={c.explanation.key}
-                explanation={c.explanation}
-                score={c.score}
-                dataPoints={c.dataPoints}
-                weight={c.weight}
-              />
-            ))}
-          </div>
+          <RoleBreakdownTabs
+            primaryScore={primary}
+            classId={profile.class_id}
+            blocks={categoryScoresForRole.map((c) => ({
+              explanation: c.explanation,
+              dataPoints: c.dataPoints,
+              weight: c.weight,
+            }))}
+          />
         </section>
       )}
 

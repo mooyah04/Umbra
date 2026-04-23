@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getRunDetail } from "@/lib/api";
+import { getMethodology, getRunDetail } from "@/lib/api";
+import type { MethodologyResponse } from "@/lib/types";
 import { getGradeColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
@@ -47,6 +48,19 @@ export default async function RunDetailPage({ params }: Props) {
         </Link>
       </div>
     );
+  }
+
+  // Spec-aware methodology for the breakdown tiles. Fetched after the
+  // run (we need class_id + spec_name from it) but cached aggressively
+  // so a follow-up view for the same spec skips the round-trip. A
+  // failure here degrades cleanly: the tiles fall back to generic copy.
+  let methodology: MethodologyResponse | null = null;
+  if (run.class_id && run.spec_name) {
+    try {
+      methodology = await getMethodology(run.class_id, run.spec_name);
+    } catch {
+      methodology = null;
+    }
   }
 
   const date = new Date(run.logged_at).toLocaleString();
@@ -447,14 +461,19 @@ export default async function RunDetailPage({ params }: Props) {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dungeonCategoryBlocks.map((c) => (
-                <CategoryExplainer
-                  key={c.explanation.key}
-                  explanation={c.explanation}
-                  score={c.score}
-                  weight={c.weight}
-                />
-              ))}
+              {dungeonCategoryBlocks.map((c) => {
+                const specCopy = methodology?.categories?.[c.explanation.key];
+                return (
+                  <CategoryExplainer
+                    key={c.explanation.key}
+                    explanation={c.explanation}
+                    score={c.score}
+                    weight={c.weight}
+                    specDescription={specCopy?.description}
+                    specHowToImprove={specCopy?.howToImprove}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

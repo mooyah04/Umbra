@@ -129,6 +129,11 @@ class RunResponse(BaseModel):
     keystone_level: int
     role: str
     spec_name: str
+    # Blizzard class id (1-13) — carried from the owning Player so the
+    # frontend can look up spec-aware methodology without a second
+    # round-trip for the player profile. Optional because legacy
+    # response paths may not populate it.
+    class_id: int | None = None
     dps: float
     hps: float
     ilvl: float
@@ -241,12 +246,34 @@ class RunRotationResponse(BaseModel):
     guide_url: str | None = None
 
 
+class RoleSpecScore(BaseModel):
+    """Per-spec sub-score within a role. Populated on RoleScore.specs for
+    roles where the player has meaningful runs across multiple specs
+    (e.g. Ret + Prot Paladin lives on separate RoleScores already, but
+    an Assassination/Outlaw/Subtlety Rogue rolls up into one DPS
+    RoleScore — that's where this split matters).
+    """
+    spec_name: str
+    runs_analyzed: int
+    composite_score: float
+    # None when runs_analyzed is below settings.min_runs_for_grade — UI
+    # shows the composite bar without a letter grade for low-sample tabs.
+    grade: str | None = None
+    category_scores: dict[str, float]
+    excluded_categories: list[str] = []
+
+
 class RoleScore(BaseModel):
     role: str
     grade: str
     category_scores: dict[str, float]
     runs_analyzed: int
     primary_role: bool
+    # Per-spec sub-scores when this role has >=2 specs with >=2 runs each.
+    # Empty when the player stuck to a single spec in this role (the
+    # common case). Sorted by runs_analyzed descending so the most-played
+    # spec is the first tab.
+    specs: list[RoleSpecScore] = []
 
 
 class PerDungeonGrade(BaseModel):
@@ -299,6 +326,69 @@ class HistoryPoint(BaseModel):
     avg_deaths: float
     avg_interrupts: float
     avg_dps: float
+
+
+# ── Spec methodology ────────────────────────────────────────────────────────
+
+
+class MethodologyInterrupt(BaseModel):
+    has_interrupt: bool
+    ability_name: str | None = None
+
+
+class MethodologyDispels(BaseModel):
+    can_dispel: bool
+    # Human-readable sentence listing the class's dispel toolkit (e.g.
+    # "Nature's Cure (Curse, Poison, Magic); Remove Corruption (Curse,
+    # Poison)"). None when the class has no practical PvE dispel.
+    text: str | None = None
+
+
+class MethodologyAbility(BaseModel):
+    id: int
+    name: str
+
+
+class MethodologyCooldown(BaseModel):
+    id: int
+    name: str
+    expected_uptime_pct: float
+    kind: str  # "offensive" or "defensive"
+
+
+class MethodologyBenchmark(BaseModel):
+    poor: float
+    fair: float
+    good: float
+    excellent: float
+
+
+class MethodologyCategoryCopy(BaseModel):
+    description: str
+    howToImprove: str
+
+
+class MethodologyResponse(BaseModel):
+    """Spec-aware methodology: interrupt / dispel / CC / CD / CPM data and
+    pre-rendered per-category copy. Consumed by the run breakdown UI so
+    "How this is measured" reads for the player's actual spec instead of
+    the generic role-level description.
+    """
+    class_id: int
+    class_name: str
+    spec_name: str
+    role: str
+    role_label: str
+    interrupt: MethodologyInterrupt
+    dispels: MethodologyDispels
+    cc_abilities: list[MethodologyAbility]
+    major_cooldowns: list[MethodologyCooldown]
+    cpm_benchmark: MethodologyBenchmark
+    # Keyed by category slug ("utility", "cooldown_usage", "casts_per_minute").
+    # Categories without spec-specific copy (damage_output, healing_throughput,
+    # survivability) are intentionally absent — the frontend falls back to
+    # its existing generic copy for those.
+    categories: dict[str, MethodologyCategoryCopy]
 
 
 class HistoryResponse(BaseModel):

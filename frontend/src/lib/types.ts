@@ -29,6 +29,11 @@ export interface RunResponse {
   keystone_level: number;
   role: string;
   spec_name: string;
+  /** Blizzard class id (1-13). Carried off the owning Player so the run
+   *  page can fetch spec-aware methodology without round-tripping to the
+   *  profile endpoint. Optional for back-compat with any cached legacy
+   *  responses. */
+  class_id?: number | null;
   dps: number;
   hps: number;
   ilvl: number;
@@ -135,12 +140,27 @@ export interface RunListResponse {
   per_page: number;
 }
 
+export interface RoleSpecScore {
+  spec_name: string;
+  runs_analyzed: number;
+  composite_score: number;
+  /** Null when runs_analyzed < min_runs_for_grade — show the composite
+   *  bar without a letter grade for low-sample tabs. */
+  grade: string | null;
+  category_scores: Record<string, number>;
+  excluded_categories: string[];
+}
+
 export interface RoleScore {
   role: string;
   grade: string;
   category_scores: Record<string, number>;
   runs_analyzed: number;
   primary_role: boolean;
+  /** Per-spec sub-scores when this role spans >=2 specs with >=2 runs
+   *  each. Empty for single-spec roles (most players). Sorted by
+   *  runs_analyzed descending. */
+  specs?: RoleSpecScore[];
 }
 
 export interface PerDungeonGrade {
@@ -242,4 +262,41 @@ export interface RunRotationResponse {
   spec_key: string | null;
   reference_opener: ReferenceOpenerStep[] | null;
   guide_url: string | null;
+}
+
+/** Spec-aware methodology: powers the "How this is measured" copy on the
+ *  run breakdown. Structured data (interrupts, dispels, CC list, CDs,
+ *  CPM benchmark) is included so the UI can template further if needed;
+ *  today we render the pre-baked `categories` copy from the backend. */
+export interface MethodologyResponse {
+  class_id: number;
+  class_name: string;
+  spec_name: string;
+  role: string;
+  role_label: string;
+  interrupt: {
+    has_interrupt: boolean;
+    ability_name: string | null;
+  };
+  dispels: {
+    can_dispel: boolean;
+    text: string | null;
+  };
+  cc_abilities: { id: number; name: string }[];
+  major_cooldowns: {
+    id: number;
+    name: string;
+    expected_uptime_pct: number;
+    kind: "offensive" | "defensive";
+  }[];
+  cpm_benchmark: {
+    poor: number;
+    fair: number;
+    good: number;
+    excellent: number;
+  };
+  /** Keyed by category slug ("utility", "cooldown_usage", "casts_per_minute").
+   *  Categories the backend doesn't customize (damage_output, etc.) are
+   *  absent — the frontend falls back to its generic copy for those. */
+  categories: Record<string, { description: string; howToImprove: string }>;
 }

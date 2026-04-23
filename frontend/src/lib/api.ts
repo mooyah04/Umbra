@@ -1,5 +1,6 @@
 import type {
   HistoryResponse,
+  MethodologyResponse,
   PlayerProfileResponse,
   PlayerSearchResult,
   RunListResponse,
@@ -169,6 +170,17 @@ export async function getRunDetail(
     `/api/player/${region}/${realm}/${name}/runs/${runId}`,
     "no-store",
   );
+}
+
+export async function getMethodology(
+  classId: number,
+  specName: string,
+): Promise<MethodologyResponse> {
+  // Static per game patch — cache for an hour. Data only moves when
+  // scoring modules ship (daily release cadence at most), so the ISR
+  // window is well under what the copy actually lives for.
+  const encoded = encodeURIComponent(specName);
+  return fetchApi(`/api/methodology/${classId}/${encoded}`, 3600);
 }
 
 export async function getRunRotation(

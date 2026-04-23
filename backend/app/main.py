@@ -33,6 +33,7 @@ from app.schemas import (
     HistoryResponse,
     IngestRequest,
     IngestResponse,
+    MethodologyResponse,
     ParseResponse,
     PerDungeonGrade,
     PlayerProfileResponse,
@@ -40,6 +41,7 @@ from app.schemas import (
     PlayerSearchResult,
     RefreshResponse,
     RoleScore,
+    RoleSpecScore,
     RunListResponse,
     RunResponse,
     RunRotationResponse,
@@ -229,13 +231,14 @@ def _check_and_record_cold_parse(
     return 0
 
 
-def _run_to_response(run: DungeonRun) -> RunResponse:
+def _run_to_response(run: DungeonRun, class_id: int | None = None) -> RunResponse:
     return RunResponse(
         id=run.id,
         encounter_id=run.encounter_id,
         keystone_level=run.keystone_level,
         role=run.role.value,
         spec_name=run.spec_name,
+        class_id=class_id,
         dps=run.dps,
         hps=run.hps,
         ilvl=run.ilvl,
@@ -2420,6 +2423,28 @@ def export_lua(
 
 # ── New endpoints for web frontend ──────────────────────────────────────────
 
+@app.get(
+    "/api/methodology/{class_id}/{spec_name}",
+    response_model=MethodologyResponse,
+)
+@limiter.limit(settings.rate_limit_public)
+def spec_methodology(
+    request: Request,
+    class_id: int,
+    spec_name: str,
+):
+    """Spec-aware methodology payload for the run breakdown's "How this is
+    measured" copy. Static per game patch — safe to cache aggressively on
+    the client (the data only moves when scoring modules change, which
+    happens at our release cadence). No DB hit; purely a function of the
+    scoring modules.
+    """
+    if class_id < 1 or class_id > 13:
+        raise HTTPException(status_code=400, detail="class_id must be 1-13")
+    from app.scoring.methodology import build_methodology
+    return build_methodology(class_id, spec_name)
+
+
 @app.get("/api/stats/summary")
 @limiter.limit(settings.rate_limit_public)
 def stats_summary(
@@ -2668,7 +2693,56 @@ def get_player_profile(
         )
     is_indexing = False
 
-    # Build role scores
+    # Build role scores. For roles where the player has runs across
+    # multiple specs (Sin+Outlaw Rogue, Balance+Feral Druid DPS,
+    # MW healing + Brewmaster tanking rolls up separately because role
+    # differs), compute a per-spec sub-score so the profile UI can
+    # surface a tab strip per role. Gate specs with <2 runs so a single
+    # drive-by run in an off-spec doesn't clutter the tab strip; gate
+    # the whole specs list to >=2 qualifying specs so single-spec roles
+    # stay noise-free.
+    from collections import defaultdict as _dd
+    from app.scoring.engine import score_player_runs as _score_player_runs
+
+    _runs_by_role: dict[Role, list[DungeonRun]] = _dd(list)
+    _all_runs = list(session.execute(
+        select(DungeonRun).where(DungeonRun.player_id == player.id)
+    ).scalars())
+    for r in _all_runs:
+        _runs_by_role[r.role].append(r)
+
+    _SPEC_MIN_RUNS = 2  # per-spec tab threshold
+
+    def _build_specs(role: Role) -> list[RoleSpecScore]:
+        role_runs = _runs_by_role.get(role, [])
+        by_spec: dict[str, list[DungeonRun]] = _dd(list)
+        for r in role_runs:
+            by_spec[r.spec_name].append(r)
+        qualifying = [
+            (name, rs) for name, rs in by_spec.items() if len(rs) >= _SPEC_MIN_RUNS
+        ]
+        if len(qualifying) < 2:
+            # Single-spec role (the common case) — no tabs needed.
+            return []
+        out: list[RoleSpecScore] = []
+        for spec_name, spec_runs in qualifying:
+            res = _score_player_runs(
+                runs=spec_runs, role=role, class_id=player.class_id,
+            )
+            graded = res.runs_analyzed >= settings.min_runs_for_grade
+            out.append(
+                RoleSpecScore(
+                    spec_name=spec_name,
+                    runs_analyzed=res.runs_analyzed,
+                    composite_score=res.composite_score,
+                    grade=res.overall_grade if graded else None,
+                    category_scores=res.category_scores,
+                    excluded_categories=list(res.excluded_categories),
+                )
+            )
+        out.sort(key=lambda s: s.runs_analyzed, reverse=True)
+        return out
+
     scores = [
         RoleScore(
             role=s.role.value,
@@ -2676,6 +2750,7 @@ def get_player_profile(
             category_scores=s.category_scores,
             runs_analyzed=s.runs_analyzed,
             primary_role=s.primary_role,
+            specs=_build_specs(s.role),
         )
         for s in player.scores
     ]
@@ -2687,7 +2762,10 @@ def get_player_profile(
         .order_by(DungeonRun.logged_at.desc())
         .limit(20)
     )
-    recent_runs = [_run_to_response(r) for r in session.execute(run_stmt).scalars()]
+    recent_runs = [
+        _run_to_response(r, class_id=player.class_id)
+        for r in session.execute(run_stmt).scalars()
+    ]
 
     # Timed percentage
     total_stmt = select(func.count()).where(DungeonRun.player_id == player.id)
@@ -2807,7 +2885,10 @@ def get_player_runs(
         .offset(offset)
         .limit(per_page)
     )
-    runs = [_run_to_response(r) for r in session.execute(run_stmt).scalars()]
+    runs = [
+        _run_to_response(r, class_id=player.class_id)
+        for r in session.execute(run_stmt).scalars()
+    ]
 
     return RunListResponse(runs=runs, total=total, page=page, per_page=per_page)
 
@@ -2838,7 +2919,7 @@ def get_run_detail(
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    response = _run_to_response(run)
+    response = _run_to_response(run, class_id=player.class_id)
 
     # Copy Blizzard media URLs off the Player so the run page hero can
     # use the same render-as-backdrop treatment the profile does.
