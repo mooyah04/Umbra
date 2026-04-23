@@ -40,11 +40,12 @@ DUNGEON = DungeonData(
         (396640, "Healing Touch"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Raging Screech and Agitation — both enrage-style enemy buffs
+        # being purged by Tranquilizing Shot etc., not healer cleanses.
         (389033, "Lasher Toxin"),
-        (377389, "Raging Screech"),
         (376997, "Savage Peck"),
         (396716, "Splinterbark"),
-        (390938, "Agitation"),
         (374350, "Energy Bomb"),
         (1282244, "Vile Bite"),
         (388392, "Monotonous Lecture"),

@@ -46,17 +46,20 @@ DUNGEON = DungeonData(
         (1255964, "Throw Spear"),
     ),
     dispellable_debuffs=(
-        (1270079, "Grim Ward"),
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Grim Ward and Blood Frenzy — both were offensive purges
+        # (enemy buffs stripped by Hunter/Shaman/etc.), not healer
+        # cleanses. The second "Cries of the Fallen" variant (1259731)
+        # dropped below consensus in the cleaner run.
         (1246666, "Infected Pinions"),
         (1259255, "Spirit Rend"),
         (1262411, "Ritual Firebrand"),
         (1260709, "Vilebranch Sting"),
-        (1255765, "Blood Frenzy"),
         (1271623, "Frost Nova"),
         (1266488, "Open Wound"),
         (1259794, "Ritual Sacrifice"),
         (1254175, "Cries of the Fallen"),
-        (1259731, "Cries of the Fallen"),
+        (1266381, "Hooked Snare"),
     ),
     appearances=("Midnight S1",),
     last_reviewed="2026-04-23",

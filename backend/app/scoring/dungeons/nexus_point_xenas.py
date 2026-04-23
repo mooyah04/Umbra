@@ -41,11 +41,12 @@ DUNGEON = DungeonData(
         (1252218, "Leech Veil"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Holy Echo — an offensive purge target, not a healer cleanse.
         (1249815, "Transference"),
         (1277557, "Burning Radiance"),
         (1269283, "Suppression Field"),
         (1281636, "Creeping Void"),
-        (1263783, "Holy Echo"),
     ),
     appearances=("Midnight S1",),
     last_reviewed="2026-04-23",

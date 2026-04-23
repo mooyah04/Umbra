@@ -33,6 +33,8 @@ DUNGEON = DungeonData(
         (1264186, "Shadowbind"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Plague Frenzy — enrage on enemies, not a healer cleanse.
         (1258434, "Curse of Torment"),
         (1258437, "Permeating Cold"),
         (1264186, "Shadowbind"),
@@ -40,7 +42,6 @@ DUNGEON = DungeonData(
         (1258997, "Plungegrip"),
         (1261921, "Cryoshards"),
         (1262930, "Rotting Strikes"),
-        (1259132, "Plague Frenzy"),
     ),
     appearances=("Midnight S1", "Legion Timewalking", "WotLK Heroic"),
     last_reviewed="2026-04-23",

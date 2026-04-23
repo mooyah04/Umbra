@@ -37,7 +37,14 @@ DUNGEON = DungeonData(
         (1254686, "Mark of Death"),
     ),
     dispellable_debuffs=(
-        (1254678, "Wrathful Wind"),
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Wrathful Wind — it was an offensive purge target (enemy
+        # caster buff being stripped by Hunters/Enh Shamans), not a
+        # healer cleanse. Only 2 entries survive, and both are low-
+        # volume (~4 dispels/run avg): Skyreach is genuinely a
+        # dispel-poor dungeon for healers. The flat 8-dispel
+        # benchmark still over-penalizes healers here; fix is a
+        # per-dungeon dispel denominator, tracked as a follow-up.
         (1254475, "Blade Rush"),
         (153757, "Fan of Blades"),
     ),

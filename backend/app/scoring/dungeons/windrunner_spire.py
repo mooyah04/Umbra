@@ -45,12 +45,15 @@ DUNGEON = DungeonData(
         (473663, "Pulsing Shriek"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Ephemeral Bloodlust (enrage on enemies, offensive purge) and
+        # Bolstering Flames (enemy buff). Throw Axe / Puncturing Bite
+        # stay — they apply dispellable physical/magic debuffs to the
+        # party.
         (1216298, "Soul Torment"),
-        (1216459, "Ephemeral Bloodlust"),
         (1216825, "Poison Spray"),
         (1253834, "Curse of Darkness"),
         (468659, "Throw Axe"),
-        (1216860, "Bolstering Flames"),
         (1216985, "Puncturing Bite"),
     ),
     appearances=("Midnight S1",),

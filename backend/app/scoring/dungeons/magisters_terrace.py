@@ -40,13 +40,15 @@ DUNGEON = DungeonData(
         (1254294, "Pyroblast"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter (targetID
+        # must be a friendly Player). Dropped Power Word: Shield and
+        # Hastening Ward — those were offensive purges off enemies,
+        # not debuffs healers should be cleansing.
         (1255187, "Holy Fire"),
         (1284627, "Umbral Splinters"),
         (1214038, "Ethereal Shackles"),
         (1282055, "Ethereal Shackles"),
-        (1254306, "Power Word: Shield"),
         (1245068, "Consuming Void"),
-        (1248689, "Hastening Ward"),
         (1269631, "Entropy Orb"),
     ),
     appearances=("Midnight S1", "TBC Heroic"),

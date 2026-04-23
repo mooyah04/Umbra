@@ -41,9 +41,10 @@ DUNGEON = DungeonData(
         (1262523, "Summon Voidcaller"),
     ),
     dispellable_debuffs=(
+        # Re-sampled 2026-04-23 with defensive-only filter. Dropped
+        # Battle Rage — enrage on enemies, offensive purge target.
         (1262509, "Chains of Subjugation"),
         (1280330, "Rift Essence"),
-        (1264036, "Battle Rage"),
         (1262519, "Backstab"),
         (245742, "Shadow Pounce"),
     ),
