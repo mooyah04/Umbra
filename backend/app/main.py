@@ -1357,6 +1357,121 @@ def debug_wcl_buffs(code: str, player: str):
     }
 
 
+@app.get("/api/admin/sample-dungeon-dispels", dependencies=[Depends(require_api_key)])
+def sample_dungeon_dispels(
+    encounter_id: int,
+    top_n: int = Query(default=10, le=20),
+    consensus_pct: float = Query(default=30.0, ge=0, le=100),
+):
+    """Sample top-N WCL logs for a dungeon, aggregate dispel events across
+    them, and return the debuff IDs that got dispelled in at least
+    `consensus_pct`% of the sampled logs. Feeds the
+    `dispellable_debuffs` field on dungeon modules.
+
+    The consensus filter is load-bearing: a log might have one healer who
+    dispelled something weird once — cross-log aggregation surfaces only
+    the debuffs that real parties actually dispel across runs. Empty
+    result means the dungeon has no regularly-dispelled debuffs (which
+    should then be recorded as `dispellable_debuffs=()` so scoring stops
+    penalizing healers who landed 0 dispels there).
+
+    Writes nothing to our DB. Pure read against WCL.
+    """
+    from collections import defaultdict
+    from app.wcl.client import wcl_client
+
+    top_logs = wcl_client.get_top_logs_for_encounter(
+        encounter_id, metric="speed", limit=top_n,
+    )
+    if not top_logs:
+        return {"error": "no rankings returned for this encounter", "encounter_id": encounter_id}
+
+    appearances: dict[int, set] = defaultdict(set)
+    total_count: dict[int, int] = defaultdict(int)
+    per_debuff_samples: dict[int, dict] = {}  # first-seen sample event for name resolution
+    successful_logs = 0
+    for log in top_logs:
+        try:
+            events = wcl_client.get_player_events(
+                log["report_code"], [log["fight_id"]], data_type="Dispels",
+            )
+        except Exception:
+            continue
+        if not events:
+            continue
+        successful_logs += 1
+        seen_in_this_log: set[int] = set()
+        for ev in events:
+            if ev.get("type") != "dispel":
+                continue
+            did = ev.get("extraAbilityGameID")
+            if not isinstance(did, int):
+                continue
+            seen_in_this_log.add(did)
+            total_count[did] += 1
+            per_debuff_samples.setdefault(did, {"report": log["report_code"]})
+        for did in seen_in_this_log:
+            appearances[did].add(log["report_code"])
+
+    if successful_logs == 0:
+        return {"error": "fetched 0 successful logs", "logs_attempted": len(top_logs)}
+
+    # Resolve debuff names. Each debuff appeared in at least one log; we
+    # query the masterData.abilities list on the first such log per
+    # debuff to pick up names. Cheap: one extra query per log we touch.
+    name_by_id: dict[int, str] = {}
+    report_codes_needed = {s["report"] for s in per_debuff_samples.values()}
+    for code in report_codes_needed:
+        try:
+            mq = """
+            query($code: String!) {
+              reportData { report(code: $code) {
+                masterData { abilities { gameID name } }
+              } }
+            }
+            """
+            data = wcl_client.query(mq, {"code": code})
+            abs_list = (
+                data.get("reportData", {}).get("report", {}).get("masterData", {}).get("abilities") or []
+            )
+            for a in abs_list:
+                gid = a.get("gameID")
+                if gid and gid not in name_by_id:
+                    name_by_id[gid] = a.get("name") or "?"
+        except Exception:
+            continue
+
+    threshold = (consensus_pct / 100.0) * successful_logs
+    consensus = [
+        {
+            "guid": did,
+            "name": name_by_id.get(did, "?"),
+            "logs_seen_in": len(appearances[did]),
+            "logs_pct": round(100 * len(appearances[did]) / successful_logs, 1),
+            "total_dispels": total_count[did],
+        }
+        for did in appearances
+        if len(appearances[did]) >= threshold
+    ]
+    consensus.sort(key=lambda x: x["total_dispels"], reverse=True)
+
+    return {
+        "encounter_id": encounter_id,
+        "logs_sampled": successful_logs,
+        "consensus_threshold_pct": consensus_pct,
+        "debuffs_passing_threshold": len(consensus),
+        "debuffs": consensus[:30],
+        # If this is zero, the dungeon legitimately has no consistently-
+        # dispelled debuffs. Record `dispellable_debuffs=()` on the
+        # module so scoring skips dispel contribution for it.
+        "note": (
+            "0 debuffs passed threshold — record dispellable_debuffs=() on the module"
+            if len(consensus) == 0
+            else f"{len(consensus)} debuffs passed — paste into module as dispellable_debuffs tuple"
+        ),
+    }
+
+
 @app.get("/api/admin/sample-dungeon-mechanics", dependencies=[Depends(require_api_key)])
 def sample_dungeon_mechanics(
     encounter_id: int,

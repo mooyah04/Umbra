@@ -75,3 +75,22 @@ def get_critical_interrupt_ids(encounter_id: int) -> set[int]:
     if dungeon is None:
         return set()
     return {spell_id for spell_id, _ in dungeon.critical_interrupts}
+
+
+def get_dispellable_debuffs(
+    encounter_id: int,
+) -> tuple[tuple[int, str], ...] | None:
+    """Return the dispellable-debuff list for a dungeon.
+
+    Preserves the tri-state from DungeonData.dispellable_debuffs:
+      - None: not yet sampled (or dungeon unknown). Scorer keeps legacy
+              flat benchmark.
+      - (): sampled and confirmed empty. Scorer excludes dispel
+            contribution for this dungeon's runs.
+      - tuple: sampled with data. Scorer treats the dungeon as having
+               dispel opportunity.
+    """
+    dungeon = _DUNGEONS.get(encounter_id)
+    if dungeon is None:
+        return None
+    return dungeon.dispellable_debuffs

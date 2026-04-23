@@ -11,7 +11,25 @@ from dataclasses import dataclass, field
 from app.models import DungeonRun, Role
 from app.scoring.cpm_benchmarks import get_benchmark, score_cpm
 from app.scoring.dispel_capability import class_has_dispel
+from app.scoring.dungeons.registry import get_dispellable_debuffs
 from app.scoring.roles import healer_can_interrupt
+
+
+def _dispel_opportunity(encounter_id: int) -> bool | None:
+    """Per-run check: does this dungeon have any dispellable debuffs?
+
+    Returns tri-state:
+      - None: not yet sampled. Scorer should keep legacy behavior (assume
+              opportunity exists).
+      - True: dungeon has sampled dispellables.
+      - False: dungeon has been sampled and confirmed empty. Scorer
+               should treat this run as if the class can't dispel
+               (redistribute dispel weight to interrupts + CC).
+    """
+    debuffs = get_dispellable_debuffs(encounter_id)
+    if debuffs is None:
+        return None
+    return len(debuffs) > 0
 
 
 # ── Grade thresholds ────────────────────────────────────────────────────────
@@ -125,9 +143,18 @@ def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None)
         denom = 12 if run.role == Role.tank else 15
         interrupt_score = min(100, (effective_kicks / denom) * 100)
 
+        # Per-run dispel opportunity: class can dispel AND the dungeon
+        # actually has dispellable debuffs (or hasn't been sampled yet,
+        # in which case assume opportunity so we don't silently change
+        # behavior for dungeons we haven't populated). When the dungeon
+        # is sampled-empty, this run is scored as if the class has no
+        # dispel — the weight redistributes to interrupts + CC below.
+        opportunity = _dispel_opportunity(run.encounter_id)
+        run_can_dispel = can_dispel and opportunity is not False
+
         # Dispel component only applies to classes that can dispel. Everyone
         # else redistributes the weight to the remaining components.
-        dispel_score = min(100, (run.dispels / 5) * 100) if can_dispel else 0
+        dispel_score = min(100, (run.dispels / 5) * 100) if run_can_dispel else 0
 
         # CC — per-run check so we don't penalize historical runs that were
         # ingested before we tracked cc_casts.
@@ -137,11 +164,11 @@ def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None)
         # Build weights dynamically based on what's applicable.
         # Interrupts are always the core — 55% if all 3 components,
         # scaling up when dispels/cc are excluded.
-        if can_dispel and has_cc:
+        if run_can_dispel and has_cc:
             return interrupt_score * 0.55 + dispel_score * 0.20 + cc_score * 0.25
-        elif can_dispel:  # no CC data
+        elif run_can_dispel:  # no CC data
             return interrupt_score * 0.80 + dispel_score * 0.20
-        elif has_cc:  # no dispel capability
+        elif has_cc:  # no dispel capability (or dungeon has no dispellables)
             return interrupt_score * 0.70 + cc_score * 0.30
         else:  # no dispel, no CC data
             return interrupt_score
@@ -168,9 +195,23 @@ def _score_utility_healer(runs: list[DungeonRun], class_id: int | None = None) -
     if class_id is not None:
         can_kick = healer_can_interrupt(class_id, spec_name)
 
+    # Does the healer's class have a dispel at all? Pulled out so the
+    # per-run opportunity check can cheaply AND against it. Healer
+    # classes in Midnight all have some dispel, but keep the guard for
+    # safety / future class additions.
+    can_dispel = class_has_dispel(class_id) if class_id is not None else True
+
     def score_fn(run):
+        # Per-run dispel opportunity mirrors the DPS/tank scorer: class
+        # can dispel AND the dungeon has dispellable debuffs (or is
+        # unsampled -> assume yes). When the dungeon is sampled-empty,
+        # drop dispel entirely for this run so healers who landed 0
+        # dispels in a no-opportunity dungeon aren't penalized.
+        opportunity = _dispel_opportunity(run.encounter_id)
+        run_can_dispel = can_dispel and opportunity is not False
+
         # Dispels — 8+ per run = excellent for a healer
-        dispel_score = min(100, (run.dispels / 8) * 100)
+        dispel_score = min(100, (run.dispels / 8) * 100) if run_can_dispel else 0
 
         # Per-run CC availability (old runs predate cc_casts tracking)
         has_cc = getattr(run, "cc_casts", None) is not None
@@ -183,15 +224,33 @@ def _score_utility_healer(runs: list[DungeonRun], class_id: int | None = None) -
         else:
             interrupt_score = 0
 
-        # Distribute weights. Dispels dominate; CC and kicks fill in.
-        if can_kick and has_cc:
+        # Distribute weights. When dispels apply (normal case), dispels
+        # dominate. When the dungeon has no dispellables, fall back to
+        # kick+CC weighting — same math as class-no-dispel, which
+        # redistributes cleanly without re-normalizing by hand.
+        if run_can_dispel and can_kick and has_cc:
             return dispel_score * 0.50 + interrupt_score * 0.30 + cc_score * 0.20
-        elif can_kick:
+        if run_can_dispel and can_kick:
             return dispel_score * 0.60 + interrupt_score * 0.40
-        elif has_cc:
+        if run_can_dispel and has_cc:
             return dispel_score * 0.75 + cc_score * 0.25
-        else:
+        if run_can_dispel:
             return dispel_score
+        # No dispel opportunity (sampled-empty dungeon, or class can't
+        # dispel). Fall through to the DPS/tank-style redistribution.
+        if can_kick and has_cc:
+            return interrupt_score * 0.70 + cc_score * 0.30
+        if can_kick:
+            return interrupt_score
+        if has_cc:
+            return cc_score
+        # Last-resort: no kicks, no CC data, no dispel opportunity.
+        # Give the category a neutral 50 so healers aren't crushed to 0
+        # for a run where their utility simply has nothing to score
+        # against. Alternative would be to drop the category entirely,
+        # but that requires plumbing through excluded_categories for
+        # per-run cases which is a bigger refactor.
+        return 50.0
 
     return _weighted_average(runs, score_fn)
 
