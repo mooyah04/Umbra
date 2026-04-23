@@ -32,7 +32,17 @@ DUNGEON = DungeonData(
         (1278893, "Death Bolt"),
         (1264186, "Shadowbind"),
     ),
+    dispellable_debuffs=(
+        (1258434, "Curse of Torment"),
+        (1258437, "Permeating Cold"),
+        (1264186, "Shadowbind"),
+        (1258459, "Rotting Strikes"),
+        (1258997, "Plungegrip"),
+        (1261921, "Cryoshards"),
+        (1262930, "Rotting Strikes"),
+        (1259132, "Plague Frenzy"),
+    ),
     appearances=("Midnight S1", "Legion Timewalking", "WotLK Heroic"),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )

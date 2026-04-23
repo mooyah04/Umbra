@@ -39,7 +39,17 @@ DUNGEON = DungeonData(
         (468966, "Polymorph"),
         (1254294, "Pyroblast"),
     ),
+    dispellable_debuffs=(
+        (1255187, "Holy Fire"),
+        (1284627, "Umbral Splinters"),
+        (1214038, "Ethereal Shackles"),
+        (1282055, "Ethereal Shackles"),
+        (1254306, "Power Word: Shield"),
+        (1245068, "Consuming Void"),
+        (1248689, "Hastening Ward"),
+        (1269631, "Entropy Orb"),
+    ),
     appearances=("Midnight S1", "TBC Heroic"),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )

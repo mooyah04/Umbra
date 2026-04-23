@@ -39,7 +39,17 @@ DUNGEON = DungeonData(
         (388392, "Monotonous Lecture"),
         (396640, "Healing Touch"),
     ),
+    dispellable_debuffs=(
+        (389033, "Lasher Toxin"),
+        (377389, "Raging Screech"),
+        (376997, "Savage Peck"),
+        (396716, "Splinterbark"),
+        (390938, "Agitation"),
+        (374350, "Energy Bomb"),
+        (1282244, "Vile Bite"),
+        (388392, "Monotonous Lecture"),
+    ),
     appearances=("Midnight S1", "Dragonflight S1"),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )

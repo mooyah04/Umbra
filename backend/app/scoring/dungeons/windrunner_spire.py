@@ -44,7 +44,16 @@ DUNGEON = DungeonData(
         (1251981, "Chain Lightning"),
         (473663, "Pulsing Shriek"),
     ),
+    dispellable_debuffs=(
+        (1216298, "Soul Torment"),
+        (1216459, "Ephemeral Bloodlust"),
+        (1216825, "Poison Spray"),
+        (1253834, "Curse of Darkness"),
+        (468659, "Throw Axe"),
+        (1216860, "Bolstering Flames"),
+        (1216985, "Puncturing Bite"),
+    ),
     appearances=("Midnight S1",),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )

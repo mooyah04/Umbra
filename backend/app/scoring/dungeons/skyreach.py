@@ -36,7 +36,12 @@ DUNGEON = DungeonData(
         (154396, "Solar Blast"),
         (1254686, "Mark of Death"),
     ),
+    dispellable_debuffs=(
+        (1254678, "Wrathful Wind"),
+        (1254475, "Blade Rush"),
+        (153757, "Fan of Blades"),
+    ),
     appearances=("Midnight S1", "Shadowlands S4", "WoD"),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )

@@ -40,7 +40,14 @@ DUNGEON = DungeonData(
         (1277340, "Shadowmend"),
         (1262523, "Summon Voidcaller"),
     ),
+    dispellable_debuffs=(
+        (1262509, "Chains of Subjugation"),
+        (1280330, "Rift Essence"),
+        (1264036, "Battle Rage"),
+        (1262519, "Backstab"),
+        (245742, "Shadow Pounce"),
+    ),
     appearances=("Midnight S1", "Legion"),
-    last_reviewed="2026-04-16",
+    last_reviewed="2026-04-23",
     verified=True,
 )
