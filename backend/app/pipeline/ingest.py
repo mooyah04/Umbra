@@ -661,7 +661,31 @@ def _extract_groupmates(player_details: dict, exclude_name: str, region: str) ->
     return groupmates
 
 
-def _extract_party_comp(player_details: dict) -> list[dict]:
+def _table_totals_by_name(table: dict | None) -> dict[str, float]:
+    """Build {lowercase_name: total} from a WCL performance table.
+
+    Used to cross-check whether a playerDetails entry actually contributed
+    in their stated role. NPC entries are excluded.
+    """
+    if not table:
+        return {}
+    entries = table.get("data", {}).get("entries") or []
+    out: dict[str, float] = {}
+    for e in entries:
+        if e.get("type") == "NPC":
+            continue
+        name = (e.get("name") or "").lower()
+        if name:
+            out[name] = (out.get(name) or 0) + (e.get("total") or 0)
+    return out
+
+
+def _extract_party_comp(
+    player_details: dict,
+    damage_table: dict | None = None,
+    healing_table: dict | None = None,
+    damage_taken_table: dict | None = None,
+) -> list[dict]:
     """Snapshot all 5 party members for this fight.
 
     Returns [{name, realm, class, role, spec}, ...] ordered
@@ -670,15 +694,23 @@ def _extract_party_comp(player_details: dict) -> list[dict]:
     string; the frontend maps it to class_id for icon lookup.
 
     Phantom-player filter: WCL occasionally lists characters that were
-    in the report but produced no combat events for this fight (e.g., a
-    healer who DC'd at the pull, or a residual entry from a key reset).
-    They appear in playerDetails alongside the real party. WCL only
-    records `minItemLevel` for a player after seeing at least one combat
-    event from them, so its absence is a reliable phantom signal — drop
-    those entries to avoid showing 6 players in a 5-player dungeon.
+    in the report but didn't actually participate in this fight (a
+    healer who DC'd at the pull, a key-reset residue, a brief mid-key
+    swap before brick). Two layers of defense:
+
+    1. Drop entries with no `minItemLevel` — WCL only writes ilvl after
+       a player generates at least one combat event.
+    2. When the performance tables are provided, drop entries who
+       produced no output in their stated role: healers with 0 healing,
+       dps with 0 damage, tanks with 0 damage taken. This catches
+       short cameos that did register a stray combat event (so passed
+       the ilvl gate) but didn't really play.
     """
     party: list[dict] = []
     role_label = {"tanks": "tank", "healers": "healer", "dps": "dps"}
+    healing_by_name = _table_totals_by_name(healing_table)
+    damage_by_name = _table_totals_by_name(damage_table)
+    dmg_taken_by_name = _table_totals_by_name(damage_taken_table)
     # Order: tank → healer → dps. _iter_player_details doesn't guarantee
     # that ordering, so we bucket first and emit in role order.
     buckets: dict[str, list[dict]] = {"tank": [], "healer": [], "dps": []}
@@ -687,6 +719,15 @@ def _extract_party_comp(player_details: dict) -> list[dict]:
         if not name:
             continue
         if player.get("minItemLevel") is None:
+            continue
+        # Role-output cross-check (skipped when caller didn't pass the
+        # relevant table — keeps the function callable without them).
+        lname = name.lower()
+        if role_group == "healers" and healing_by_name and healing_by_name.get(lname, 0) <= 0:
+            continue
+        if role_group == "dps" and damage_by_name and damage_by_name.get(lname, 0) <= 0:
+            continue
+        if role_group == "tanks" and dmg_taken_by_name and dmg_taken_by_name.get(lname, 0) <= 0:
             continue
         specs = player.get("specs") or []
         spec = None
@@ -1278,7 +1319,12 @@ def ingest_player(
                 cc_casts=cc_count,
                 critical_interrupts=crit_interrupts,
                 avoidable_deaths=avoidable_death_count,
-                party_comp=_extract_party_comp(player_details) or None,
+                party_comp=_extract_party_comp(
+                    player_details,
+                    damage_table=damage_table,
+                    healing_table=healing_table,
+                    damage_taken_table=damage_taken_table,
+                ) or None,
                 pulls=pulls,
                 aug_uplift_damage=aug_uplift,
             )
