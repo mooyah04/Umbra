@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from alembic import context
@@ -7,6 +8,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import settings
 from app.models import Base
+
+# Windows defaults to ProactorEventLoop which psycopg's async driver rejects.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 config = context.config
 if config.config_file_name is not None:
