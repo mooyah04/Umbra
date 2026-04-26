@@ -16,8 +16,9 @@ WoW class IDs:
 """
 
 # Class-level interrupt cast IDs. Used for non-healer specs by default,
-# plus Mistweaver (keeps the monk kick) and Holy Pally / Resto Shaman
-# (healer specs that retain the class interrupt).
+# plus Holy Pally / Resto Shaman (healer specs that retain the class
+# interrupt). Mistweaver is handled via SPEC_INTERRUPT below because MW
+# does not have Spear Hand Strike.
 CLASS_INTERRUPT: dict[int, tuple[int, str]] = {
     1: (6552, "Pummel"),
     2: (96231, "Rebuke"),
@@ -49,6 +50,8 @@ SPEC_INTERRUPT: dict[tuple[int, str], tuple[int, str] | None] = {
     (13, "Devastation"): (351338, "Quell"),
     (13, "Augmentation"): (351338, "Quell"),
     (13, "Preservation"): None,
+    # Monk — only Brewmaster and Windwalker have Spear Hand Strike
+    (10, "Mistweaver"): None,
 }
 
 

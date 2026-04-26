@@ -84,10 +84,10 @@ _SPEC_INTERRUPT_OVERRIDES: dict[tuple[int, str], str | None] = {
     (13, "Augmentation"): "Quell",
     (13, "Preservation"): None,
     # Healers without a baseline interrupt
-    (10, "Mistweaver"): "Spear Hand Strike",  # MW keeps the class kick
+    (10, "Mistweaver"): None,  # MW does not have Spear Hand Strike
     # Paladin — Holy does have Rebuke, so no override needed.
     # Shaman — Resto keeps Wind Shear, no override needed.
-    # Monk — MW keeps Spear Hand Strike (explicit above for clarity).
+    # Monk — only Brewmaster and Windwalker have Spear Hand Strike.
 }
 
 
