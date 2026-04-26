@@ -556,6 +556,18 @@ class WCLClient:
 
         Returns a dict mapping encounter_id -> list of rank entries.
         Each rank entry has rankPercent, report.code, report.fightID, spec, etc.
+
+        `byBracket: true` makes WCL compute rankPercent within each rank's
+        own keystone-level bracket (the bracket is exposed as
+        `bracketData` on each rank). Without this, a +6 run is compared
+        against the entire pool of M+ logs at this encounter — which is
+        dominated by +12+ runs and unfairly buries low-key performers
+        even when they played cleanly. Bracketing is the fairness fix:
+        you're judged against players who played the same key level you
+        did. Bracket population can be small for off-meta key levels
+        (sub-1k parses observed for +5/+7 BrM); the scorer still treats
+        the value as a real percentile, which is acceptable because the
+        per-fight signal is one input averaged across many runs.
         """
         if not encounter_ids:
             return {}
@@ -564,7 +576,8 @@ class WCLClient:
         fields = []
         for eid in encounter_ids:
             fields.append(
-                f"e{eid}: encounterRankings(encounterID: {eid}, difficulty: 10, metric: {metric})"
+                f"e{eid}: encounterRankings(encounterID: {eid}, "
+                f"difficulty: 10, metric: {metric}, byBracket: true)"
             )
 
         query = (
