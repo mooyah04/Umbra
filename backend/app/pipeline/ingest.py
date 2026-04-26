@@ -646,6 +646,10 @@ def _extract_groupmates(player_details: dict, exclude_name: str, region: str) ->
         pname = player.get("name", "")
         if not pname or pname.lower() == exclude_name.lower():
             continue
+        # Skip phantoms — see note in _extract_party_comp. We don't want
+        # to ingest a character who never actually played in this fight.
+        if player.get("minItemLevel") is None:
+            continue
         server = player.get("server", "")
         player_region = player.get("region", region)
         if server and pname:
@@ -664,6 +668,14 @@ def _extract_party_comp(player_details: dict) -> list[dict]:
     tank → healer → dps so the frontend renders them in that
     canonical layout without resorting. 'class' is WCL's type
     string; the frontend maps it to class_id for icon lookup.
+
+    Phantom-player filter: WCL occasionally lists characters that were
+    in the report but produced no combat events for this fight (e.g., a
+    healer who DC'd at the pull, or a residual entry from a key reset).
+    They appear in playerDetails alongside the real party. WCL only
+    records `minItemLevel` for a player after seeing at least one combat
+    event from them, so its absence is a reliable phantom signal — drop
+    those entries to avoid showing 6 players in a 5-player dungeon.
     """
     party: list[dict] = []
     role_label = {"tanks": "tank", "healers": "healer", "dps": "dps"}
@@ -673,6 +685,8 @@ def _extract_party_comp(player_details: dict) -> list[dict]:
     for role_group, player in _iter_player_details(player_details):
         name = player.get("name") or ""
         if not name:
+            continue
+        if player.get("minItemLevel") is None:
             continue
         specs = player.get("specs") or []
         spec = None
