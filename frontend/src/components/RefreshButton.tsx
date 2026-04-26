@@ -28,6 +28,7 @@ export default function RefreshButton({ name, realm, region }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   // Live countdown while cooldown is active.
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function RefreshButton({ name, realm, region }: Props) {
     if (disabled) return;
     setRefreshing(true);
     setError(null);
+    setInfo(null);
     try {
       await refreshPlayer(name, realm, region);
       router.refresh();
@@ -62,6 +64,12 @@ export default function RefreshButton({ name, realm, region }: Props) {
         setCooldownRemaining(detail.retry_after_seconds);
       } else if (detail?.code === "wcl_rate_limited" && detail.retry_after) {
         setCooldownRemaining(detail.retry_after);
+      } else if (apiErr?.status === 408) {
+        // Client aborted but the server-side ingest keeps running. Block
+        // the button for a minute so users wait for it to finish instead
+        // of stacking up duplicate work, and surface the message as info.
+        setCooldownRemaining(60);
+        setInfo(apiErr.message);
       } else {
         setError(apiErr?.message ?? "Something went wrong. Try again soon.");
       }
@@ -93,6 +101,11 @@ export default function RefreshButton({ name, realm, region }: Props) {
       </button>
       {error && (
         <p className="mt-2 text-xs text-red-400 text-center">{error}</p>
+      )}
+      {info && (
+        <p className="mt-2 text-xs text-on-surface-variant text-center">
+          {info}
+        </p>
       )}
     </div>
   );

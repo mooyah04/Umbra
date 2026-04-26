@@ -25,6 +25,7 @@ export default function ParseButton({ name, realm, region }: Props) {
   const [parsing, setParsing] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
@@ -40,6 +41,7 @@ export default function ParseButton({ name, realm, region }: Props) {
     if (disabled) return;
     setParsing(true);
     setError(null);
+    setInfo(null);
     try {
       await parsePlayerFromWcl(name, realm, region);
       router.refresh();
@@ -61,6 +63,11 @@ export default function ParseButton({ name, realm, region }: Props) {
         setCooldownRemaining(detail.retry_after_seconds);
       } else if (detail?.code === "wcl_rate_limited" && detail.retry_after) {
         setCooldownRemaining(detail.retry_after);
+      } else if (apiErr?.status === 408) {
+        // Client aborted but the server-side parse keeps running. Block
+        // the button briefly and surface the message as info, not error.
+        setCooldownRemaining(60);
+        setInfo(apiErr.message);
       } else {
         setError(apiErr?.message ?? "Something went wrong. Try again soon.");
       }
@@ -96,6 +103,11 @@ export default function ParseButton({ name, realm, region }: Props) {
       </p>
       {error && (
         <p className="mt-3 text-xs text-red-400 text-center">{error}</p>
+      )}
+      {info && (
+        <p className="mt-3 text-xs text-on-surface-variant text-center">
+          {info}
+        </p>
       )}
     </div>
   );

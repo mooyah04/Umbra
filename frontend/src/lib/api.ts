@@ -329,9 +329,12 @@ export async function parsePlayerFromWcl(
     );
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      // Server-side cold parse keeps running past the client abort. The
+      // 24h cooldown was recorded before ingest started, so a retry would
+      // 429 anyway — tell the user the work is in progress instead.
       throw new ApiError(
         408,
-        "The parse timed out. Warcraft Logs may be slow right now. Try again in a minute.",
+        "Still working — your parse is running in the background. Reload the page in about a minute to see the result.",
       );
     }
     throw err;
@@ -390,9 +393,12 @@ export async function refreshPlayer(
     );
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      // Server-side ingest keeps running past the client abort — for heavy
+      // characters it routinely takes 30-60s. Tell the user it's still
+      // working rather than implying failure.
       throw new ApiError(
         408,
-        "The refresh timed out. Warcraft Logs may be slow right now. Try again in a minute.",
+        "Still working — your refresh is running in the background. Reload the page in about a minute to see fresh data.",
       );
     }
     throw err;
