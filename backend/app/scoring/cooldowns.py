@@ -237,7 +237,15 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     (10, "Brewmaster"): [
         (120954, "Fortifying Brew", 8, "defensive"),
         (132578, "Invoke Niuzao, the Black Ox", 12, "defensive"),
+        # Exploding Keg and Strength of the Black Ox are mutually-
+        # exclusive talent paths in the current Brewmaster tree. Both
+        # are tracked here; the talent-aware skip in _get_cooldown_usage
+        # excludes the one a given player didn't take, so we don't
+        # punish either build. Sampler 2026-04-26: 88% of top BRMs ran
+        # Keg, the rest ran Black Ox Brew (e.g. Kirabrew testing the
+        # no-Keg defensive build).
         (325153, "Exploding Keg", 5, "defensive"),
+        (443113, "Strength of the Black Ox", 13, "defensive"),
     ],
     (11, "Guardian"): [
         (22812, "Barkskin", 10, "defensive"),

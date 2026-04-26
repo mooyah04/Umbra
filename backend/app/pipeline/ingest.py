@@ -293,6 +293,13 @@ def _get_cooldown_usage(
     Simplified: expected_uses = max(1, duration_min * expected_uptime_pct / 100)
     This works because uptime_pct roughly equals (buff_duration / cd_total_cycle).
 
+    Talent-gated CDs (a buff_id whose aura is absent from the player's
+    BuffsTable) are excluded from the average rather than scored 0.
+    WCL only emits an aura entry when the buff was applied at least
+    once, so absence is a reliable "player doesn't have this talented"
+    signal — and counting it as 0 used to punish valid build choices
+    (e.g. Brewmasters who take Black Ox Brew over Exploding Keg).
+
     Returns 0-100.
 
     WCL buffs table structure (when filtered by sourceID):
@@ -304,7 +311,9 @@ def _get_cooldown_usage(
     duration_min = max(1, duration_ms / 60000)
     auras = buffs_table.get("data", {}).get("auras", [])
 
-    # Build lookup: buff_id -> totalUses
+    # Build lookup: buff_id -> totalUses. Presence in this dict is the
+    # talent-availability signal; absence means the player either didn't
+    # take the talent or never cast it (we treat both as "not in build").
     aura_uses: dict[int, int] = {}
     for aura in auras:
         aura_id = aura.get("guid", 0)
@@ -312,7 +321,12 @@ def _get_cooldown_usage(
 
     cd_scores: list[float] = []
     for buff_id, _name, expected_uptime_pct, _kind in cooldowns:
-        actual_uses = aura_uses.get(buff_id, 0)
+        if buff_id not in aura_uses:
+            # Talent not in the player's build. Skipping is fairer than
+            # scoring 0 — it means we grade them on the CDs they actually
+            # have. Other tracked CDs still cover them.
+            continue
+        actual_uses = aura_uses[buff_id]
 
         # Expected uses = max of:
         #   a) duration_min * uptime_pct / 100 — the uptime-based formula
@@ -330,6 +344,10 @@ def _get_cooldown_usage(
         # Score this CD: cap at 100% (using it more than expected is fine)
         cd_scores.append(min(100, (actual_uses / expected_uses) * 100))
 
+    # No tracked CD landed in the player's build (e.g. talent reset mid-
+    # ingest, or every tracked CD was missing). Fall back to neutral
+    # rather than 0 so we don't crush them — the rest of the scoring
+    # categories still cover the player.
     return sum(cd_scores) / len(cd_scores) if cd_scores else 100
 
 
