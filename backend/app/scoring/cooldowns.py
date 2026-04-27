@@ -287,13 +287,19 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     (6, "Blood"): [
         (55233, "Vampiric Blood", 8, "defensive"),
         (81256, "Dancing Rune Weapon", 10, "defensive"),  # was 49028 — sampler showed 81256 as the DK self-buff (2026-04-16)
-        # Icebound Fortitude (48792) and Anti-Magic Zone (145629) added
-        # 2026-04-27 (Batch 1 audit). Both at 100% consensus on top
-        # Blood DKs (med=6 and med=3 respectively). IBF is the major
-        # personal defensive (~3min CD); AMZ is the group-wide magic
-        # absorb Blood places on M+ pulls.
+        # Icebound Fortitude (48792) added 2026-04-27 (Batch 1 audit) at
+        # 100% consensus, med=6 — saturates the engine floor cleanly.
         (48792, "Icebound Fortitude", 6, "defensive"),
-        (145629, "Anti-Magic Zone", 3, "defensive"),
+        # Anti-Magic Zone (145629) added 2026-04-27 then removed same day
+        # after impact-report sweep. Sampler showed 100% consensus with
+        # med=3 uses per top run, but the engine's expected-uses floor of
+        # `duration_min / 5` forces a minimum of ~5 expected uses in a
+        # 25-min key regardless of `expected_uptime_pct`. AMZ is a
+        # situational party CD pressed during magic-heavy pulls, not on
+        # cooldown — top BDKs scored ~60% on AMZ across the impact sweep,
+        # dragging composites by 1-4 points. Re-add when the engine floor
+        # becomes CD-cadence-aware (per-CD floor override or smarter
+        # formula). Tracked as a follow-up.
     ],
     (10, "Brewmaster"): [
         (120954, "Fortifying Brew", 8, "defensive"),
