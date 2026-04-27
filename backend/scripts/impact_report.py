@@ -80,6 +80,27 @@ class PlayerImpact:
     refetched: bool
 
 
+def _zone_pct_or_none(existing, key: str) -> float | None:
+    """Read a stored zone percentile, returning None when the value is
+    the engine's "excluded at last scoring" placeholder.
+
+    The engine writes `category_scores[key] = 0.0` when a category was
+    excluded (no valid percentile across runs) and renormalizes weights
+    to drop it from composite. `excluded_categories` is on ScoreResult
+    but not persisted on PlayerScore, so we detect the placeholder by
+    value: 0.0 is treated as None. A genuine 0th-percentile player
+    looks the same — but that's vanishingly rare among graded players,
+    and the engine's per-run recompute path gives a fairer read either
+    way.
+    """
+    if not existing:
+        return None
+    v = existing.category_scores.get(key)
+    if v is None or v == 0.0:
+        return None
+    return v
+
+
 def _refetch_cd_usage(
     run: DungeonRun,
     player: Player,
@@ -171,12 +192,18 @@ def _process_spec(
                 PlayerScore.player_id == pid, PlayerScore.role == role
             )
         ).scalar_one_or_none()
-        zone_dps = (
-            existing.category_scores.get("damage_output") if existing else None
-        )
-        zone_dps_ilvl = (
-            existing.category_scores.get("damage_output_ilvl") if existing else None
-        )
+        # `category_scores["damage_output"] == 0.0` ambiguously means
+        # either "real 0th percentile" or "category was excluded at last
+        # ingest and 0.0 is the placeholder". The engine writes 0.0 for
+        # excluded categories but doesn't persist `excluded_categories`.
+        # Treating that 0.0 as a real percentile here would re-include
+        # it in the composite (dragging it down by ~5-6 points × the
+        # category weight), which is exactly what produced the Roq /
+        # Trbbstd "outlier" drops. Pass None instead so the engine
+        # recomputes from per-fight r.dps values and re-excludes
+        # cleanly when none are valid.
+        zone_dps = _zone_pct_or_none(existing, "damage_output")
+        zone_dps_ilvl = _zone_pct_or_none(existing, "damage_output_ilvl")
 
         old_cd_avg = None
         new_cd_avg = None

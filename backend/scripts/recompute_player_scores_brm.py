@@ -29,6 +29,18 @@ from app.models import DungeonRun, Player, PlayerScore, Role
 from app.scoring.engine import score_player_runs
 
 
+def _zone_pct_or_none(old, key: str) -> float | None:
+    """Treat the engine's excluded-category placeholder (0.0) as None
+    so the recompute doesn't double-penalize tanks/DPS whose damage_output
+    was excluded at last ingest. See impact_report.py for full discussion."""
+    if not old:
+        return None
+    v = (old.category_scores or {}).get(key)
+    if v is None or v == 0.0:
+        return None
+    return v
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--commit", action="store_true",
@@ -85,8 +97,14 @@ def main() -> int:
                 continue
 
             old = existing_scores.get(role)
-            zone_dps = (old.category_scores.get("damage_output") if old else None)
-            zone_dps_ilvl = (old.category_scores.get("damage_output_ilvl") if old else None)
+            # 0.0 in category_scores can mean "excluded at last ingest"
+            # rather than "real 0th percentile" — the engine writes the
+            # placeholder but doesn't persist `excluded_categories`.
+            # Treat 0.0 as None so the engine's _score_damage_output
+            # path re-evaluates from per-fight r.dps and excludes
+            # cleanly when no run has a valid percentile.
+            zone_dps = _zone_pct_or_none(old, "damage_output")
+            zone_dps_ilvl = _zone_pct_or_none(old, "damage_output_ilvl")
 
             result = score_player_runs(
                 role_runs, role,
