@@ -71,7 +71,11 @@ SPEC_ROLE_MAP: dict[tuple[int, str], Role] = {
 HEALER_SPECS_WITH_INTERRUPT: set[tuple[int, str]] = {
     (2, "Holy"),          # Paladin - Rebuke
     (7, "Restoration"),   # Shaman - Wind Shear
-    (10, "Mistweaver"),   # Monk - Spear Hand Strike (added 2026-04-27 Batch 2 audit)
+    # Mistweaver does NOT have a baseline interrupt. Spear Hand Strike
+    # is BRM/WW-only. MW has Leg Sweep (AoE stun), Ring of Peace
+    # (push/disorient), and Paralysis (incapacitate) — those are CC,
+    # not interrupts in the spell-school-lockout sense. Do NOT add MW
+    # here. The 2026-04-27 Batch 2 audit got this wrong; corrected.
 }
 
 

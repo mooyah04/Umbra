@@ -6,7 +6,17 @@
 **Sampler invocation:** `PYTHONIOENCODING=utf-8 python -m scripts.sample_spec_cds --class "Monk" --spec "{Mistweaver|Windwalker}" --samples-per-dungeon 1 --top-n 8`
 **Fights sampled (this audit):** Mistweaver 8 / Windwalker 8 = 16 distinct top-cohort fights. **Brewmaster was previously audited 2026-04-26 and is summarized below from the prior pass.**
 
-> Class IDs verified from `app/scoring/roles.py`: Monk is class_id `10`. Brewmaster = tank, Mistweaver = healer, Windwalker = DPS. All three specs share Spear Hand Strike (116705) as the kick. The dispel story splits: Brewmaster and Windwalker carry **Detox 218164** (Poison + Disease only); Mistweaver carries the **Detox 115450** healer variant which adds Magic. This is the BRM-lesson-3 fix that has been pending since 2026-04-26 — this audit explicitly produces all three dispel registry entries so codification can land them in one shot.
+> **CORRECTION 2026-04-27 (post-codification):** This report incorrectly
+> stated that Mistweaver has Spear Hand Strike as a baseline interrupt.
+> That is wrong. Spear Hand Strike is Brewmaster / Windwalker only.
+> Mistweaver's CC kit (Leg Sweep, Ring of Peace, Paralysis) is CC, not
+> interrupts in the spell-school-lockout sense — MW should NOT be in
+> `HEALER_SPECS_WITH_INTERRUPT`. The codification commit briefly added
+> MW to that set; the correction removed it. All "MW has Spear Hand
+> Strike" / "add MW to HEALER_SPECS_WITH_INTERRUPT" lines below are
+> inaccurate and should be ignored.
+
+> Class IDs verified from `app/scoring/roles.py`: Monk is class_id `10`. Brewmaster = tank, Mistweaver = healer, Windwalker = DPS. ~~All three specs share Spear Hand Strike (116705) as the kick.~~ **Brewmaster and Windwalker share Spear Hand Strike (116705) as the kick; Mistweaver does NOT have a baseline interrupt.** The dispel story splits: Brewmaster and Windwalker carry **Detox 218164** (Poison + Disease only); Mistweaver carries the **Detox 115450** healer variant which adds Magic. This is the BRM-lesson-3 fix that has been pending since 2026-04-26 — this audit explicitly produces all three dispel registry entries so codification can land them in one shot.
 
 ---
 
