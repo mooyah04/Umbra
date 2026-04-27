@@ -75,6 +75,23 @@ def _slug_to_realm(slug: str) -> str:
     return "".join(word.capitalize() for word in slug.split("-"))
 
 
+# WCL emits some compound spec names without spaces (PascalCase only),
+# but every downstream scoring lookup keys on the canonical display form
+# with a space. Without this map, `(class_id, "BeastMastery")` misses
+# every dict in cooldowns.py / roles.py / cpm_benchmarks.py / etc., and
+# Beast Mastery hunters silently fall through to default behavior (e.g.
+# cd_usage_pct stuck at the empty-list 100 fallback). Beast Mastery is
+# the only multi-word spec in current WoW, but keep the indirection so
+# any future compound spec drops in here.
+WCL_SPEC_NAME_NORMALIZATIONS: dict[str, str] = {
+    "BeastMastery": "Beast Mastery",
+}
+
+
+def _normalize_wcl_spec_name(spec: str) -> str:
+    return WCL_SPEC_NAME_NORMALIZATIONS.get(spec, spec)
+
+
 def _iter_player_details(player_details: dict):
     """Yield (role_group, player_dict) tuples from a playerDetails payload.
 
@@ -1122,6 +1139,7 @@ def ingest_player(
 
             specs = player_info.get("specs", [])
             spec_name = specs[0]["spec"] if specs else "Unknown"
+            spec_name = _normalize_wcl_spec_name(spec_name)
             ilvl = player_info.get("maxItemLevel", 0)
             actor_id = player_info.get("id", 0)  # WCL actor ID for this fight
 
