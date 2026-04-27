@@ -17,6 +17,27 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-27",
+    title: "Your grade now reflects your best run in each dungeon",
+    category: "improved",
+    body:
+      "We used to average your composite across every run in your role, which meant a clean +12 in Skyreach got dragged down by a sloppy +13 you depleted on a push. Each dungeon now contributes your best timed run instead of the average. A clean +12 A- beats a sloppy +13 D+ on the same dungeon, and a higher key with the same play quality wins on its weight. Most grades shifted up a little, top players see the biggest move. The number on your profile is now closer to your actual ceiling, not your bad-day floor.",
+  },
+  {
+    date: "2026-04-27",
+    title: "Depleted keys no longer count against your grade",
+    category: "improved",
+    body:
+      "Pushing harder than you can hold isn't punished anymore. If you blew it, that fight just doesn't count toward your grade. The depleted runs are still on your profile so you can review them, they just stop dragging your composite down. Crest-farming low keys won't drag you down either, and running a key below your gear bracket won't either. Your grade reflects the keys you actually completed.",
+  },
+  {
+    date: "2026-04-27",
+    title: "The role grade now waits until you've covered the dungeon pool",
+    category: "improved",
+    body:
+      "Because the grade is built from your best run in each dungeon, we need to see you in a few different dungeons before we can publish a real composite. Players who'd only timed one or two dungeons in their main role show per-dungeon grades for the keys they've run, but the overall role grade waits until you've covered at least three different dungeons. The grade comes back the moment you time a third unique dungeon. If your profile suddenly went from \"B+\" to ungraded, this is why.",
+  },
+  {
+    date: "2026-04-27",
     title: "Cooldown tracking refreshed for every class",
     category: "improved",
     body:
