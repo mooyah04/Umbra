@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-04-27",
+    title: "Cooldown tracking refreshed for every class",
+    category: "improved",
+    body:
+      "We sampled top Midnight Season 1 logs across all 13 classes and 40 specs and updated which abilities count as your major cooldowns. Some adds catch CDs we had missed: Arms and Fury Warriors now get credit for Avatar, Protection Warriors too. Discipline Priests pick up Evangelism, Shadow Priests pick up Power Infusion. Elemental Shamans get Ascendance and Restoration gets Healing Tide Totem back. Survival Hunters get Aspect of the Eagle, Assassination Rogues get Kingsbane, Affliction Warlocks get Summon Darkglare. Some abilities were dropped because top players never press them in the current meta: Outlaw Rogue's Blade Rush and Beast Mastery's Call of the Wild are no longer counted against you. Druids (Balance, Feral, Guardian) and Mistweaver Monks got alternate-build branches added so the engine correctly excludes whichever talent path you didn't pick instead of penalizing both. Refresh your profile to see the updated Cooldown Usage score; older runs in your history pick up the new logic on next refresh.",
+  },
+  {
+    date: "2026-04-27",
+    title: "Beast Mastery hunters now actually graded on their cooldowns",
+    category: "fixed",
+    body:
+      "Warcraft Logs returns the Beast Mastery spec name as \"BeastMastery\" without a space, but our scoring tables looked it up as \"Beast Mastery\" with a space. The lookup never matched. For the entire history of the project, every Beast Mastery hunter received a flat 100 on Cooldown Usage regardless of whether they pressed Bestial Wrath consistently or never touched it. We normalized the name at ingest, fixed the 120 BM runs already in our database, and refreshed scoring on the affected players. Top BMs who press Bestial Wrath on cooldown still saturate the score, so the audit's call to stop tracking Call of the Wild was correct. BMs who skip Bestial Wrath will now correctly see a lower score.",
+  },
+  {
+    date: "2026-04-27",
     title: "Damage Output now graded against the keys you actually played",
     category: "improved",
     body:
