@@ -236,6 +236,14 @@ export interface PlayerProfileResponse {
    *  that hits POST /api/player/.../parse to trigger the cold ingest
    *  explicitly. Replaces the old auto-ingest-on-GET behavior. */
   not_indexed?: boolean;
+  /** Phase 2 dungeon-coverage signal. After Phase 2 run selection, the
+   *  role-level grade requires runs across `dungeons_needed_for_grade`
+   *  distinct dungeons. When `scores=[]` and `dungeons_for_grade > 0`,
+   *  the player has runs but hasn't covered enough of the dungeon pool
+   *  to be graded — render "Covered N/3 dungeons" instead of the grade
+   *  card. Per-dungeon tiles still render from `per_dungeon`. */
+  dungeons_for_grade?: number;
+  dungeons_needed_for_grade?: number;
 }
 
 export interface HistoryPoint {

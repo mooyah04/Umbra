@@ -2982,6 +2982,17 @@ def get_player_profile(
     if player.scores:
         primary = next((s for s in player.scores if s.primary_role), player.scores[0])
         primary_role = primary.role
+    elif _all_runs:
+        # Phase 2 dungeon-coverage gate (ingest.py) skips PlayerScore
+        # creation when fewer than min_runs_for_grade dungeons were
+        # selected. The player still has runs, though — fall back to
+        # their most-played role so per-dungeon tiles render. The
+        # role-level grade card stays empty (scores=[]); the frontend
+        # uses dungeons_for_grade to surface a "covered N/3" message
+        # instead.
+        from collections import Counter as _Counter
+        role_counts = _Counter(r.role for r in _all_runs)
+        primary_role, _ = role_counts.most_common(1)[0]
 
     per_dungeon: list[PerDungeonGrade] = []
     if primary_role is not None:
@@ -3027,6 +3038,22 @@ def get_player_profile(
             t.dungeon_name,
         ))
 
+    # Phase 2 dungeon-coverage signal. Mirrors the ingest gate:
+    # _select_runs_for_grading prefers timed runs and falls back to
+    # depleted only when zero timed exist anywhere in the role pool.
+    # The frontend uses (dungeons_for_grade, dungeons_needed_for_grade)
+    # to render "Covered N/3 dungeons" messaging on profiles that
+    # haven't crossed the gate yet.
+    dungeons_for_grade = 0
+    if primary_role is not None:
+        primary_runs = [r for r in _all_runs if r.role == primary_role]
+        if primary_runs:
+            timed_buckets = {r.encounter_id for r in primary_runs if r.timed}
+            if timed_buckets:
+                dungeons_for_grade = len(timed_buckets)
+            else:
+                dungeons_for_grade = len({r.encounter_id for r in primary_runs})
+
     return PlayerProfileResponse(
         name=player.name,
         realm=player.realm,
@@ -3041,6 +3068,8 @@ def get_player_profile(
         render_url=player.render_url,
         per_dungeon=per_dungeon,
         is_indexing=is_indexing,
+        dungeons_for_grade=dungeons_for_grade,
+        dungeons_needed_for_grade=settings.min_runs_for_grade,
     )
 
 

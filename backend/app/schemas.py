@@ -408,6 +408,15 @@ class PlayerProfileResponse(BaseModel):
     # renders a "Parse Warcraft Logs" empty state instead of a spinner
     # so the user can trigger ingest explicitly via POST /parse.
     not_indexed: bool = False
+    # Phase 2 dungeon-coverage signal. After Phase 2 run selection, the
+    # role-level grade requires runs across `dungeons_needed_for_grade`
+    # distinct dungeons (timed-first, fallback to depleted if zero
+    # timed). When `scores=[]` and `dungeons_for_grade > 0`, the player
+    # has runs but hasn't covered enough of the dungeon pool to be
+    # graded. The frontend uses this to surface a "Covered N/3
+    # dungeons" message instead of a generic "no grade" state.
+    dungeons_for_grade: int = 0
+    dungeons_needed_for_grade: int = 3
 
 
 class HistoryPoint(BaseModel):

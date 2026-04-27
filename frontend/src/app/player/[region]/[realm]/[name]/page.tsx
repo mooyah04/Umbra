@@ -447,27 +447,50 @@ export default async function PlayerProfilePage({ params }: Props) {
       </div>
 
       {/* ── Not-enough-runs banner ── */}
-      {!primary && (
-        <section className="mb-10 bg-surface-container-high rounded-xl p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-          <span className="material-symbols-outlined text-primary text-5xl flex-shrink-0 opacity-60">
-            pending_actions
-          </span>
-          <div className="flex-1">
-            <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
-              Almost There
-            </p>
-            <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface mb-2">
-              WE NEED MORE RUNS TO GRADE YOU
-            </h3>
-            <p className="text-on-surface-variant leading-relaxed">
-              {profile.total_runs === 0
-                ? "We found your character on Warcraft Logs, but there aren't any Mythic+ runs on file yet. Download the addon, run a key with Advanced Combat Logging on, and your grade will land here automatically."
-                : `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far; three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`}
-            </p>
-          </div>
-          <InstallButtons size="md" className="flex-shrink-0" />
-        </section>
-      )}
+      {!primary && (() => {
+        // Phase 2: distinguish "no runs at all" from "has runs but
+        // hasn't covered enough dungeons". The grade requires evidence
+        // across the dungeon pool — running 5 keys all on Skyreach
+        // doesn't tell us how the player handles other content.
+        const covered = profile.dungeons_for_grade ?? 0;
+        const needed = profile.dungeons_needed_for_grade ?? 3;
+        const hasRunsButNoCoverage =
+          profile.total_runs > 0 && covered > 0 && covered < needed;
+        return (
+          <section className="mb-10 bg-surface-container-high rounded-xl p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+            <span className="material-symbols-outlined text-primary text-5xl flex-shrink-0 opacity-60">
+              pending_actions
+            </span>
+            <div className="flex-1">
+              <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-2">
+                {hasRunsButNoCoverage
+                  ? `Tracked ${covered}/${needed} dungeons`
+                  : "Almost There"}
+              </p>
+              <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl md:text-3xl tracking-tighter text-on-surface mb-2">
+                {hasRunsButNoCoverage
+                  ? "RUN A FEW MORE DUNGEONS"
+                  : "WE NEED MORE RUNS TO GRADE YOU"}
+              </h3>
+              <p className="text-on-surface-variant leading-relaxed">
+                {profile.total_runs === 0 ? (
+                  "We found your character on Warcraft Logs, but there aren't any Mythic+ runs on file yet. Download the addon, run a key with Advanced Combat Logging on, and your grade will land here automatically."
+                ) : hasRunsButNoCoverage ? (
+                  <>
+                    Your grade is based on your best run in each dungeon, so we
+                    need to see you in a few different ones before we publish
+                    one. You&apos;ve covered {covered} of {needed}. Per-dungeon
+                    grades for the keys you&apos;ve run are below.
+                  </>
+                ) : (
+                  `We've analyzed ${profile.total_runs} run${profile.total_runs === 1 ? "" : "s"} so far; three or more in the same role are needed before we'll publish a grade. Keep running keys with the addon enabled.`
+                )}
+              </p>
+            </div>
+            <InstallButtons size="md" className="flex-shrink-0" />
+          </section>
+        );
+      })()}
 
       {/* Disambiguation / stale-log entry point. Copy adapts:
           - Runs on file: "Stale Logs? Submit a log." — the profile likely

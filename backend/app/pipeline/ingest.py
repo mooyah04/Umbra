@@ -1655,6 +1655,15 @@ def ingest_player(
 
         result = score_player_runs(role_runs, role, zone_dps_percentile, zone_dps_ilvl_percentile, class_id=class_id)
 
+        # Phase 2 dungeon-coverage gate. score_player_runs collapses runs
+        # to one selected per dungeon, so a player with N runs all on the
+        # same dungeon yields runs_analyzed=1. Surfacing a composite
+        # grade based on 1-2 dungeons is misleading — per-dungeon tiles
+        # still render from runs in the profile endpoint, but the
+        # role-level grade waits until coverage is real.
+        if result.runs_analyzed < settings.min_runs_for_grade:
+            continue
+
         # Total runs = all stored history (for the website), not just the scoring window
         total_runs = max(len(all_runs), zone_total_kills)
 
