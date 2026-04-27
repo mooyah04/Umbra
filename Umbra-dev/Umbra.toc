@@ -2,7 +2,7 @@
 ## Title: |cff8a2be2WoWUmbra.gg|r
 ## Notes: M+ performance grading. In-game tooltips, LFG badges, and a stats panel|n|nFull profile + leaderboard at wowumbra.gg
 ## Author: MooYah
-## Version: 0.3.15
+## Version: 0.3.16
 ## X-Website: https://wowumbra.gg
 ## X-Category: Combat
 ## X-License: MIT
