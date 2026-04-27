@@ -94,10 +94,16 @@ def test_cooldown_copy_names_the_tracked_cds():
     assert "Combustion" in cd_desc
 
 
-def test_spec_without_tracked_cds_explains_the_gap():
-    # Affliction has no BuffsTable-visible major CD right now (see
-    # cooldowns.py comments). Methodology should frame this as a data
-    # gap, not as "you're bad at using CDs".
+def test_spec_without_tracked_cds_explains_the_gap(monkeypatch):
+    # Defensive coverage of the methodology gap-handling code path.
+    # After the Batch 3 spec audit (2026-04-27) every tracked spec has
+    # at least one CD, so this test monkeypatches an empty entry into
+    # the registry to exercise the gap copy. The code path itself is
+    # still important: future kit changes can leave a spec without a
+    # BuffsTable-visible major (the canonical case is debuff-on-target
+    # abilities like Deathmark / Touch of the Magi / Apocalypse).
+    from app.scoring import cooldowns
+    monkeypatch.setitem(cooldowns.SPEC_MAJOR_COOLDOWNS, (9, "Affliction"), [])
     m = build_methodology(9, "Affliction")
     cd_desc = m["categories"]["cooldown_usage"]["description"]
     cd_improve = m["categories"]["cooldown_usage"]["howToImprove"]

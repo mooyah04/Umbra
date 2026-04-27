@@ -55,32 +55,45 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     # Hunter
     (3, "Beast Mastery"): [
         (19574, "Bestial Wrath", 25, "offensive"),
-        (359844, "Call of the Wild", 10, "offensive"),
+        # Call of the Wild (359844) removed 2026-04-27 (Batch 3 audit):
+        # 0% consensus across 8 top-cohort BMs in extended top-60 scan.
+        # Pet-summon pattern that BuffsTable can't see; current Pack
+        # Leader meta replaced it with passive procs (Howl/Wyvern's
+        # Cry/Hogstrider) that aren't press-on-cooldown CDs.
     ],
     (3, "Marksmanship"): [
         (288613, "Trueshot", 13, "offensive"),  # Pass 2: observed at 70% consensus, med=13 (uptime was 15, now realistic)
     ],
     (3, "Survival"): [
+        # Aspect of the Eagle (186289) added 2026-04-27 (Batch 3 audit):
+        # 100% consensus across 8 top-cohort Survivals with med=13 uses
+        # on a ~90s CD. Baseline (no talent gate). First trackable major
+        # for Survival after the Spearhead removal.
+        (186289, "Aspect of the Eagle", 13, "offensive"),
         # Spearhead (360966) removed 2026-04-16 (Pass 2): 3s buff too
-        # short to register reliably in BuffsTable — sampler didn't see
-        # it at 50% consensus. Surv currently has no trackable major CD
-        # via the BuffsTable path; needs a cast-event path if we add one.
-        # Kill Command removed 2026-04-15: ~6s CD rotational spam, not a
-        # "major" cooldown. Audit showed 0 buff uses — appears as a cast
-        # event but not in the player's buff aura table.
+        # short to register reliably in BuffsTable.
+        # Kill Command removed 2026-04-15: rotational spam, not a major
+        # cooldown.
     ],
 
     # Rogue
     (4, "Assassination"): [
+        # Kingsbane (385627) added 2026-04-27 (Batch 3 audit): 100%
+        # consensus across 8 top-cohort Sins with med=24. First
+        # BuffsTable-visible major for Sin since Deathmark/Vendetta
+        # were dropped (both debuff-on-target). Talent-gated for the
+        # Deathstalker vs Fatebound hero-tree split.
+        (385627, "Kingsbane", 24, "offensive"),
         # Deathmark (360194) and Vendetta (79140) removed 2026-04-16:
-        # both apply debuffs to enemies rather than buffs to the rogue,
-        # so BuffsTable cannot see them. Needs a different detection path
-        # (debuff-on-target count) to audit properly. Until then, Assn
-        # has no trackable major CD here.
+        # both apply debuffs to enemies, BuffsTable can't see them.
     ],
     (4, "Outlaw"): [
         (13750, "Adrenaline Rush", 20, "offensive"),
-        (271896, "Blade Rush", 5, "offensive"),  # was 271877 — sampler showed 271896 as the actual buff ID (2026-04-16)
+        # Blade Rush (271896) removed 2026-04-27 (Batch 3 audit):
+        # observed median 135 uses against expected_uptime=5 saturated
+        # cooldown_usage to 100% on every Outlaw run — same Pass-3
+        # Barkskin pattern. Adrenaline Rush is the legitimate signature
+        # CD; tracking Blade Rush as a "major" inflates the score.
     ],
     (4, "Subtlety"): [
         (121471, "Shadow Blades", 15, "offensive"),
@@ -162,10 +175,12 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
 
     # Warlock
     (9, "Affliction"): [
-        # Summon Darkglare (205180) removed 2026-04-16: summons a demon,
-        # no self-buff aura. Aff currently has no trackable major CD via
-        # BuffsTable; flagged for future debuff-on-target detection
-        # (Haunt / Malefic Rapture stacking) if we add that path.
+        # Summon Darkglare (205180) re-added 2026-04-27 (Batch 3 audit):
+        # the 2026-04-16 removal note was wrong. Sampler shows 100%
+        # consensus across 8 top Aff logs with med=13. Cleanest re-add
+        # of the audit project — the demon now applies an aura to the
+        # warlock as well, which BuffsTable surfaces.
+        (205180, "Summon Darkglare", 13, "offensive"),
     ],
     (9, "Demonology"): [
         (265187, "Summon Demonic Tyrant", 10, "offensive"),

@@ -12,19 +12,25 @@ adds Magic. The same pattern repeats across classes (Holy Pal vs
 Prot/Ret Pal, Resto Druid vs other Druids, Resto Shaman vs DPS Shaman,
 etc.) so the per-spec mapping is the right granularity.
 
-NOTE: as of 2026-04-27, this registry is populated for the 8 classes
-audited in Batches 1+2 (Warrior, Paladin, DK, Druid, DH, Monk, Priest,
-Shaman). The remaining 5 classes (Hunter, Rogue, Mage, Warlock, Evoker)
-will land as Batch 3 audits complete. Engine wiring (the path that
-*reads* this registry to compute healer cleanse credit) is deferred
-until all 13 classes are present so behavior stays consistent across
-specs — until then, the existing `class_has_dispel` path keeps running
-and this module is import-clean but not yet consumed.
+All 13 classes (39 specs counting Devourer) are audited as of
+2026-04-27. Engine wiring (the path that *reads* this registry to
+compute healer cleanse credit) is deferred until a follow-up commit
+so the audit data lands first; the existing `class_has_dispel` path
+keeps running until the wiring lands. Wiring change blocked on:
+- Defining how `Bleed` (Evoker-only) should score, since no other
+  class can clear bleeds and per-dungeon bleed availability varies.
+- Confirming Cauterizing Flame's school list before locking the
+  Evoker entries (sampler suggests Bleed/Poison/Disease/Curse for
+  the all-spec version).
 """
 
 from typing import Literal
 
-DispelSchool = Literal["Magic", "Poison", "Disease", "Curse", "Enrage"]
+# Bleed is unique to Evoker (Cauterizing Flame). All other defensive
+# cleanses fall in the standard {Magic, Poison, Disease, Curse} set
+# with Enrage reserved for offensive purges (Soothe, Tranq Shot) that
+# never go in this registry.
+DispelSchool = Literal["Magic", "Poison", "Disease", "Curse", "Enrage", "Bleed"]
 
 # (class_id, spec_name) -> frozenset of schools the spec can defensively
 # cleanse from allies. Empty set means the spec cannot cleanse anything
@@ -82,8 +88,39 @@ SPEC_DISPEL_SCHOOLS: dict[tuple[int, str], frozenset[DispelSchool]] = {
     (7, "Enhancement"): frozenset({"Curse"}),
     (7, "Restoration"): frozenset({"Magic", "Curse"}),
 
-    # PENDING (Batch 3): Hunter, Rogue, Mage, Warlock, Evoker — entries
-    # will land as those audits complete.
+    # Hunter (3) — no defensive cleanse on any spec.
+    # Tranquilizing Shot is offensive (Enrage/Magic purge from enemies),
+    # never an ally cleanse.
+    (3, "Beast Mastery"): frozenset(),
+    (3, "Marksmanship"): frozenset(),
+    (3, "Survival"): frozenset(),
+
+    # Rogue (4) — no defensive cleanse on any spec.
+    (4, "Assassination"): frozenset(),
+    (4, "Outlaw"): frozenset(),
+    (4, "Subtlety"): frozenset(),
+
+    # Mage (8) — Remove Curse covers Curse only; all three specs share it.
+    # Spellsteal is offensive Magic purge from enemies, never an ally
+    # cleanse.
+    (8, "Arcane"): frozenset({"Curse"}),
+    (8, "Fire"): frozenset({"Curse"}),
+    (8, "Frost"): frozenset({"Curse"}),
+
+    # Warlock (9) — no defensive cleanse on allies in any spec.
+    # Imp Singe Magic and Felhunter Devour Magic are pet-side offensive
+    # purges from enemies, not defensive ally cleanses.
+    (9, "Affliction"): frozenset(),
+    (9, "Demonology"): frozenset(),
+    (9, "Destruction"): frozenset(),
+
+    # Evoker (13) — Cauterizing Flame is the cross-spec all-spec cleanse
+    # (Bleed/Poison/Disease/Curse). Naturalize is Pres-only and adds
+    # Magic. Final school lists pending Logan confirmation per the
+    # Batch 3 audit's open question.
+    (13, "Augmentation"): frozenset({"Bleed", "Poison", "Disease", "Curse"}),
+    (13, "Devastation"): frozenset({"Bleed", "Poison", "Disease", "Curse"}),
+    (13, "Preservation"): frozenset({"Magic", "Bleed", "Poison", "Disease", "Curse"}),
 }
 
 
