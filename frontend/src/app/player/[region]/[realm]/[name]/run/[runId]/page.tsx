@@ -39,7 +39,7 @@ function dataPointsForRunCategory(
   key: string,
   run: RunResponse,
   utility: RunUtilityResponse | null,
-): Array<{ label: string; value: string }> | undefined {
+): Array<{ label: string; value: string; bar?: number }> | undefined {
   switch (key) {
     case "damage_output": {
       // The big score on this card is the bracketed percentile (vs
