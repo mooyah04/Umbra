@@ -23,11 +23,11 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     key: "damage_output",
     label: "Damage Output",
     summary:
-      "Where your damage ranks against other players of your spec this season.",
+      "Where your damage ranks against other parses at the same key level.",
     description:
-      "We pull Warcraft Logs' percentile rank for your spec in the current M+ zone. A 90 means you out-dps'd 90% of players playing your exact spec. Key levels and gear are factored into WCL's own normalization, so this is a fair spec-vs-spec comparison. Augmentation Evokers are a special case: their personal DPS ceiling is lower by design because they spend GCDs buffing teammates, so we also credit a portion of teammate damage done during their Ebon Might and Prescience windows back to their score.",
+      "For every run, we pull Warcraft Logs' percentile rank for your spec computed against other parses at the same key level. Your +6 is graded against other +6s, your +12 against other +12s. The run page also surfaces a second number showing where the same DPS would rank against the entire spec pool. That second number is for context only and does not affect your grade. Augmentation Evokers are a special case: their personal DPS ceiling is lower by design because they spend GCDs buffing teammates, so we also credit a portion of teammate damage done during their Ebon Might and Prescience windows back to their score.",
     howToImprove:
-      "Review top-parse logs for your spec to see their opener, cooldown alignment, and target priority. Most sub-50 percentiles are fixable by tightening rotation, not by pushing gear.",
+      "Review top-parse logs for your spec at your key level to see their opener, cooldown alignment, and target priority. Most sub-50 percentiles are fixable by tightening rotation, not by pushing gear.",
     roles: ["dps", "healer", "tank"],
     icon: "swords",
   },

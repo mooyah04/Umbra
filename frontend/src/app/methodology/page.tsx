@@ -163,7 +163,32 @@ export default function MethodologyPage() {
         </div>
       </section>
 
-      {/* Mechanics: key-level weighting + spec adjustments */}
+      {/* Mechanics: bracket-fair scoring + key-level weighting + spec adjustments */}
+      <section className="mb-12">
+        <div className="bg-surface-container-high rounded-xl p-8">
+          <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
+            Bracket-fair damage scoring
+          </p>
+          <h3 className="font-[family-name:var(--font-headline)] font-bold text-2xl text-on-surface mb-3 tracking-tight">
+            JUDGED AGAINST THE KEYS YOU ACTUALLY RAN
+          </h3>
+          <p className="text-on-surface-variant leading-relaxed mb-3">
+            Per-run damage scoring compares you to other parses at the same
+            key level. Your +6 is graded against other +6s, your +12 against
+            other +12s. Without bracketing, a clean +6 lands at 5/100 against
+            a global pool dominated by +12+ pushers, burying low-key
+            performers even when they played well.
+          </p>
+          <p className="text-on-surface-variant leading-relaxed">
+            The run page also surfaces a second number: where the same DPS
+            would rank against the entire spec pool. That one is context
+            only and does not affect your grade. The two together tell you
+            both how you played the keys you ran and where you stand
+            against the broader meta, without conflating the two.
+          </p>
+        </div>
+      </section>
+
       <section className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-surface-container-high rounded-xl p-8">
           <p className="font-[family-name:var(--font-label)] text-xs uppercase tracking-[0.3em] text-primary mb-3">
