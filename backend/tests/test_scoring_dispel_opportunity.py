@@ -47,10 +47,10 @@ def _mk_run(*, encounter_id=1, dispels=0, interrupts=0, cc_casts=0,
 
 def test_dps_zero_dispels_in_no_opportunity_dungeon_drops_weight():
     """Resto Druid (class 11, healer) is tested in healer section below;
-    for DPS this uses a Mage (class 8, has dispel). Same mage with 0 CC
-    in a dungeon with no dispellable debuffs should score on kicks only
-    — same math as a non-dispel class."""
-    runs = [_mk_run(encounter_id=99, dispels=0, interrupts=15)]
+    for DPS this uses a Mage (class 8, spec Frost — has Remove Curse).
+    Same mage with 0 CC in a dungeon with no dispellable debuffs should
+    score on kicks only — same math as a non-dispel class."""
+    runs = [_mk_run(encounter_id=99, dispels=0, interrupts=15, spec="Frost")]
     # Dungeon 99 has confirmed-empty dispellables.
     with patch("app.scoring.engine.get_dispellable_debuffs", return_value=()):
         sampled = _score_utility_dps_tank(runs, class_id=8)
@@ -68,7 +68,7 @@ def test_dps_unsampled_dungeon_preserves_legacy_behavior():
     """A dungeon that hasn't been sampled yet (dispellable_debuffs=None)
     must not silently change scoring behavior. This is the back-compat
     gate — crucial during rollout when only some dungeons are populated."""
-    runs = [_mk_run(encounter_id=99, dispels=0, interrupts=15, cc_casts=10)]
+    runs = [_mk_run(encounter_id=99, dispels=0, interrupts=15, cc_casts=10, spec="Frost")]
     with patch("app.scoring.engine.get_dispellable_debuffs", return_value=None):
         # Legacy: dispel component in at 0.
         score_unsampled = _score_utility_dps_tank(runs, class_id=8)
@@ -88,7 +88,7 @@ def test_dps_unsampled_dungeon_preserves_legacy_behavior():
 def test_dps_sampled_with_data_same_as_legacy():
     """A dungeon sampled with non-empty dispellables should score the
     same as legacy (opportunity exists, dispels count normally)."""
-    runs = [_mk_run(encounter_id=99, dispels=3, interrupts=15, cc_casts=8)]
+    runs = [_mk_run(encounter_id=99, dispels=3, interrupts=15, cc_casts=8, spec="Frost")]
     with patch(
         "app.scoring.engine.get_dispellable_debuffs",
         return_value=((12345, "Some Debuff"),),

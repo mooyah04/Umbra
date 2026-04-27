@@ -39,15 +39,44 @@ def test_rogue_perfect_kicks_can_reach_near_100():
     """A Rogue (class 4, no dispel) who kicks perfectly and uses CC well
     should hit near-100 on utility — previously capped at ~80 due to dispel
     weight they couldn't earn."""
-    runs = [_run(interrupts=15, dispels=0, cc_casts=10)]
+    runs = [_run(interrupts=15, dispels=0, cc_casts=10, spec="Subtlety")]
     score = _score_utility_dps_tank(runs, class_id=4)  # Rogue
     assert score >= 99, f"Rogue perfect-play utility too low: {score}"
+
+
+def test_hunter_warlock_specs_treated_as_no_defensive_dispel():
+    """Hunter and Warlock have offensive purges only (Tranq Shot,
+    Singe/Sear Magic) — no defensive ally cleanse. The legacy
+    `class_has_dispel` returned True for both, so they were scored
+    against a dispel benchmark they could never satisfy. The
+    `_spec_has_defensive_dispel` path uses `dispel_schools.py`, which
+    correctly maps every Hunter/Warlock spec to an empty set.
+
+    Pin: a Hunter / Warlock with 0 dispels and perfect kicks should
+    behave like a Rogue (no-dispel kit) — utility weight redistributes
+    to interrupts + CC, not dragged by a 0 dispel score."""
+    rogue_runs = [_run(interrupts=15, dispels=0, cc_casts=10, spec="Subtlety")]
+    hunter_runs = [_run(interrupts=15, dispels=0, cc_casts=10, spec="Marksmanship")]
+    lock_runs = [_run(interrupts=15, dispels=0, cc_casts=10, spec="Affliction")]
+
+    rogue = _score_utility_dps_tank(rogue_runs, class_id=4)
+    hunter = _score_utility_dps_tank(hunter_runs, class_id=3)
+    lock = _score_utility_dps_tank(lock_runs, class_id=9)
+
+    assert hunter == rogue, (
+        f"Hunter ({hunter}) should match Rogue ({rogue}) — neither has a "
+        f"defensive cleanse"
+    )
+    assert lock == rogue, (
+        f"Warlock ({lock}) should match Rogue ({rogue}) — Singe Magic is an "
+        f"offensive purge, not an ally cleanse"
+    )
 
 
 def test_shaman_perfect_play_also_high():
     """Control: a Shaman (class 7, has dispel) in equivalent perfect play
     should also reach near-100 — the dispel slot isn't wasted."""
-    runs = [_run(interrupts=15, dispels=5, cc_casts=10)]
+    runs = [_run(interrupts=15, dispels=5, cc_casts=10, spec="Elemental")]
     score = _score_utility_dps_tank(runs, class_id=7)
     assert score >= 99
 
@@ -57,9 +86,10 @@ def test_rogue_not_penalized_for_0_dispels_shaman_is():
     with 0 dispels IS scored down because the dispel is in their kit and
     they chose not to use it. Rogue score should be strictly higher for
     the same interrupt count."""
-    runs = [_run(interrupts=10, dispels=0, cc_casts=None)]
-    rogue_score = _score_utility_dps_tank(runs, class_id=4)
-    shaman_score = _score_utility_dps_tank(runs, class_id=7)
+    rogue_runs = [_run(interrupts=10, dispels=0, cc_casts=None, spec="Subtlety")]
+    sham_runs = [_run(interrupts=10, dispels=0, cc_casts=None, spec="Elemental")]
+    rogue_score = _score_utility_dps_tank(rogue_runs, class_id=4)
+    shaman_score = _score_utility_dps_tank(sham_runs, class_id=7)
     assert rogue_score > shaman_score, \
         f"Rogue ({rogue_score}) should beat same-kick Shaman ({shaman_score})"
 

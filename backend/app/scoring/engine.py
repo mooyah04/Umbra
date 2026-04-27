@@ -11,11 +11,27 @@ from dataclasses import dataclass, field
 from app.models import DungeonRun, Role
 from app.scoring.cpm_benchmarks import get_benchmark, score_cpm
 from app.scoring.dispel_capability import class_has_dispel
+from app.scoring.dispel_schools import get_dispel_schools
 from app.scoring.dungeons.registry import (
     get_dispellable_debuffs,
     get_expected_defensive_dispels_per_run,
 )
 from app.scoring.roles import healer_can_interrupt
+
+
+def _spec_has_defensive_dispel(class_id: int | None, spec_name: str | None) -> bool:
+    """True when the spec can defensively cleanse at least one school
+    from allies. Source of truth is `dispel_schools.py`. Distinct from
+    `class_has_dispel` (class-level), which over-credits Hunter and
+    Warlock — both have ONLY offensive purges (Tranquilizing Shot,
+    Singe Magic / Sear Magic) and no defensive ally cleanse. The
+    per-spec registry correctly maps those to empty sets.
+    """
+    if class_id is None or not spec_name:
+        # Conservative: no info, assume the legacy class-level signal.
+        # Older runs may pre-date class_id population.
+        return class_has_dispel(class_id)
+    return bool(get_dispel_schools(class_id, spec_name))
 
 
 def _dispel_opportunity(encounter_id: int) -> bool | None:
@@ -123,12 +139,17 @@ def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None)
     """Utility score for DPS and tanks: interrupts, dispels, and CC.
 
     Weights adapt per-run to what the class can actually do, so a class
-    with no dispel (Rogue/Warrior/DK/DH) isn't punished for something
-    outside their kit. Per-run cc-data check means old runs without
-    cc_casts get the fair no-cc weights, not the new-run dispel penalty.
-    """
-    can_dispel = class_has_dispel(class_id)
+    with no dispel (Rogue/Warrior/DK/DH/Hunter/Warlock) isn't punished
+    for something outside their kit. Per-run cc-data check means old
+    runs without cc_casts get the fair no-cc weights, not the new-run
+    dispel penalty.
 
+    Per-run spec lookup: dispel capability is spec-keyed via
+    `dispel_schools.py`. This catches Hunter and Warlock specs whose
+    "dispels" are offensive purges (Tranq Shot, Singe Magic) on
+    enemies, not defensive ally cleanses — they were over-credited
+    under the legacy class-level `class_has_dispel` check.
+    """
     def score_fn(run):
         # Interrupt score with critical kick bonus
         base_kicks = run.interrupts
@@ -146,14 +167,17 @@ def _score_utility_dps_tank(runs: list[DungeonRun], class_id: int | None = None)
         denom = 12 if run.role == Role.tank else 15
         interrupt_score = min(100, (effective_kicks / denom) * 100)
 
-        # Per-run dispel opportunity: class can dispel AND the dungeon
+        # Per-run dispel opportunity: spec can dispel AND the dungeon
         # actually has dispellable debuffs (or hasn't been sampled yet,
         # in which case assume opportunity so we don't silently change
         # behavior for dungeons we haven't populated). When the dungeon
-        # is sampled-empty, this run is scored as if the class has no
+        # is sampled-empty, this run is scored as if the spec has no
         # dispel — the weight redistributes to interrupts + CC below.
         opportunity = _dispel_opportunity(run.encounter_id)
-        run_can_dispel = can_dispel and opportunity is not False
+        run_can_dispel = (
+            _spec_has_defensive_dispel(class_id, run.spec_name)
+            and opportunity is not False
+        )
 
         # Dispel component only applies to classes that can dispel. Everyone
         # else redistributes the weight to the remaining components.
@@ -198,11 +222,13 @@ def _score_utility_healer(runs: list[DungeonRun], class_id: int | None = None) -
     if class_id is not None:
         can_kick = healer_can_interrupt(class_id, spec_name)
 
-    # Does the healer's class have a dispel at all? Pulled out so the
-    # per-run opportunity check can cheaply AND against it. Healer
-    # classes in Midnight all have some dispel, but keep the guard for
-    # safety / future class additions.
-    can_dispel = class_has_dispel(class_id) if class_id is not None else True
+    # Spec-level dispel coverage. Every Midnight healer covers at least
+    # one school (Holy Pal: Magic+Poison+Disease; Disc/Holy Priest:
+    # Magic+Disease; MW: Magic+Poison+Disease; Resto Druid:
+    # Magic+Poison+Curse; Resto Sham: Magic+Curse; Pres Evoker: Magic+
+    # Bleed+Poison+Disease+Curse). Future-proofed for hypothetical
+    # cleanseless healer specs by AND-ing per-run.
+    can_dispel = _spec_has_defensive_dispel(class_id, spec_name)
 
     def score_fn(run):
         # Per-run dispel opportunity mirrors the DPS/tank scorer: class
