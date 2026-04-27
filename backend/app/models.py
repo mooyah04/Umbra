@@ -157,6 +157,14 @@ class DungeonRun(Base):
     #   }
     # Null on runs that haven't had the utility tile opened yet.
     utility_events: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Un-bracketed DPS percentile from WCL (rankPercent against the
+    # global pool, not just same-key parses). The bracketed value lives
+    # in `dps` after the byBracket=true swap (commit e5b725c). Stored
+    # for display only — surfaces "good for a +6, but the +12+ players
+    # are far ahead" without affecting grading. Null on runs ingested
+    # before this column existed; the run page just hides the second
+    # number when missing.
+    dps_percentile_global: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     player: Mapped["Player"] = relationship(back_populates="runs")
 

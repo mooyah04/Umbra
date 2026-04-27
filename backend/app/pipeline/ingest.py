@@ -1458,6 +1458,31 @@ def ingest_player(
         except WCLQueryError as e:
             logger.warning("Failed to fetch encounter percentiles: %s", e)
 
+        # Second fetch: un-bracketed (global) percentile. Display-only —
+        # never overwrites run.dps (the scoring input). Lets the UI show
+        # "45/100 vs same-key peers, 5/100 vs the global pool" so a
+        # +6 farmer sees both their bracket-fair grade and where they'd
+        # land if they pushed into +12+ territory. Failure is tolerated
+        # the same as the bracketed fetch — runs just won't carry the
+        # secondary number.
+        global_pct_lookup: dict[tuple[str, int], float] = {}
+        try:
+            global_percentiles = wcl_client.get_encounter_percentiles(
+                name=name,
+                server_slug=server_slug,
+                server_region=region.lower(),
+                encounter_ids=encounter_ids,
+                metric="dps",
+                by_bracket=False,
+            )
+            for eid, ranks in global_percentiles.items():
+                for rank in ranks:
+                    report_code_r = rank.get("report", {}).get("code", "")
+                    fight_id_r = rank.get("report", {}).get("fightID", 0)
+                    global_pct_lookup[(report_code_r, fight_id_r)] = rank.get("rankPercent", 0)
+        except WCLQueryError as e:
+            logger.warning("Failed to fetch global encounter percentiles: %s", e)
+
         # Overwrite raw DPS with rankPercent when WCL has a per-fight
         # ranking. Runs without a match fall back to the per-encounter
         # best from zoneRankings (encounter_pct_fallback) — strictly
@@ -1479,6 +1504,9 @@ def ingest_player(
                 if fb is not None:
                     run.dps = fb
                     fallback_hits += 1
+            global_pct = global_pct_lookup.get((run.wcl_report_id, run.fight_id))
+            if global_pct is not None:
+                run.dps_percentile_global = global_pct
         if fallback_hits:
             logger.info(
                 "DPS percentile fallback: %d runs (per-fight empty, used zoneRankings per-encounter best)",

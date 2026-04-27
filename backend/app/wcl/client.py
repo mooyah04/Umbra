@@ -551,20 +551,40 @@ class WCLClient:
         server_region: str,
         encounter_ids: list[int],
         metric: str = "dps",
+        by_bracket: bool = True,
     ) -> dict[int, list[dict]]:
         """Batch-fetch WCL percentile rankings for multiple encounters.
 
         Returns a dict mapping encounter_id -> list of rank entries.
         Each rank entry has rankPercent, report.code, report.fightID, spec, etc.
+
+        `byBracket: true` (default) makes WCL compute rankPercent within
+        each rank's own keystone-level bracket (the bracket is exposed
+        as `bracketData` on each rank). Without this, a +6 run is
+        compared against the entire pool of M+ logs at this encounter —
+        which is dominated by +12+ runs and unfairly buries low-key
+        performers even when they played cleanly. Bracketing is the
+        fairness fix: you're judged against players who played the same
+        key level you did. Bracket population can be small for off-meta
+        key levels (sub-1k parses observed for +5/+7 BrM); the scorer
+        still treats the value as a real percentile, which is acceptable
+        because the per-fight signal is one input averaged across many runs.
+
+        Pass `by_bracket=False` to fetch the un-bracketed (global)
+        percentile instead. The run page calls this twice per ingest —
+        once bracketed (drives grading) and once global (display-only,
+        shows "good vs +6s but far behind +12+ pushers").
         """
         if not encounter_ids:
             return {}
 
+        bracket_arg = "true" if by_bracket else "false"
         # Build aliased query fields for each encounter
         fields = []
         for eid in encounter_ids:
             fields.append(
-                f"e{eid}: encounterRankings(encounterID: {eid}, difficulty: 10, metric: {metric})"
+                f"e{eid}: encounterRankings(encounterID: {eid}, "
+                f"difficulty: 10, metric: {metric}, byBracket: {bracket_arg})"
             )
 
         query = (
