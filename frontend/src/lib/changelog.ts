@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-04-27",
+    title: "Damage Output now graded against the keys you actually played",
+    category: "improved",
+    body:
+      "Per-run damage scoring used to rank you against the entire pool of M+ parses for your spec, which is dominated by +12+ pushers. That meant a clean +6 could land at 5/100 even when you played the key correctly. Each run is now scored against other parses at the same key level: your +6 vs other +6s, your +12 vs other +12s. A clean low-key run that previously buried your damage score now gets the credit it deserves. Per-run and per-dungeon grades reflect this immediately. New ingests pick it up automatically as you run more keys.",
+  },
+  {
+    date: "2026-04-27",
+    title: "See where your damage ranks at your key level and against everyone",
+    category: "new",
+    body:
+      "The Damage Output card on every run page now shows two numbers side by side. The bracketed score (vs other +N keys at your level) is what drives your grade. The global score (vs all keys for your spec) is shown for context so you can see where you'd land against the broader meta. Each one renders with its own colored bar, and a footnote calls out which one counts toward grading. Useful for spotting when your bracket-fair grade is hiding a push-key gap. New runs ingested from today onward show both numbers; older runs continue to show just the bracket-fair score until they roll out of your active scoring window.",
+  },
+  {
     date: "2026-04-23",
     title: "See exactly which abilities moved your utility score",
     category: "new",
