@@ -40,14 +40,37 @@ def _mk_score(session, player, role=Role.dps, primary=True):
     session.commit()
 
 
-def _mk_runs(session, player, *, spec_name, count, role=Role.dps, encounter_id=62290,
-             keystone_level=10):
-    """Crank out `count` minimal-but-valid DungeonRuns under one spec."""
+# Spread runs across the active Midnight S1 dungeon pool so Phase 2
+# selection (engine.py) keeps every run as its own per-dungeon best.
+# Without this, all runs collapsing to one encounter_id would mean
+# selection picks 1 run per spec → spec gates fail on res.runs_analyzed.
+_MIDNIGHT_S1_ENCOUNTER_IDS = [
+    112526,  # Algeth'ar Academy
+    12811,   # Magister's Terrace
+    12874,   # Maisara Caverns
+    12915,   # Nexus-Point: Xenas
+    10658,   # Pit of Saron
+    361753,  # Seat of Triumvirate
+    61209,   # Skyreach
+    12805,   # Windrunner's Spire
+]
+
+
+def _mk_runs(session, player, *, spec_name, count, role=Role.dps,
+             encounter_ids=None, keystone_level=10):
+    """Crank out `count` minimal-but-valid DungeonRuns under one spec.
+
+    Cycles across `encounter_ids` (defaulting to the 8 Midnight S1
+    encounters) so each run lands on a distinct dungeon — Phase 2 run
+    selection then keeps them all instead of collapsing to one
+    per-dungeon best.
+    """
+    pool = encounter_ids or _MIDNIGHT_S1_ENCOUNTER_IDS
     base = datetime.utcnow() - timedelta(days=30)
     for i in range(count):
         run = DungeonRun(
             player_id=player.id,
-            encounter_id=encounter_id,
+            encounter_id=pool[i % len(pool)],
             keystone_level=keystone_level,
             role=role,
             spec_name=spec_name,
@@ -137,7 +160,14 @@ def test_spec_category_scores_differ_from_aggregate(client, db_session):
     db_session.execute(_sel(DungeonRun))
     outlaw_runs = [
         DungeonRun(
-            player_id=p.id, encounter_id=62290, keystone_level=10, role=Role.dps,
+            player_id=p.id,
+            # Spread across distinct dungeons so Phase 2 selection keeps
+            # all three Outlaw runs as their own per-dungeon best — and
+            # crucially, on different dungeons from the Sin runs (which
+            # use the first 5 in the pool) so the per-spec composite
+            # isn't mixed up with the aggregate.
+            encounter_id=_MIDNIGHT_S1_ENCOUNTER_IDS[5 + i],
+            keystone_level=10, role=Role.dps,
             spec_name="Outlaw", dps=100000.0, hps=0.0, ilvl=640.0,
             duration=1800000, deaths=0,
             interrupts=0, dispels=0,  # the knob we're twisting

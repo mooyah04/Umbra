@@ -186,7 +186,14 @@ def _get_per_dungeon(
                 "encounter_id": enc_id,
                 "name": dungeon_meta.name,
                 "grade": result.overall_grade,
-                "runs": result.runs_analyzed,
+                # User-facing "runs at this dungeon" count: report the
+                # raw total, not result.runs_analyzed. Phase 2 run
+                # selection (engine.py) collapses the scoring set to
+                # one best run per dungeon; result.runs_analyzed
+                # reflects that scoring choice, but the addon tooltip
+                # wants "you've run this dungeon 5 times" — the raw
+                # tally.
+                "runs": len(runs_here),
                 "best_timed": max(timed_levels) if timed_levels else None,
                 # keep composite around internally for sort ordering;
                 # stripped before rendering.

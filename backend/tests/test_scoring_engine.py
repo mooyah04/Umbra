@@ -139,7 +139,11 @@ def test_cpm_class_disambiguates_ambiguous_spec_names():
 # ── Full pipeline ───────────────────────────────────────────────────────────
 
 def test_score_player_runs_returns_all_expected_categories():
-    runs = [_run() for _ in range(3)]
+    """Distinct encounter_ids so Phase 2 selection keeps all three runs;
+    this test is asserting the shape of a populated multi-dungeon
+    composite, not selection behavior.
+    """
+    runs = [_run(encounter_id=enc) for enc in (10658, 10661, 10662)]
     result = score_player_runs(runs, Role.dps, zone_dps_percentile=70.0)
     for cat in ROLE_WEIGHTS[Role.dps].categories:
         assert cat in result.category_scores, f"missing {cat}"
@@ -268,7 +272,119 @@ def test_unranked_dungeon_does_not_collapse_healer_grade():
 
 
 def test_excluded_categories_empty_when_all_ranked():
-    """Baseline: a fully-ranked run set populates no excluded list."""
-    runs = [_run(role=Role.dps, dps=80, hps=0) for _ in range(3)]
+    """Baseline: a fully-ranked run set populates no excluded list.
+    Distinct encounter_ids so Phase 2 selection keeps all three runs;
+    a single-encounter set would collapse to one selected run, which
+    is fine but isn't what this baseline is asserting.
+    """
+    runs = [_run(role=Role.dps, dps=80, hps=0, encounter_id=enc)
+            for enc in (10658, 10661, 10662)]
     result = score_player_runs(runs=runs, role=Role.dps, class_id=8)
     assert result.excluded_categories == []
+
+
+# ── Phase 2: per-dungeon best-run selection ────────────────────────────────
+
+def test_phase2_single_run_per_dungeon_is_noop():
+    """When every dungeon has exactly one run, selection picks each one."""
+    runs = [_run(encounter_id=enc, dps=70) for enc in (10658, 10661, 10662)]
+    result = score_player_runs(runs, Role.dps, class_id=8)
+    assert result.runs_analyzed == 3
+
+
+def test_phase2_collapses_multiple_runs_in_same_dungeon():
+    """Three runs all on Skyreach should collapse to one selected run."""
+    runs = [_run(encounter_id=10658, fight_id=i, wcl_report_id=f"r{i}", dps=70)
+            for i in range(3)]
+    result = score_player_runs(runs, Role.dps, class_id=8)
+    assert result.runs_analyzed == 1
+
+
+def test_phase2_picks_best_run_per_dungeon():
+    """Within a single dungeon, the highest-composite run wins."""
+    great = _run(encounter_id=10658, fight_id=1, wcl_report_id="g",
+                 dps=95, deaths=0, interrupts=15, dispels=5,
+                 cooldown_usage_pct=100, cc_casts=10)
+    sloppy = _run(encounter_id=10658, fight_id=2, wcl_report_id="s",
+                  dps=20, deaths=4, interrupts=2, dispels=0,
+                  cooldown_usage_pct=20, cc_casts=0)
+    result = score_player_runs([great, sloppy], Role.dps, class_id=8)
+    great_only = score_player_runs([great], Role.dps, class_id=8,
+                                   select_runs=False)
+    # Selection should pick `great`; composite matches scoring `great` alone.
+    assert result.composite_score == pytest.approx(great_only.composite_score)
+
+
+def test_phase2_higher_key_wins_when_scores_close():
+    """A clean +10 (composite ~70) should outrank a clean +5 (composite ~70)
+    on the same dungeon because key_weight breaks the tie.
+    """
+    plus10 = _run(encounter_id=10658, fight_id=1, wcl_report_id="hi",
+                  keystone_level=10, dps=70)
+    plus5 = _run(encounter_id=10658, fight_id=2, wcl_report_id="lo",
+                 keystone_level=5, dps=70)
+    result = score_player_runs([plus5, plus10], Role.dps, class_id=8)
+    plus10_only = score_player_runs([plus10], Role.dps, class_id=8,
+                                    select_runs=False)
+    assert result.composite_score == pytest.approx(plus10_only.composite_score)
+
+
+def test_phase2_depleted_runs_excluded_when_timed_exists():
+    """If any timed run exists in the role pool, depleted runs drop out
+    entirely — even if a depleted +15 has higher score×weight than a
+    timed +5, the depleted run shouldn't count.
+    """
+    timed_low = _run(encounter_id=10658, fight_id=1, wcl_report_id="t",
+                     keystone_level=5, dps=60, timed=True, deaths=0)
+    depleted_high = _run(encounter_id=10661, fight_id=2, wcl_report_id="d",
+                         keystone_level=15, dps=90, timed=False, deaths=2)
+    result = score_player_runs([timed_low, depleted_high], Role.dps, class_id=8)
+    timed_only = score_player_runs([timed_low], Role.dps, class_id=8,
+                                   select_runs=False)
+    # Selection keeps only the timed run; the depleted-but-higher-key
+    # run does NOT contribute to the composite.
+    assert result.composite_score == pytest.approx(timed_only.composite_score)
+    assert result.runs_analyzed == 1
+
+
+def test_phase2_falls_back_to_depleted_when_zero_timed():
+    """A player with zero timed runs still gets a grade — selection
+    applies the same per-dungeon best logic to the depleted pool. They
+    shouldn't be ungraded just because they're pushing keys above their
+    capability.
+    """
+    runs = [
+        _run(encounter_id=enc, fight_id=i, wcl_report_id=f"r{i}",
+             keystone_level=15, dps=50, timed=False, deaths=2)
+        for i, enc in enumerate((10658, 10661, 10662))
+    ]
+    result = score_player_runs(runs, Role.dps, class_id=8)
+    assert result.runs_analyzed == 3
+    assert result.composite_score > 0
+
+
+def test_phase2_timing_modifier_uses_original_runs():
+    """Timing modifier should reflect the player's actual timing rate,
+    not the post-selection (entirely-timed) pool. Selection drops
+    depleted runs from grading but the timing stat must still surface
+    the truth: this player only timed half their attempts.
+    """
+    timed = _run(encounter_id=10658, fight_id=1, wcl_report_id="t",
+                 timed=True, dps=70)
+    depleted = _run(encounter_id=10661, fight_id=2, wcl_report_id="d",
+                    timed=False, dps=70)
+    result = score_player_runs([timed, depleted], Role.dps, class_id=8)
+    # 1 of 2 timed → timing rate 0.5 → modifier 0.0 (or close).
+    # If selection were applied first, both selected runs are timed →
+    # timing rate 1.0 → modifier +8.0 (the wrong number).
+    assert result.timing_modifier == pytest.approx(0.0)
+
+
+def test_phase2_select_runs_false_preserves_legacy_behavior():
+    """Tests / scripts that need raw all-runs scoring can pass
+    select_runs=False to skip Phase 2 selection entirely.
+    """
+    runs = [_run(encounter_id=10658, fight_id=i, wcl_report_id=f"r{i}", dps=70)
+            for i in range(3)]
+    result = score_player_runs(runs, Role.dps, class_id=8, select_runs=False)
+    assert result.runs_analyzed == 3

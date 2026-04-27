@@ -83,6 +83,66 @@ def _key_weight(keystone_level: int) -> float:
     return max(1.0, keystone_level * 0.2)
 
 
+def _select_runs_for_grading(
+    runs: list[DungeonRun],
+    role: Role,
+    class_id: int | None,
+) -> list[DungeonRun]:
+    """Pick the runs that count toward the composite grade.
+
+    Locked product philosophy (2026-04-27):
+      - Depleted runs don't hurt the grade. If timed runs exist anywhere
+        in the role's pool, only timed runs are eligible.
+      - Best run per dungeon counts. Within each (encounter_id) bucket,
+        keep the run that maximizes `per_run_composite × key_weight` so
+        a clean +12 A- beats a sloppy +13 D+, but a higher key with the
+        same play quality wins on its weight.
+      - No grade penalty for crest farming: a low-key alt-pusher run
+        only counts if it's the player's only run on that dungeon.
+
+    Edge cases:
+      - Zero runs: returns []. Callers handle the empty-grade case.
+      - Zero timed runs: falls back to depleted as the eligible pool, so
+        the player still gets a grade reflecting their best showing per
+        dungeon. As soon as they time anything, that timed run takes
+        over its dungeon's slot.
+      - Single run per dungeon: no-op (selection picks the only one).
+
+    Returns the selected runs sorted for deterministic output.
+    """
+    if not runs:
+        return []
+
+    timed = [r for r in runs if r.timed]
+    pool = timed if timed else runs
+
+    by_dungeon: dict[int, list[DungeonRun]] = {}
+    for r in pool:
+        by_dungeon.setdefault(r.encounter_id, []).append(r)
+
+    selected: list[DungeonRun] = []
+    for enc_runs in by_dungeon.values():
+        if len(enc_runs) == 1:
+            selected.append(enc_runs[0])
+            continue
+
+        # Score each candidate on its own merits. No zone_dps_percentile
+        # is passed: that's a player-wide aggregate from WCL zoneRankings,
+        # whereas selection wants the per-run play quality (the run's
+        # bracketed dps percentile carries through r.dps and the rest
+        # of the scorers operate on the run's own data).
+        def _metric(r: DungeonRun) -> float:
+            single = score_player_runs(
+                [r], role, class_id=class_id, select_runs=False,
+            )
+            return single.composite_score * _key_weight(r.keystone_level)
+
+        selected.append(max(enc_runs, key=_metric))
+
+    selected.sort(key=lambda r: (r.encounter_id, getattr(r, "id", 0) or 0))
+    return selected
+
+
 def _weighted_average(runs: list[DungeonRun], score_fn) -> float:
     """Compute a weighted average of per-run scores, weighted by key level."""
     if not runs:
@@ -649,6 +709,7 @@ def score_player_runs(
     zone_dps_percentile: float | None = None,
     zone_dps_ilvl_percentile: float | None = None,
     class_id: int | None = None,
+    select_runs: bool = True,
 ) -> ScoreResult:
     """Score a set of dungeon runs for a player in a specific role.
 
@@ -663,7 +724,22 @@ def score_player_runs(
 
     class_id is needed for healer utility scoring (determines if the spec
     can interrupt — only Resto Shaman and Holy Paladin can).
+
+    `select_runs` (Phase 2 run selection): when True, filters the input
+    set down to one best run per dungeon (timed-only when any timed run
+    exists; falls back to depleted otherwise) before scoring. The
+    composite is computed over the selected runs so a player's grade
+    reflects their best showing per dungeon at the keys they actually
+    completed. Pass False from internal recursion or from offline
+    analysis tools that want raw all-runs scoring.
     """
+    # Hold onto the original run list before selection. The timing
+    # modifier should reflect the player's actual timing rate across
+    # everything they ran, not the post-selection (entirely-timed) pool.
+    original_runs = runs
+    if select_runs:
+        runs = _select_runs_for_grading(runs, role, class_id)
+
     # Spec name is inferred from runs for the weights lookup. It's fine
     # to pick the first run's spec — a scoring call bundles runs of the
     # same role for the same player, and a player doesn't switch specs
@@ -776,7 +852,11 @@ def score_player_runs(
     #     per-run weight (higher keys count more). Timing would be double-
     #     counting on top of that.
     # The stat is still exported so the UI can show "X% keys timed".
-    timing_mod = _timing_modifier(runs)
+    # Compute on the ORIGINAL pool (pre-selection) so the timing rate
+    # reflects what the player actually did, not the post-Phase 2 pool
+    # which is entirely timed by construction whenever any timed run
+    # exists in role.
+    timing_mod = _timing_modifier(original_runs)
     category_scores["timing_modifier"] = round(timing_mod, 1)
     composite = max(0, min(100, composite))
 
