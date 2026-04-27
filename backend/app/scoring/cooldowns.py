@@ -26,9 +26,18 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # Bladestorm (227847) removed 2026-04-16 (Pass 2): channel with no
         # persistent self-aura — sampler didn't see it at 50% consensus.
         (107574, "Avatar", 15, "offensive"),
+        # Demolish (436358) added 2026-04-27 (Batch 1 audit): Colossus
+        # hero-talent capstone, 100% consensus on top-cohort Arms players
+        # with med=58 uses. Talent-aware skip catches Mountain Thane
+        # builds where the aura is absent.
+        (436358, "Demolish", 20, "offensive"),
     ],
     (1, "Fury"): [
         (1719, "Recklessness", 15, "offensive"),
+        # Avatar (107574) added 2026-04-27 (Batch 1 audit): Pass-2 spec
+        # asymmetry — Avatar was tracked for Arms only despite 100%
+        # consensus on top Fury too (med=44).
+        (107574, "Avatar", 15, "offensive"),
         # Ravager (228920) removed 2026-04-16: summons a weapon (pet-like
         # entity), no self-buff aura on the player. Sampler confirmed 0
         # Fury logs had it in their BuffsTable.
@@ -86,6 +95,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # cast, Voidform (194249) is the resulting self-aura — that's
         # what BuffsTable reports. Sampler confirmed at 80% med=12.
         (194249, "Voidform", 12, "offensive"),
+        # Power Infusion (10060) added 2026-04-27 (Batch 2 audit):
+        # 100% consensus on top Shadow cohort with med=13. Tracked
+        # only on Shadow, not the healer specs, to avoid the Twins
+        # of the Sun glyph self-vs-received ambiguity.
+        (10060, "Power Infusion", 13, "offensive"),
         # Dark Ascension (391109) removed: alternative talent to Void
         # Eruption, not universally taken. Sampler didn't see it at 50%.
     ],
@@ -106,6 +120,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     # Shaman
     (7, "Elemental"): [
         (191634, "Stormkeeper", 10, "offensive"),
+        # Ascendance (1219480) added 2026-04-27 (Batch 2 audit): 100%
+        # consensus on top Elemental cohort with med=13. Tracked
+        # alongside Stormkeeper as the major-CD pair; talent-aware
+        # skip handles builds that drop one or the other.
+        (1219480, "Ascendance", 13, "offensive"),
         # Fire Elemental (198067) removed 2026-04-16: summons a pet — the
         # elemental has its own buffs, the shaman does not. No self-aura
         # detectable via BuffsTable.
@@ -172,17 +191,32 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
 
     # Druid
     (11, "Balance"): [
-        # Celestial Alignment (194223) replaced 2026-04-16 (Pass 2):
-        # Incarnation: Chosen of Elune is the current-meta major (90%
-        # consensus, med=15) — it's the talent upgrade to CA.
+        # Celestial Alignment (194223) and Incarnation (102560) are
+        # alt-build branches (talent upgrade to CA). Both tracked so
+        # the talent-aware skip catches whichever branch the player
+        # didn't pick. Top Midnight S1 cohort runs Incarnation; CA
+        # rebrought 2026-04-27 (Batch 1 audit) for fairness.
         (102560, "Incarnation: Chosen of Elune", 15, "offensive"),
-        (202770, "Fury of Elune", 5, "offensive"),
+        (194223, "Celestial Alignment", 15, "offensive"),
+        # Fury of Elune (202770) removed 2026-04-27 (Batch 1 audit):
+        # observed median uses 62 (per-tick channel aura, not the
+        # press) saturated cooldown_usage to 100% on every Balance run
+        # — same Pass-3 Barkskin removal pattern. Without a cast-event
+        # detection path, FoE can't be tracked honestly.
     ],
     (11, "Feral"): [
+        # Berserk (106951) and Incarnation: Avatar of Ashamane (102543)
+        # tracked as alt-build branches 2026-04-27 (Batch 1 audit).
+        # Top cohort universally runs Berserk; Incarnation is the
+        # alt-talent. Talent-aware skip catches whichever the player
+        # didn't pick. Pass 2 had dropped Incarnation; re-added so
+        # Avatar-of-Ashamane builds aren't punished.
         (106951, "Berserk", 15, "offensive"),
-        # Incarnation: Avatar of Ashamane (102543) removed 2026-04-16
-        # (Pass 2): alternate talent to Berserk, not universally taken
-        # in Midnight S1 Feral builds. Sampler didn't see it at 50%.
+        (102543, "Incarnation: Avatar of Ashamane", 13, "offensive"),
+        # Convoke the Spirits (391528) added 2026-04-27 (Batch 1 audit):
+        # 100% consensus on top Feral cohort with med=23 uses. Universal
+        # in current Midnight S1 builds.
+        (391528, "Convoke the Spirits", 23, "offensive"),
     ],
 
     # Demon Hunter
@@ -224,6 +258,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # short to register reliably via BuffsTable snapshots — sampler
         # didn't see it at 50% consensus.
         (132404, "Shield Block", 40, "defensive"),  # was 2565 — sampler showed 132404 as the buff-on-warrior (2026-04-16)
+        # Avatar (107574) added 2026-04-27 (Batch 1 audit): 100% consensus
+        # across top Prot cohort with med=47. Gives Prot its first
+        # tracked offensive CD alongside the two defensives, matching how
+        # the spec actually plays in M+.
+        (107574, "Avatar", 15, "offensive"),
     ],
     (2, "Protection"): [
         (31850, "Ardent Defender", 5, "defensive"),
@@ -233,6 +272,13 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     (6, "Blood"): [
         (55233, "Vampiric Blood", 8, "defensive"),
         (81256, "Dancing Rune Weapon", 10, "defensive"),  # was 49028 — sampler showed 81256 as the DK self-buff (2026-04-16)
+        # Icebound Fortitude (48792) and Anti-Magic Zone (145629) added
+        # 2026-04-27 (Batch 1 audit). Both at 100% consensus on top
+        # Blood DKs (med=6 and med=3 respectively). IBF is the major
+        # personal defensive (~3min CD); AMZ is the group-wide magic
+        # absorb Blood places on M+ pulls.
+        (48792, "Icebound Fortitude", 6, "defensive"),
+        (145629, "Anti-Magic Zone", 3, "defensive"),
     ],
     (10, "Brewmaster"): [
         (120954, "Fortifying Brew", 8, "defensive"),
@@ -250,7 +296,15 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
     (11, "Guardian"): [
         (22812, "Barkskin", 10, "defensive"),
         (61336, "Survival Instincts", 5, "defensive"),
-        (192081, "Ironfur", 50, "defensive"),
+        # Incarnation: Guardian of Ursoc (102558) added 2026-04-27 (Batch
+        # 1 audit): 100% consensus on top Guardian cohort with med=16.
+        # The major active CD that pairs with the two existing personal
+        # defensives.
+        (102558, "Incarnation: Guardian of Ursoc", 16, "defensive"),
+        # Ironfur (192081) removed 2026-04-27 (Batch 1 audit): observed
+        # median 654 uses against expected 50 — a rotational rage
+        # spender, not a major CD. Saturated cooldown_usage to 100% the
+        # same way Resto Druid Barkskin did before its Pass-3 removal.
     ],
     (12, "Vengeance"): [
         (187827, "Metamorphosis", 10, "defensive"),
@@ -280,6 +334,11 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # (421453) is Disc's big hero-talent CD that does show reliably
         # (80% consensus, med=4).
         (421453, "Ultimate Penitence", 4, "offensive"),
+        # Evangelism (472433) added 2026-04-27 (Batch 2 audit): 100%
+        # consensus on top Disc cohort with med=15. Self-aura central
+        # to every Disc rotation, longer than the original 2018-era
+        # Evangelism. Highest-signal Priest add in this audit.
+        (472433, "Evangelism", 15, "offensive"),
         # PW: Barrier (62618) removed 2026-04-16: ground effect.
     ],
     (5, "Holy"): [
@@ -292,6 +351,13 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # 325174 "Spirit Link Totem" as the actual self-aura on the shaman
         # while the totem is active — using that instead.
         (325174, "Spirit Link Totem", 5, "defensive"),
+        # Healing Tide Totem (108280) re-added 2026-04-27 (Batch 2
+        # audit): the original Pass-2 removal noted "totems aren't
+        # self-auras", but the sampler showed 88% consensus med=9 on
+        # this aura ID for top Resto cohort. The totem's group-heal
+        # buff is now showing as a self-aura on the caster while the
+        # totem is up — same shape as Spirit Link Totem (325174).
+        (108280, "Healing Tide Totem", 9, "defensive"),
     ],
     (10, "Mistweaver"): [
         # Yu'lon (322118) removed 2026-04-16: summons a pet serpent.
@@ -299,6 +365,14 @@ SPEC_MAJOR_COOLDOWNS: dict[tuple[int, str], list[tuple[int, str, float, Cooldown
         # burst with no aura on caster. Celestial Conduit (443028) is
         # the current-meta MW major CD (90% consensus, med=11).
         (443028, "Celestial Conduit", 11, "offensive"),
+        # Strength of the Black Ox (443113) and Unity Within (443592)
+        # added 2026-04-27 (Batch 2 audit): the Master of Harmony and
+        # Conduit of the Celestials hero-talent capstones, both at
+        # 100% consensus on top-cohort MWs. Treat as alt-build pair
+        # via talent-aware skip — players take one hero tree or the
+        # other.
+        (443113, "Strength of the Black Ox", 58, "offensive"),
+        (443592, "Unity Within", 12, "offensive"),
     ],
     # Core CDs every Resto Druid has regardless of talent build.
     # Tree of Life, Nature's Swiftness, and Flourish are talent choices

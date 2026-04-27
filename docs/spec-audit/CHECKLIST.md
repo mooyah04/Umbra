@@ -10,18 +10,17 @@
 
 ## Batch 1 — tanks-anchor (4 classes, 13 specs)
 
-- [ ] **Warrior** — Arms / Fury / Protection
-- [ ] **Paladin** — Holy / Protection / Retribution
-- [ ] **Death Knight** — Blood / Frost / Unholy
-- [ ] **Druid** — Balance / Feral / Guardian / Restoration
+- [x] **Warrior** — ✅ audited 2026-04-27 (Arms / Fury / Protection). Codified: Avatar added to Fury+Prot, Demolish added to Arms.
+- [x] **Paladin** — ✅ audited 2026-04-27 (Holy / Protection / Retribution). Zero `cooldowns.py` edits needed; Pass-2 work held up.
+- [x] **Death Knight** — ✅ audited 2026-04-27 (Blood / Frost / Unholy). Codified: Icebound Fortitude + Anti-Magic Zone added to Blood. Frost/Unholy unchanged.
+- [x] **Druid** — ✅ audited 2026-04-27 (Balance / Feral / Guardian / Restoration). Codified: alt-build branches added (CA for Balance, Avatar of Ashamane for Feral, Incarnation of Ursoc for Guardian); Convoke added to Feral; Fury of Elune (Balance) and Ironfur (Guardian) dropped for saturation.
 
 ## Batch 2 — tanks finish + healers (4 classes, 11 specs)
 
-- [ ] **Demon Hunter** — Havoc / Vengeance / Devourer
-- [x] **Monk** — ✅ Brewmaster (audited 2026-04-26) / Mistweaver / Windwalker
-  - BRM: talent-aware skip + Strength of the Black Ox added. Dispel-type fix still pending (Detox = poison/disease only, not full magic dispel).
-- [ ] **Priest** — Discipline / Holy / Shadow
-- [ ] **Shaman** — Elemental / Enhancement / Restoration
+- [x] **Demon Hunter** — ✅ audited 2026-04-27 (Havoc / Vengeance / Devourer). No `cooldowns.py` edits in this pass; Vengeance Fiery Brand and Devourer aura mapping flagged for cast-event follow-up.
+- [x] **Monk** — ✅ Brewmaster (audited 2026-04-26) + Mistweaver / Windwalker (audited 2026-04-27). Codified: Mistweaver got Strength of the Black Ox + Unity Within; Mistweaver added to `HEALER_SPECS_WITH_INTERRUPT`; dispel-school registry entries for all 3 specs.
+- [x] **Priest** — ✅ audited 2026-04-27 (Discipline / Holy / Shadow). Codified: Evangelism added to Disc, Power Infusion added to Shadow.
+- [x] **Shaman** — ✅ audited 2026-04-27 (Elemental / Enhancement / Restoration). Codified: Ascendance added to Elemental, Healing Tide Totem re-added to Resto.
 
 ## Batch 3 — DPS-only classes (5 classes, 16 specs)
 

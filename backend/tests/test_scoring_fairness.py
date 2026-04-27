@@ -102,10 +102,15 @@ def test_healer_no_cc_data_falls_back_to_dispel_only():
     benchmark (e.g. Pit of Saron ~65) would dominate the assertion
     and make "8 dispels should be a perfect score" wrong — which is
     a different behavior we test in test_scoring_dispel_opportunity.
+
+    Uses Discipline Priest so the spec is NOT in
+    `HEALER_SPECS_WITH_INTERRUPT` — otherwise the 0-interrupts
+    fixture pulls the score down through the kick-credit path
+    (Mistweaver was added to that set 2026-04-27 Batch 2 audit).
     """
-    runs = [_run(role=Role.healer, spec="Mistweaver", dispels=8, interrupts=0,
+    runs = [_run(role=Role.healer, spec="Discipline", dispels=8, interrupts=0,
                  cc_casts=None, encounter_id=99999)]
-    score = _score_utility_healer(runs, class_id=10)
+    score = _score_utility_healer(runs, class_id=5)
     # 8/8 dispels against the flat fallback benchmark = 100
     assert score == 100
 
