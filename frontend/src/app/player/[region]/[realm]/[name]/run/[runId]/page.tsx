@@ -41,6 +41,30 @@ function dataPointsForRunCategory(
   utility: RunUtilityResponse | null,
 ): Array<{ label: string; value: string }> | undefined {
   switch (key) {
+    case "damage_output": {
+      // The big score on this card is the bracketed percentile (vs
+      // same-key peers, drives grading). Surface the un-bracketed
+      // global percentile alongside it so a +6 farmer sees both their
+      // bracket-fair score AND where they'd land vs the +12+ pushers
+      // dominating the global pool. Hidden when WCL hasn't returned a
+      // global rank for this fight (older runs, or empty rank list).
+      // The `bar` prop colors each data point to match its percentile
+      // so the comparison reads at a glance — green vs red tells the
+      // story even before the eye lands on the numbers.
+      if (run.dps_percentile_global == null) return undefined;
+      return [
+        {
+          label: `vs Other +${run.keystone_level} Keys`,
+          value: run.dps.toFixed(0),
+          bar: run.dps,
+        },
+        {
+          label: "vs All Keys",
+          value: run.dps_percentile_global.toFixed(0),
+          bar: run.dps_percentile_global,
+        },
+      ];
+    }
     case "utility":
       if (utility && utility.abilities.length > 0) {
         return utility.abilities.map((a) => ({
@@ -166,6 +190,15 @@ export default async function RunDetailPage({ params }: Props) {
           score: run.run_category_scores?.[c.key] ?? 0,
           weight: dungeonWeightMap[c.key],
           dataPoints: dataPointsForRunCategory(c.key, run, utility),
+          // Damage Output is the only category with two pills today
+          // (bracketed vs global). The bracketed pill drives this
+          // run's grade; the global pill is purely contextual. Surface
+          // that explicitly so the player isn't left wondering which
+          // number "counts."
+          dataPointsFootnote:
+            c.key === "damage_output" && run.dps_percentile_global != null
+              ? `Your grade uses the "vs Other +${run.keystone_level} Keys" score (bracketed). The "vs All Keys" score (global) is for context and doesn't affect your grade.`
+              : undefined,
         }))
     : [];
 
@@ -541,6 +574,7 @@ export default async function RunDetailPage({ params }: Props) {
                     score={c.score}
                     weight={c.weight}
                     dataPoints={c.dataPoints}
+                    dataPointsFootnote={c.dataPointsFootnote}
                     specDescription={specCopy?.description}
                     specHowToImprove={specCopy?.howToImprove}
                   />
@@ -584,7 +618,10 @@ export default async function RunDetailPage({ params }: Props) {
                 ranked this character yet. Hide the tile in that case
                 rather than render "101904702.0" as a percentile. Same
                 guard for HPS. Refresh after WCL indexes the character
-                populates the real percentile. */}
+                populates the real percentile. The bracketed/global
+                comparison lives in the Damage Output card on the
+                Breakdown — keeping this row uniform with the other
+                stat tiles. */}
             {run.dps >= 0 && run.dps <= 100 && (
               <StatTile label="DPS %" value={`${run.dps.toFixed(1)}`} sub="Percentile" />
             )}

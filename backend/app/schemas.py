@@ -210,6 +210,12 @@ class RunResponse(BaseModel):
     critical_interrupts: int | None = None
     avoidable_deaths: int | None = None
     party_comp: list[dict] | None = None
+    # Un-bracketed (global) DPS percentile — display-only companion to
+    # the bracketed value already in `dps`. Lets the run page show
+    # "45/100 vs same-key peers, 5/100 vs the global pool" so a +6
+    # farmer sees both numbers. Null on runs ingested before this
+    # field existed; the UI hides the second number when missing.
+    dps_percentile_global: float | None = None
     # Level B v2 — pull-by-pull breakdown. List of pull objects with
     # nested events. None on runs below the keystone-level threshold
     # (+2, was +8) or ingested before Level B v2 shipped.

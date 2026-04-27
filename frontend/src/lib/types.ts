@@ -88,6 +88,11 @@ export interface RunResponse {
   critical_interrupts: number | null;
   avoidable_deaths: number | null;
   party_comp?: PartyMember[] | null;
+  /** Un-bracketed (global) DPS percentile — companion to the bracketed
+   *  value in `dps`. Lets the run page show "45/100 vs same-key peers,
+   *  5/100 vs the global pool" so a +6 farmer sees both numbers. Null
+   *  on runs ingested before this column existed. */
+  dps_percentile_global?: number | null;
   pulls?: Pull[] | null;
   /** Blizzard media URLs carried off the Player for the run page hero
    *  backdrop. Only populated by the single-run detail endpoint. */

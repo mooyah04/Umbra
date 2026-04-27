@@ -267,6 +267,7 @@ def _run_to_response(run: DungeonRun, class_id: int | None = None) -> RunRespons
         critical_interrupts=run.critical_interrupts,
         avoidable_deaths=run.avoidable_deaths,
         party_comp=run.party_comp,
+        dps_percentile_global=run.dps_percentile_global,
         pulls=run.pulls,
     )
 
