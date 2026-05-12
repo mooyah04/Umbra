@@ -622,10 +622,12 @@ function defaultReplyBody(r: BugReport): string {
     month: "short",
     day: "numeric",
   });
-  const ctx = [`Re: bug report #${r.id} submitted ${created}.`];
-  if (r.page_url) ctx.push(`Page: ${r.page_url}`);
-  ctx.push("", `Original summary: ${r.summary}`);
-  return [greeting, "", "", "—", ...ctx].join("\n");
+  const lines = [greeting, "", "", "—", `Your original report (#${r.id}, ${created}):`, ""];
+  lines.push(`Subject: ${r.summary}`);
+  if (r.details && r.details.trim()) {
+    lines.push("", r.details);
+  }
+  return lines.join("\n");
 }
 
 function Field({
