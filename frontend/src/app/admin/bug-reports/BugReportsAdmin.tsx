@@ -455,9 +455,7 @@ function ReportRow({
 function ReplyPanel({ report, apiKey }: { report: BugReport; apiKey: string }) {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState(() => defaultReplyBody(report));
-  const [subject, setSubject] = useState(
-    () => `Re: [Umbra bug #${report.id}] ${report.summary}`,
-  );
+  const [subject, setSubject] = useState(() => report.summary);
   const [replies, setReplies] = useState<BugReportReply[] | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);

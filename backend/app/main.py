@@ -523,7 +523,7 @@ def send_bug_report_reply(
             detail="Bug report has no submitter_email to reply to.",
         )
 
-    subject = payload.subject or f"Re: [Umbra bug #{report.id}] {report.summary}"
+    subject = payload.subject or report.summary
     to_email = report.submitter_email
 
     row = BugReportReply(
