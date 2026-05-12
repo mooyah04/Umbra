@@ -38,6 +38,11 @@ type KindTab = "all" | "bugs" | "suggestions";
 // reads that prefix to separate the two without a schema change.
 const SUGGESTION_PREFIX = "[Suggestion]";
 
+// Signature appended to every prefilled reply body. Edit here to update
+// what gets dropped between the admin's typing space and the quoted
+// original report.
+const REPLY_SIGNATURE = ["MooYah", "Umbra · wowumbra.gg"];
+
 function isSuggestion(r: BugReport): boolean {
   return r.summary.trimStart().startsWith(SUGGESTION_PREFIX);
 }
@@ -620,7 +625,17 @@ function defaultReplyBody(r: BugReport): string {
     month: "short",
     day: "numeric",
   });
-  const lines = [greeting, "", "", "—", `Your original report (${created}):`, ""];
+  const lines = [
+    greeting,
+    "",
+    "",
+    "",
+    ...REPLY_SIGNATURE,
+    "",
+    "—",
+    `Your original report (${created}):`,
+    "",
+  ];
   lines.push(`Subject: ${r.summary}`);
   if (r.details && r.details.trim()) {
     lines.push("", r.details);
