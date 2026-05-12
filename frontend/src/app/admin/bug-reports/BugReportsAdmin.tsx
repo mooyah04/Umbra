@@ -620,7 +620,7 @@ function defaultReplyBody(r: BugReport): string {
     month: "short",
     day: "numeric",
   });
-  const lines = [greeting, "", "", "—", `Your original report (#${r.id}, ${created}):`, ""];
+  const lines = [greeting, "", "", "—", `Your original report (${created}):`, ""];
   lines.push(`Subject: ${r.summary}`);
   if (r.details && r.details.trim()) {
     lines.push("", r.details);
