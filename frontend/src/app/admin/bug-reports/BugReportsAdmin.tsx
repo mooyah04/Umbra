@@ -18,6 +18,17 @@ interface BugReport {
   user_agent: string | null;
 }
 
+interface BugReportReply {
+  id: number;
+  bug_report_id: number;
+  sent_at: string;
+  to_email: string;
+  subject: string;
+  body: string;
+  status: "sent" | "failed" | string;
+  error_message: string | null;
+}
+
 type StatusFilter = "" | "new" | "triaged" | "resolved" | "wontfix";
 type SourceFilter = "" | "website" | "addon";
 type KindTab = "all" | "bugs" | "suggestions";
@@ -421,7 +432,7 @@ function ReportRow({
                 .join(" · ") || "—"}
             />
           )}
-          {r.submitter_email && <ReplyByEmailButton report={r} />}
+          {r.submitter_email && <ReplyPanel report={r} apiKey={apiKey} />}
           {r.page_url && <Field label="Page" value={r.page_url} link />}
           {r.user_agent && (
             <Field label="User Agent" value={r.user_agent} mono />
@@ -441,35 +452,180 @@ function ReportRow({
   );
 }
 
-function ReplyByEmailButton({ report }: { report: BugReport }) {
-  if (!report.submitter_email) return null;
-  // Bracketed bug-id in the subject so future replies thread on it
-  // even if the submitter's mail client doesn't preserve In-Reply-To.
-  const subject = `Re: [Umbra bug #${report.id}] ${report.summary}`;
-  const greeting = report.submitter_name
-    ? `Hi ${report.submitter_name},`
-    : "Hi there,";
-  const created = new Date(report.created_at).toLocaleDateString(undefined, {
+function ReplyPanel({ report, apiKey }: { report: BugReport; apiKey: string }) {
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState(() => defaultReplyBody(report));
+  const [subject, setSubject] = useState(
+    () => `Re: [Umbra bug #${report.id}] ${report.summary}`,
+  );
+  const [replies, setReplies] = useState<BugReportReply[] | null>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Lazy-load thread history the first time the panel opens. Replies are
+  // small (few per report) so no pagination needed.
+  useEffect(() => {
+    if (!open || replies !== null) return;
+    let cancelled = false;
+    fetch(`${API_URL}/api/admin/bug-reports/${report.id}/replies`, {
+      headers: { "X-API-Key": apiKey },
+      cache: "no-store",
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.statusText)))
+      .then((data: { replies: BugReportReply[] }) => {
+        if (!cancelled) setReplies(data.replies ?? []);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(`Couldn't load past replies: ${e}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, replies, report.id, apiKey]);
+
+  const send = async () => {
+    if (!body.trim() || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/bug-reports/${report.id}/reply`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey,
+          },
+          body: JSON.stringify({ subject, body }),
+        },
+      );
+      if (!res.ok) {
+        const detail = await res
+          .json()
+          .then((j) => j.detail ?? res.statusText)
+          .catch(() => res.statusText);
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
+      const sent = (await res.json()) as BugReportReply;
+      setReplies((prev) => [...(prev ?? []), sent]);
+      setBody("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-3 py-1.5 rounded hover:brightness-110 transition-all w-fit"
+      >
+        <span className="material-symbols-outlined text-sm">reply</span>
+        Reply
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-surface-container rounded-lg p-4 border border-outline-variant/20 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant">
+          Reply to {report.submitter_email}
+        </p>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-on-surface-variant hover:text-on-surface text-xs"
+        >
+          Close
+        </button>
+      </div>
+
+      {replies && replies.length > 0 && (
+        <div className="space-y-2 border-l-2 border-primary/30 pl-3">
+          {replies.map((rep) => (
+            <div key={rep.id} className="text-xs">
+              <div className="flex items-center gap-2 text-on-surface-variant">
+                <span className="font-[family-name:var(--font-label)] uppercase tracking-widest text-[10px]">
+                  {rep.status === "sent" ? "Sent" : "Failed"}
+                </span>
+                <span>{new Date(rep.sent_at).toLocaleString()}</span>
+              </div>
+              <div className="text-on-surface mt-1 font-medium">
+                {rep.subject}
+              </div>
+              <pre className="whitespace-pre-wrap break-words text-on-surface-variant mt-1 font-mono text-[11px]">
+                {rep.body}
+              </pre>
+              {rep.error_message && (
+                <p className="text-red-400 mt-1">{rep.error_message}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <label className="block font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
+          Subject
+        </label>
+        <input
+          type="text"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          disabled={sending}
+          className="w-full bg-surface-container-high rounded px-3 py-2 text-sm text-on-surface border border-outline-variant/20 focus:border-primary focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
+          Message
+        </label>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          disabled={sending}
+          rows={10}
+          className="w-full bg-surface-container-high rounded px-3 py-2 text-sm text-on-surface border border-outline-variant/20 focus:border-primary focus:outline-none font-mono"
+        />
+      </div>
+
+      {error && (
+        <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/30 rounded p-2">
+          {error}
+        </p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={send}
+          disabled={sending || !body.trim()}
+          className="inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-4 py-2 rounded hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined text-sm">send</span>
+          {sending ? "Sending..." : "Send reply"}
+        </button>
+        <span className="text-on-surface-variant text-xs">
+          Sends as support@wowumbra.gg via Workspace SMTP.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function defaultReplyBody(r: BugReport): string {
+  const greeting = r.submitter_name ? `Hi ${r.submitter_name},` : "Hi there,";
+  const created = new Date(r.created_at).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
-  const contextLines = [
-    `Re: bug report #${report.id} submitted ${created}.`,
-  ];
-  if (report.page_url) contextLines.push(`Page: ${report.page_url}`);
-  contextLines.push("", `Original summary: ${report.summary}`);
-  const body = [greeting, "", "", "—", ...contextLines].join("\n");
-  const href = `mailto:${report.submitter_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  return (
-    <a
-      href={href}
-      className="inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-3 py-1.5 rounded hover:brightness-110 transition-all w-fit"
-    >
-      <span className="material-symbols-outlined text-sm">reply</span>
-      Reply by email
-    </a>
-  );
+  const ctx = [`Re: bug report #${r.id} submitted ${created}.`];
+  if (r.page_url) ctx.push(`Page: ${r.page_url}`);
+  ctx.push("", `Original summary: ${r.summary}`);
+  return [greeting, "", "", "—", ...ctx].join("\n");
 }
 
 function Field({

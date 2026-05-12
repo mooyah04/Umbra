@@ -118,6 +118,16 @@ class Settings(BaseSettings):
     leaderboard_realms_per_tick: int = 4        # 4 realms × 8 dungeons = 32 Blizzard calls/tick
     leaderboard_regions: str = "US,EU,KR,TW"    # CSV, round-robin one per tick
 
+    # Outbound SMTP for admin bug-report replies. Gmail/Workspace via app
+    # password is the expected configuration; smtp_pass empty disables the
+    # /api/admin/bug-reports/{id}/reply endpoint (returns 503).
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_pass: str = ""
+    smtp_from_email: str = ""        # defaults to smtp_user when empty
+    smtp_from_name: str = "Umbra Support"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

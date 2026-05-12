@@ -564,3 +564,20 @@ class BugReportResponse(BaseModel):
     details: str
     page_url: str | None
     user_agent: str | None
+
+
+class BugReportReplyRequest(BaseModel):
+    """Admin-composed reply to a bug-report submitter."""
+    subject: str | None = Field(default=None, max_length=300)
+    body: str = Field(..., min_length=1, max_length=16000)
+
+
+class BugReportReplyResponse(BaseModel):
+    id: int
+    bug_report_id: int
+    sent_at: datetime
+    to_email: str
+    subject: str
+    body: str
+    status: str
+    error_message: str | None

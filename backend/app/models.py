@@ -236,3 +236,28 @@ class BugReport(Base):
     # Triage state — simple enough to keep as a free-form string for now.
     # "new" | "triaged" | "resolved" | "wontfix"
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="new")
+
+
+class BugReportReply(Base):
+    """Outgoing email replies sent from the admin to a bug-report submitter.
+
+    Audit trail so the admin UI can show the conversation thread and we
+    can verify what was sent. status='sent' on a successful SMTP transaction,
+    'failed' with error_message populated if the send raised.
+    """
+    __tablename__ = "bug_report_replies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    bug_report_id: Mapped[int] = mapped_column(
+        ForeignKey("bug_reports.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False, index=True
+    )
+    to_email: Mapped[str] = mapped_column(String(200), nullable=False)
+    subject: Mapped[str] = mapped_column(String(300), nullable=False)
+    body: Mapped[str] = mapped_column(String(16000), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="sent")
+    error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)

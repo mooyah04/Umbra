@@ -19,11 +19,14 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import settings
 from app.db import SessionLocal, engine, get_session
 from app.export.lua_writer import generate_lua
-from app.models import AddonDownload, Base, BugReport, DungeonRun, Player, PlayerScore, Role
+from app.mail import MailNotConfigured, MailSendError, is_configured as mail_is_configured, send_email
+from app.models import AddonDownload, Base, BugReport, BugReportReply, DungeonRun, Player, PlayerScore, Role
 from app.pipeline.ingest import ingest_batch, ingest_player
 from app.security import limiter, refresh_cloudflare_ips, require_api_key
 from app.validators import ValidationError, realm_key, validate_player_identity
 from app.schemas import (
+    BugReportReplyRequest,
+    BugReportReplyResponse,
     BugReportRequest,
     BugReportResponse,
     BugReportStatusUpdate,
@@ -456,6 +459,95 @@ def update_bug_report_status(
         page_url=row.page_url,
         user_agent=row.user_agent,
     ).model_dump(mode="json")
+
+
+def _reply_response(row: BugReportReply) -> dict:
+    return BugReportReplyResponse(
+        id=row.id,
+        bug_report_id=row.bug_report_id,
+        sent_at=row.sent_at,
+        to_email=row.to_email,
+        subject=row.subject,
+        body=row.body,
+        status=row.status,
+        error_message=row.error_message,
+    ).model_dump(mode="json")
+
+
+@app.get(
+    "/api/admin/bug-reports/{report_id}/replies",
+    dependencies=[Depends(require_api_key)],
+)
+def list_bug_report_replies(
+    report_id: int,
+    session: Session = Depends(get_session),
+):
+    """List past outbound replies on a bug report (oldest first for thread display)."""
+    if not session.get(BugReport, report_id):
+        raise HTTPException(status_code=404, detail="Bug report not found")
+    rows = list(
+        session.execute(
+            select(BugReportReply)
+            .where(BugReportReply.bug_report_id == report_id)
+            .order_by(BugReportReply.sent_at.asc())
+        ).scalars()
+    )
+    return {"replies": [_reply_response(r) for r in rows]}
+
+
+@app.post(
+    "/api/admin/bug-reports/{report_id}/reply",
+    dependencies=[Depends(require_api_key)],
+)
+def send_bug_report_reply(
+    report_id: int,
+    payload: BugReportReplyRequest,
+    session: Session = Depends(get_session),
+):
+    """Send an outbound email reply to the bug-report submitter and log it.
+
+    Failures are recorded with status='failed' so the admin UI can show the
+    error to the operator without needing to grep server logs.
+    """
+    if not mail_is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Mail not configured: set SMTP_USER and SMTP_PASS on the server.",
+        )
+    report = session.get(BugReport, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Bug report not found")
+    if not report.submitter_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Bug report has no submitter_email to reply to.",
+        )
+
+    subject = payload.subject or f"Re: [Umbra bug #{report.id}] {report.summary}"
+    to_email = report.submitter_email
+
+    row = BugReportReply(
+        bug_report_id=report.id,
+        to_email=to_email,
+        subject=subject[:300],
+        body=payload.body,
+        status="sent",
+    )
+    try:
+        send_email(to=to_email, subject=subject, body=payload.body)
+    except MailNotConfigured as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except MailSendError as e:
+        row.status = "failed"
+        row.error_message = str(e)[:1000]
+        session.add(row)
+        session.commit()
+        raise HTTPException(status_code=502, detail=f"SMTP send failed: {e}")
+
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return _reply_response(row)
 
 
 @app.get("/api/player/{region}/{realm}/{name}", response_model=PlayerScoreResponse)
