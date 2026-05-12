@@ -421,6 +421,7 @@ function ReportRow({
                 .join(" · ") || "—"}
             />
           )}
+          {r.submitter_email && <ReplyByEmailButton report={r} />}
           {r.page_url && <Field label="Page" value={r.page_url} link />}
           {r.user_agent && (
             <Field label="User Agent" value={r.user_agent} mono />
@@ -437,6 +438,37 @@ function ReportRow({
         </div>
       )}
     </li>
+  );
+}
+
+function ReplyByEmailButton({ report }: { report: BugReport }) {
+  if (!report.submitter_email) return null;
+  // Bracketed bug-id in the subject so future replies thread on it
+  // even if the submitter's mail client doesn't preserve In-Reply-To.
+  const subject = `Re: [Umbra bug #${report.id}] ${report.summary}`;
+  const greeting = report.submitter_name
+    ? `Hi ${report.submitter_name},`
+    : "Hi there,";
+  const created = new Date(report.created_at).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const contextLines = [
+    `Re: bug report #${report.id} submitted ${created}.`,
+  ];
+  if (report.page_url) contextLines.push(`Page: ${report.page_url}`);
+  contextLines.push("", `Original summary: ${report.summary}`);
+  const body = [greeting, "", "", "—", ...contextLines].join("\n");
+  const href = `mailto:${report.submitter_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-2 bg-primary text-on-primary font-[family-name:var(--font-label)] text-[10px] uppercase tracking-widest px-3 py-1.5 rounded hover:brightness-110 transition-all w-fit"
+    >
+      <span className="material-symbols-outlined text-sm">reply</span>
+      Reply by email
+    </a>
   );
 }
 
