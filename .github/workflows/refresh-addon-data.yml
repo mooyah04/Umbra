@@ -45,11 +45,9 @@ jobs:
         run: |
           set -eo pipefail
           mkdir -p Umbra Umbra-dev
-          # Region filter = EU for now (pre-public focus). Drop the query
-          # param when we go global and want all regions in one lua file.
           curl --fail --silent --show-error \
             --output Umbra/UmbraData.lua \
-            "https://api.wowumbra.gg/api/export/lua?region=EU"
+            "https://api.wowumbra.gg/api/export/lua"
           # Sanity-check: must start with the Umbra_Database table declaration.
           head -1 Umbra/UmbraData.lua | grep -q "Umbra_Database" \
             || { echo "lua fetch returned unexpected content"; exit 1; }
