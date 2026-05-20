@@ -41,6 +41,18 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-[family-name:var(--font-body)] selection:bg-primary selection:text-on-primary overflow-x-hidden">
+        <div className="bg-error-container text-on-surface text-sm text-center px-4 py-2 border-b border-error/40">
+          Our hosting provider (Railway) is experiencing an outage — player lookups and data updates are temporarily unavailable. Track status at{" "}
+          <a
+            href="https://status.railway.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-error"
+          >
+            status.railway.com
+          </a>
+          .
+        </div>
         <Nav />
         <main className="flex-1">{children}</main>
         <Analytics />
