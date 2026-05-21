@@ -766,12 +766,16 @@ end
 local _activeTab = "stats"
 local _currentMyData = nil
 
+-- @dev-only:begin
 -- Debug toggle: when true, RefreshUI short-circuits and renders the
 -- empty-state copy on whichever tab is active, regardless of what's
 -- in Umbra_Database. Toggled via `/umbra empty`. Useful for sanity-
 -- checking the panel for never-graded characters without having to
--- delete any real player's data.
+-- delete any real player's data. The whole block (declaration,
+-- short-circuit, slash-command branch) is wrapped in @dev-only
+-- markers so scripts/promote-addon.py strips it from the live build.
 local _previewEmpty = false
+-- @dev-only:end
 
 local function _hideAllRows()
     for _, row in ipairs(statRows) do row.frame:Hide(); row.iconFrame:Hide() end
@@ -947,6 +951,7 @@ tabDungeons:SetActive(false)
 local function RefreshUI()
     _refreshPortraitModel()
 
+    -- @dev-only:begin
     -- Debug preview path: ignore Umbra_Database entirely and render as
     -- if the player has no data. The portrait still renders (it's driven
     -- by the WoW unit API, not by us), but the grade falls to N/R and
@@ -957,6 +962,7 @@ local function RefreshUI()
         _renderActiveTab()
         return
     end
+    -- @dev-only:end
 
     if not Umbra_Database then
         _paintProfile(nil)
@@ -1235,6 +1241,7 @@ SlashCmdList["UMBRA"] = function(msg)
     -- live alongside it.
     local arg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
 
+    -- @dev-only:begin
     if arg == "empty" then
         -- Toggle the empty-state preview and re-render. Force the panel
         -- open after toggling so the user immediately sees the change.
@@ -1248,6 +1255,7 @@ SlashCmdList["UMBRA"] = function(msg)
         if not UmbraFrame:IsShown() then UmbraFrame:Show() end
         return
     end
+    -- @dev-only:end
 
     if UmbraFrame:IsShown() then
         UmbraFrame:Hide()

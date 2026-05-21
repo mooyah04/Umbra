@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-05-22",
+    title: "Per-dungeon grades land in the in-game stats panel",
+    category: "new",
+    body:
+      "Open the panel with /umbra and you'll see a new Dungeons tab next to Stats. It lists every dungeon you've timed this season, sorted from your best grade down to your worst, with the same dungeon tiles you see on the Mythic Keystone frame. Click any row to copy a paste-ready link to that dungeon's page on wowumbra.gg, so you can dig in on the web when you spot something you want to investigate. If you're not graded yet, the panel now tells you what to do instead of rendering blank.",
+  },
+  {
+    date: "2026-05-22",
+    title: "Panel got a polish pass",
+    category: "improved",
+    body:
+      "The Stats / Dungeons tab strip now reads as proper tabs joined to the content below, with a hover bump on whichever tab you're about to click. The footer button finally fits its label inside the frame instead of overflowing on both sides. A small footnote above the button tells you your Umbra version and how often the bundled grade data refreshes. And we removed the per-dungeon block we'd been testing on hover tooltips — it was making LFG hovers too noisy. Same data now lives on the new Dungeons tab where it's not in the way.",
+  },
+  {
     date: "2026-04-27",
     title: "Your grade now reflects your best run in each dungeon",
     category: "improved",

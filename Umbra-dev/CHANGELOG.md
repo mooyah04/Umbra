@@ -2,6 +2,22 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.42] - 2026-05-22
+
+### Added
+- Per-dungeon grades in the `/umbra` panel. A new **Dungeons** tab next to **Stats** lists every dungeon you've timed, sorted best-grade first, with the real Blizzard M+ dungeon tile next to each entry.
+- Click a dungeon row to copy that dungeon's `wowumbra.gg` profile URL straight to a paste-ready popup.
+- Empty-state copy when a character has no grade yet, on both the Stats and Dungeons tabs — the panel no longer renders blank for fresh installs.
+- Footnote above the bottom button showing the installed Umbra version and refresh cadence.
+- Faint Umbra logo watermark behind the row area for a touch of product identity.
+
+### Changed
+- Tab strip restyled so the active tab visually joins the content area below it; hovering an inactive tab now bumps its fill so the click target is felt before it's clicked.
+- The "Open full profile on wowumbra.gg" button is wider so its label fits inside the frame instead of overflowing both edges.
+
+### Removed
+- The "Best 2 / Weak 1" dungeon block on hover tooltips — same data now lives on the Dungeons tab where it's not in the way.
+
 ## [0.3.41] - 2026-05-21
 
 ### Changed

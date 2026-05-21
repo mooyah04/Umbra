@@ -162,6 +162,9 @@ local function AddUmbraTooltip(tooltip, data, compact)
         end
     end
 
+    -- Per-dungeon grades live on the `/umbra` panel's Dungeons tab now,
+    -- not in the hover tooltip. Pre-2026-05-21 dev builds rendered a
+    -- "Best 2 / Weak 1" block here; it made the LFG hover too noisy.
 end
 
 -- Compact grade string for inline display (e.g., on LFG applicant rows)
