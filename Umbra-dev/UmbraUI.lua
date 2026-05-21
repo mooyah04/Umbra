@@ -238,22 +238,40 @@ local GRADE_RANK = {
     ["F"] = 2,   ["F-"] = 1,
 }
 
--- Thematic icons per dungeon — keyed by the encounter_id the backend
--- exports in `data.dungeons[id]`. Mapping is hand-curated for the
--- current Midnight S1 pool; encounter_ids unknown to the table fall
--- back to a generic keystone icon. Refresh this when the season
--- rotation changes (alongside backend/app/scoring/dungeons/seasons.py).
-local DUNGEON_ICONS = {
-    [361753] = "Interface\\Icons\\spell_shadow_summoninfernal",  -- Seat of the Triumvirate
-    [12874]  = "Interface\\Icons\\inv_misc_book_11",             -- Algeth'ar Academy
-    [112526] = "Interface\\Icons\\inv_pick_02",                  -- Maisara Caverns
-    [10658]  = "Interface\\Icons\\spell_frost_chainsofice",      -- Pit of Saron
-    [12805]  = "Interface\\Icons\\ability_hunter_pathfinding",   -- Windrunner Spire
-    [12811]  = "Interface\\Icons\\spell_arcane_blink",           -- Magister's Terrace
-    [12915]  = "Interface\\Icons\\spell_arcane_arcane04",        -- Nexus-Point Xenas
-    [61209]  = "Interface\\Icons\\inv_misc_celestial_seal",      -- Skyreach
-}
+-- Real dungeon icons sourced from Blizzard's challenge-mode UI table —
+-- same icons WoW's M+ leaderboard renders, so the rows match the
+-- in-game UI users already recognize. Populated at PLAYER_ENTERING_WORLD
+-- by walking `C_ChallengeMode.GetMapTable()` and pairing each map's
+-- texture with its display name. We key by name because the backend's
+-- `encounter_id` is the WCL/journal encounter ID, not the M+ map ID,
+-- and there's no client-side bridge between the two.
+local DUNGEON_TEXTURES = {}
 local FALLBACK_DUNGEON_ICON = "Interface\\Icons\\inv_misc_key_15"
+
+local function _refreshDungeonTextures()
+    if not C_ChallengeMode or not C_ChallengeMode.GetMapTable then return end
+    local maps = C_ChallengeMode.GetMapTable()
+    if not maps then return end
+    for _, mapID in ipairs(maps) do
+        local name, _, _, texture = C_ChallengeMode.GetMapUIInfo(mapID)
+        if name and texture then
+            DUNGEON_TEXTURES[name] = texture
+            -- Lenient match: backend may export "The Seat of the
+            -- Triumvirate" while Blizzard returns "Seat of the
+            -- Triumvirate" (or vice versa). Store both forms.
+            local stripped = name:gsub("^The ", "")
+            if stripped ~= name then DUNGEON_TEXTURES[stripped] = texture end
+            DUNGEON_TEXTURES["The " .. name] = texture
+        end
+    end
+end
+
+-- C_ChallengeMode data isn't ready until the player enters the world,
+-- so build the cache off PLAYER_ENTERING_WORLD. Re-runs on each reload
+-- are cheap and pick up any rotation changes mid-session.
+local _dungeonTextureLoader = CreateFrame("Frame")
+_dungeonTextureLoader:RegisterEvent("PLAYER_ENTERING_WORLD")
+_dungeonTextureLoader:SetScript("OnEvent", _refreshDungeonTextures)
 
 -- Bar / value colors tuned to the wowumbra.gg palette:
 --   ≥80  lilac   (#c084fc — on-primary-container, the site's "excellent" tone)
@@ -470,15 +488,16 @@ local function CreateDungeonRow(parent, yOffset)
     gradeText:SetJustifyH("LEFT")
     gradeText:SetWidth(34)
 
-    -- Small thematic icon (20px square) sits between the grade letter
-    -- and the dungeon name. Sourced from DUNGEON_ICONS keyed by
-    -- encounter_id; unmapped IDs use the generic keystone icon. The
-    -- icon is decorative — it carries no data, just breaks the visual
-    -- monotony of eight near-identical rows.
+    -- 20px dungeon icon (the real Blizzard M+ tile) between the grade
+    -- letter and the dungeon name. Texture is set per-row at render
+    -- time from DUNGEON_TEXTURES[name]; full TexCoord because the
+    -- challenge-mode icons are already cropped tight by Blizzard. The
+    -- spell-icon border trim is applied only when the fallback
+    -- keystone icon is used (those have the default Interface\Icons
+    -- 64px border).
     local dungeonIcon = overlay:CreateTexture(nil, "ARTWORK")
     dungeonIcon:SetSize(20, 20)
     dungeonIcon:SetPoint("LEFT", gradeText, "RIGHT", 2, 0)
-    dungeonIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)  -- trim default icon border
 
     local nameText = overlay:CreateFontString(nil, "OVERLAY")
     nameText:SetPoint("LEFT", dungeonIcon, "RIGHT", 6, 0)
@@ -853,9 +872,20 @@ local function _renderDungeons(myData)
             row.gradeText:SetText(d.grade or "—")
             row.gradeText:SetTextColor(gc[1], gc[2], gc[3])
             row.nameText:SetText(d.name or "?")
-            row.dungeonIcon:SetTexture(
-                DUNGEON_ICONS[d.encounter_id] or FALLBACK_DUNGEON_ICON
-            )
+
+            -- Prefer the real Blizzard challenge-mode icon, falling
+            -- back to the keystone for anything outside the current
+            -- M+ pool. Toggle the spell-icon border trim only when
+            -- the fallback fires, so authentic dungeon tiles render
+            -- edge-to-edge without crop artifacts.
+            local dungeonTex = d.name and DUNGEON_TEXTURES[d.name]
+            if dungeonTex then
+                row.dungeonIcon:SetTexture(dungeonTex)
+                row.dungeonIcon:SetTexCoord(0, 1, 0, 1)
+            else
+                row.dungeonIcon:SetTexture(FALLBACK_DUNGEON_ICON)
+                row.dungeonIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+            end
 
             -- Bar fill: grade rank as a 0..100 progress proxy. Roughly
             -- matches the composite the website would show for the same
