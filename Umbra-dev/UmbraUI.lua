@@ -766,6 +766,13 @@ end
 local _activeTab = "stats"
 local _currentMyData = nil
 
+-- Debug toggle: when true, RefreshUI short-circuits and renders the
+-- empty-state copy on whichever tab is active, regardless of what's
+-- in Umbra_Database. Toggled via `/umbra empty`. Useful for sanity-
+-- checking the panel for never-graded characters without having to
+-- delete any real player's data.
+local _previewEmpty = false
+
 local function _hideAllRows()
     for _, row in ipairs(statRows) do row.frame:Hide(); row.iconFrame:Hide() end
     for _, row in ipairs(dungeonRows) do row.frame:Hide() end
@@ -939,6 +946,17 @@ tabDungeons:SetActive(false)
 
 local function RefreshUI()
     _refreshPortraitModel()
+
+    -- Debug preview path: ignore Umbra_Database entirely and render as
+    -- if the player has no data. The portrait still renders (it's driven
+    -- by the WoW unit API, not by us), but the grade falls to N/R and
+    -- the active tab shows its empty-state copy.
+    if _previewEmpty then
+        _paintProfile(nil)
+        _currentMyData = nil
+        _renderActiveTab()
+        return
+    end
 
     if not Umbra_Database then
         _paintProfile(nil)
@@ -1211,7 +1229,26 @@ end)
 -- visible in their respective columns.
 
 SLASH_UMBRA1 = "/umbra"
-SlashCmdList["UMBRA"] = function()
+SlashCmdList["UMBRA"] = function(msg)
+    -- Normalize the argument: trim whitespace, lowercase. Plain `/umbra`
+    -- with no args keeps the original toggle behavior; sub-commands
+    -- live alongside it.
+    local arg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+
+    if arg == "empty" then
+        -- Toggle the empty-state preview and re-render. Force the panel
+        -- open after toggling so the user immediately sees the change.
+        _previewEmpty = not _previewEmpty
+        print(
+            "|cff8a2be2[Umbra]|r empty-state preview: " ..
+            (_previewEmpty and "|cff90ee90ON|r" or "|cffff7777OFF|r") ..
+            (_previewEmpty and "  (type /umbra empty again to restore)" or "")
+        )
+        RefreshUI()
+        if not UmbraFrame:IsShown() then UmbraFrame:Show() end
+        return
+    end
+
     if UmbraFrame:IsShown() then
         UmbraFrame:Hide()
     else
