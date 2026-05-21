@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getDungeonSummary, getMethodology } from "@/lib/api";
-import { getGradeColor, getStatColor } from "@/lib/grades";
+import { getGradeColor } from "@/lib/grades";
 import {
   getCategoriesForRole,
   ROLE_WEIGHT_PROFILES,
@@ -240,8 +240,12 @@ export default async function DungeonDetailPage({ params, searchParams }: Props)
             const dur = `${Math.floor(r.duration / 60000)}:${String(
               Math.floor((r.duration % 60000) / 1000),
             ).padStart(2, "0")}`;
-            const runColor = r.run_composite_score != null
-              ? getStatColor(r.run_composite_score)
+            // Color the grade letter by grade tier (orange S / purple A /
+            // blue B / green C / amber D / red F) so the run list matches
+            // the rest of the site's grade palette. Falls back to neutral
+            // grey only when the run isn't graded.
+            const runColor = r.run_grade
+              ? getGradeColor(r.run_grade)
               : "#6b6b6b";
             return (
               <Link
