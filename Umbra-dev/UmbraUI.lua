@@ -501,10 +501,13 @@ local function CreateDungeonRow(parent, yOffset)
     -- reads as a click target, and a copy-URL tooltip appears so users
     -- know they're about to get a per-dungeon link. The encounter_id
     -- is stashed on the row during _renderDungeons so the click
-    -- handler can build the URL without re-iterating the table.
+    -- handler can build the URL without re-iterating the table. `bar`
+    -- is captured as an upvalue rather than reached through `self.bar`
+    -- because the bar is only stored on the returned wrapper table,
+    -- not on the row Button itself.
     row:SetScript("OnEnter", function(self)
         if self._gradeColor then
-            self.bar:SetStatusBarColor(
+            bar:SetStatusBarColor(
                 self._gradeColor[1], self._gradeColor[2], self._gradeColor[3], 0.75
             )
         end
@@ -519,7 +522,7 @@ local function CreateDungeonRow(parent, yOffset)
     end)
     row:SetScript("OnLeave", function(self)
         if self._gradeColor then
-            self.bar:SetStatusBarColor(
+            bar:SetStatusBarColor(
                 self._gradeColor[1], self._gradeColor[2], self._gradeColor[3], 0.45
             )
         end
