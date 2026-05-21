@@ -3392,7 +3392,21 @@ def get_player_dungeon_summary(
         total_casts=sum(r.casts_total for r in runs),
         total_duration_ms=sum(r.duration for r in runs),
     )
-    resp.runs = [_run_to_response(r, class_id=player.class_id) for r in runs]
+    # Score each run individually so the per-run grade letter renders
+    # on the dungeon page's "runs logged" list. Without this the
+    # frontend falls back to "—" for every row (RunResponse.run_grade
+    # is left None by _run_to_response). Per-run scoring is in-memory
+    # math against already-fetched DungeonRun rows; cheap relative to
+    # the ingest that produced them.
+    resp.runs = []
+    for r in runs:
+        run_resp = _run_to_response(r, class_id=player.class_id)
+        run_result = score_player_runs(
+            runs=[r], role=resolved_role, class_id=player.class_id,
+        )
+        run_resp.run_grade = run_result.overall_grade
+        run_resp.run_composite_score = run_result.composite_score
+        resp.runs.append(run_resp)
     return resp
 
 
