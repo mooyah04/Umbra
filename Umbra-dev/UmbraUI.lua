@@ -673,9 +673,11 @@ openWebBtn:SetPoint("BOTTOM", UmbraFrame, "BOTTOMLEFT", LEFT_COL_WIDTH / 2, 14)
 openWebBtn:SetText("Open full profile on wowumbra.gg")
 
 -- Data-freshness footnote tucked above the footer button. Until the
--- backend exports a real `exported_at` we lean on two true-now facts:
--- the addon version (auto-released daily; bumps when the data refresh
--- pushes a new build) and the hourly server-side refresh cadence. Once
+-- backend exports a real `exported_at` we lean on the daily auto-release
+-- cadence — that's when users actually receive a new Umbra build via
+-- CurseForge/Wago, which is what controls the data they see. (The
+-- server-side Lua refresh is hourly, but users don't get those rebuilds
+-- until the daily packager run uploads the zip.) Once
 -- `Umbra_DatabaseMeta.exported_at` lands, swap this for a real delta.
 local freshnessText = UmbraFrame:CreateFontString(nil, "OVERLAY")
 freshnessText:SetPoint("BOTTOM", openWebBtn, "TOP", 0, 4)
@@ -684,7 +686,7 @@ freshnessText:SetTextColor(0.65, 0.6, 0.78)
 freshnessText:SetJustifyH("CENTER")
 do
     local version = (GetAddOnMetadata and GetAddOnMetadata("Umbra", "Version")) or "dev"
-    freshnessText:SetText("Umbra v" .. version .. "  ·  Data refreshes hourly")
+    freshnessText:SetText("Umbra v" .. version .. "  ·  Data refreshes daily")
 end
 openWebBtn:SetScript("OnClick", function()
     StaticPopup_Show("UMBRA_OPEN_ON_WEB")
