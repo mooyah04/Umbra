@@ -9,8 +9,9 @@ local LEFT_COL_WIDTH = 360
 local RIGHT_COL_WIDTH = 300
 local FRAME_WIDTH = LEFT_COL_WIDTH + RIGHT_COL_WIDTH
 -- Tall enough for 8 stat rows under the profile card + footer. Healer is the
--- max-row case (6 categories + dps_ilvl + timed_pct).
-local FRAME_HEIGHT = 512
+-- max-row case (6 categories + dps_ilvl + timed_pct). +36 over the original
+-- to fit the Stats/Dungeons tab strip without crowding the bottom button.
+local FRAME_HEIGHT = 548
 
 -- ── Main Frame ──────────────────────────────────────────────────────────────
 
@@ -219,6 +220,17 @@ local GRADE_COLORS = {
     ["F"] = {1, 0.19, 0.19}, ["F-"] = {1, 0.19, 0.19},
 }
 
+-- Sortable rank for the Dungeons tab — best grade first, then run count
+-- as tiebreaker (more evidence = higher confidence).
+local GRADE_RANK = {
+    ["S+"] = 16, ["S"] = 15,
+    ["A+"] = 14, ["A"] = 13, ["A-"] = 12,
+    ["B+"] = 11, ["B"] = 10, ["B-"] = 9,
+    ["C+"] = 8,  ["C"] = 7,  ["C-"] = 6,
+    ["D+"] = 5,  ["D"] = 4,  ["D-"] = 3,
+    ["F"] = 2,   ["F-"] = 1,
+}
+
 -- Bar / value colors tuned to the wowumbra.gg palette:
 --   ≥80  lilac   (#c084fc — on-primary-container, the site's "excellent" tone)
 --   ≥60  cyan    (#22d3ee — site's secondary accent)
@@ -305,13 +317,133 @@ local function CreateStatRow(parent, yOffset)
     }
 end
 
+-- ── Tab Strip (Stats | Dungeons) ────────────────────────────────────────────
+-- Sits between the profile card and the row area. Switches the left column
+-- content between the existing category breakdown (Stats) and a per-dungeon
+-- grade list driven by `Umbra_Database[key].dungeons`.
+
+local TAB_HEIGHT = 26
+local TAB_GAP = 4
+local tabStrip = CreateFrame("Frame", nil, UmbraFrame)
+tabStrip:SetSize(LEFT_COL_WIDTH - 28, TAB_HEIGHT)
+tabStrip:SetPoint("TOPLEFT", UmbraFrame, "TOPLEFT", 14, -180)
+
+local function _makeTabButton(label, anchorBtn)
+    local btn = CreateFrame("Button", nil, tabStrip)
+    btn:SetSize((LEFT_COL_WIDTH - 32 - TAB_GAP) / 2, TAB_HEIGHT)
+    if anchorBtn then
+        btn:SetPoint("LEFT", anchorBtn, "RIGHT", TAB_GAP, 0)
+    else
+        btn:SetPoint("LEFT", tabStrip, "LEFT", 0, 0)
+    end
+
+    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    btn.bg = bg
+
+    -- Thin underline pops only on the active tab; cheaper than a full
+    -- swap of textures, and avoids needing more art files in /textures.
+    local accent = btn:CreateTexture(nil, "ARTWORK")
+    accent:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 4, 0)
+    accent:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -4, 0)
+    accent:SetHeight(2)
+    btn.accent = accent
+
+    local text = btn:CreateFontString(nil, "OVERLAY")
+    text:SetPoint("CENTER")
+    text:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    text:SetText(label)
+    btn.text = text
+
+    btn.SetActive = function(self, isActive)
+        if isActive then
+            bg:SetColorTexture(0.54, 0.17, 0.89, 0.35)
+            accent:SetColorTexture(0.85, 0.55, 1, 1)
+            text:SetTextColor(1, 1, 1)
+        else
+            bg:SetColorTexture(0.12, 0.06, 0.18, 0.55)
+            accent:SetColorTexture(0.4, 0.3, 0.6, 0.5)
+            text:SetTextColor(0.75, 0.7, 0.85)
+        end
+    end
+    return btn
+end
+
+local tabStats = _makeTabButton("Stats", nil)
+local tabDungeons = _makeTabButton("Dungeons", tabStats)
+
 local statRows = {}
 -- Profile card occupies y = -44 to -172 (taller to fit the 3D model +
--- bigger grade). Start stat rows with a breathing gap below it.
+-- bigger grade). Tab strip sits at y = -180. Rows start with a gap below it.
 -- 8 rows: healer can render 6 categories + dps_ilvl + timed_pct.
-local rowStartY = -184
+local rowStartY = -218
 for i = 1, 8 do
     statRows[i] = CreateStatRow(UmbraFrame, rowStartY - (i - 1) * (ROW_HEIGHT + 6))
+end
+
+-- ── Dungeon Row Builder ─────────────────────────────────────────────────────
+-- Mirrors the stat row's pill bg + colored bar so the two tabs share a
+-- visual language. No icon ring (the grade letter on the left is the icon).
+-- Bar fill maps grade rank → 0..100%, which roughly matches what the score
+-- panel shows for the same dungeon on the website.
+
+local function CreateDungeonRow(parent, yOffset)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize(ROW_WIDTH, ROW_HEIGHT)
+    row:SetPoint("TOPLEFT", parent, "TOPLEFT", 28, yOffset)
+
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetTexture(ADDON_PATH .. "bar_bg")
+
+    local bar = CreateFrame("StatusBar", nil, row)
+    bar:SetSize(ROW_WIDTH, ROW_HEIGHT)
+    bar:SetPoint("LEFT")
+    bar:SetMinMaxValues(0, 100)
+    bar:SetValue(0)
+    bar:SetStatusBarTexture(ADDON_PATH .. "bar")
+
+    local overlay = CreateFrame("Frame", nil, row)
+    overlay:SetAllPoints()
+    overlay:SetFrameLevel(row:GetFrameLevel() + 3)
+
+    -- Grade letter on the left (where the stat-row icon sits). Bigger
+    -- font + outline so it reads as the row's headline.
+    local gradeText = overlay:CreateFontString(nil, "OVERLAY")
+    gradeText:SetPoint("LEFT", row, "LEFT", 12, 0)
+    gradeText:SetFont("Fonts\\FRIZQT__.TTF", 16, "OUTLINE, THICKOUTLINE")
+    gradeText:SetShadowOffset(1, -1)
+    gradeText:SetShadowColor(0, 0, 0, 1)
+    gradeText:SetJustifyH("LEFT")
+    gradeText:SetWidth(36)
+
+    local nameText = overlay:CreateFontString(nil, "OVERLAY")
+    nameText:SetPoint("LEFT", gradeText, "RIGHT", 4, 0)
+    nameText:SetPoint("RIGHT", row, "RIGHT", -78, 0)
+    nameText:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+    nameText:SetTextColor(1, 1, 1)
+    nameText:SetShadowOffset(1, -1)
+    nameText:SetShadowColor(0, 0, 0, 1)
+    nameText:SetJustifyH("LEFT")
+    nameText:SetWordWrap(false)
+
+    -- Best timed key + run count on the right; matches how the stat row
+    -- formats "timed_pct" (value + dim count).
+    local bestText = overlay:CreateFontString(nil, "OVERLAY")
+    bestText:SetPoint("RIGHT", row, "RIGHT", -10, 0)
+    bestText:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    bestText:SetJustifyH("RIGHT")
+
+    return {
+        frame = row, bar = bar,
+        gradeText = gradeText, nameText = nameText, bestText = bestText,
+    }
+end
+
+local dungeonRows = {}
+for i = 1, 8 do
+    dungeonRows[i] = CreateDungeonRow(UmbraFrame, rowStartY - (i - 1) * (ROW_HEIGHT + 6))
+    dungeonRows[i].frame:Hide()  -- hidden until the Dungeons tab is selected
 end
 
 -- ── "Open on web" button ───────────────────────────────────────────────────
@@ -371,9 +503,11 @@ StaticPopupDialogs["UMBRA_OPEN_ON_WEB"] = {
     preferredIndex = 3,
 }
 
--- Footer button anchored to the bottom of the left column.
+-- Footer button anchored to the bottom of the left column. Width tuned to
+-- fully fit "Open full profile on wowumbra.gg" at the default button font;
+-- previously the text overflowed both edges of the 200px button frame.
 local openWebBtn = CreateFrame("Button", nil, UmbraFrame, "UIPanelButtonTemplate")
-openWebBtn:SetSize(200, 22)
+openWebBtn:SetSize(280, 22)
 openWebBtn:SetPoint("BOTTOM", UmbraFrame, "BOTTOMLEFT", LEFT_COL_WIDTH / 2, 14)
 openWebBtn:SetText("Open full profile on wowumbra.gg")
 openWebBtn:SetScript("OnClick", function()
@@ -448,12 +582,146 @@ local function _paintProfile(myData)
     end
 end
 
+-- Active tab + last-rendered player data so tab switches can re-render
+-- without going back to the DB. Updated by RefreshUI; consumed by
+-- _renderActiveTab.
+local _activeTab = "stats"
+local _currentMyData = nil
+
+local function _hideAllRows()
+    for _, row in ipairs(statRows) do row.frame:Hide(); row.iconFrame:Hide() end
+    for _, row in ipairs(dungeonRows) do row.frame:Hide() end
+end
+
+local function _renderStats(myData)
+    if not myData then return end
+    local spec = myData.spec or "Unknown"
+
+    -- Render categories in role-appropriate order. Drop any field the
+    -- backend didn't export for this player (e.g. healer-only throughput
+    -- on a DPS row) rather than filling the slot with zeros.
+    local order = STAT_ORDER_FOR_ROLE[myData.role or "dps"] or STAT_ORDER_FOR_ROLE.dps
+    local stats = {}
+    for _, key in ipairs(order) do
+        local v = myData[key]
+        if v ~= nil then
+            table.insert(stats, { key = key, val = v })
+        end
+    end
+
+    for i, stat in ipairs(stats) do
+        if statRows[i] then
+            local row = statRows[i]
+            local iconTex = STAT_ICONS[stat.key]
+            if stat.key == "dps_ilvl" then
+                iconTex = SPEC_ICONS[myData.spec] or "Interface\\Icons\\INV_Misc_QuestionMark"
+            end
+            row.icon:SetTexture(iconTex or "Interface\\Icons\\INV_Misc_QuestionMark")
+
+            local labelFmt = STAT_LABELS_MAP[stat.key] or stat.key
+            if labelFmt:find("%%s") then
+                labelFmt = string.format(labelFmt, spec)
+            end
+            row.label:SetText(labelFmt)
+
+            local r, g, b = GetStatColorRGB(stat.val)
+            row.bar:SetValue(stat.val)
+            row.bar:SetStatusBarColor(r, g, b, 0.45)
+
+            local hex = RGBToHex(r, g, b)
+            if stat.key == "timed_pct" then
+                row.value:SetText("|cff" .. hex .. stat.val .. "%|r |cff888888(" .. (myData.runs or 0) .. ")|r")
+            else
+                row.value:SetText("|cff" .. hex .. stat.val .. "%|r")
+            end
+            row.frame:Show()
+            row.iconFrame:Show()
+        end
+    end
+end
+
+local function _renderDungeons(myData)
+    if not myData or not myData.dungeons then return end
+    -- Flatten the dungeons table into a sortable list. Backend keys by
+    -- encounter_id; we don't surface the id in the UI but keep it for
+    -- future enhancements (click → open per-dungeon page on the web).
+    local list = {}
+    for enc_id, d in pairs(myData.dungeons) do
+        table.insert(list, {
+            encounter_id = enc_id,
+            name = d.name,
+            grade = d.grade,
+            runs = d.runs,
+            best_timed = d.best_timed,
+        })
+    end
+    table.sort(list, function(a, b)
+        local ar = GRADE_RANK[a.grade] or 0
+        local br = GRADE_RANK[b.grade] or 0
+        if ar ~= br then return ar > br end
+        return (a.runs or 0) > (b.runs or 0)
+    end)
+
+    for i, d in ipairs(list) do
+        if dungeonRows[i] then
+            local row = dungeonRows[i]
+            local rank = GRADE_RANK[d.grade] or 0
+            local gc = GRADE_COLORS[d.grade] or {0.7, 0.7, 0.7}
+
+            row.gradeText:SetText(d.grade or "—")
+            row.gradeText:SetTextColor(gc[1], gc[2], gc[3])
+            row.nameText:SetText(d.name or "?")
+
+            -- Bar fill: grade rank as a 0..100 progress proxy. Roughly
+            -- matches the composite the website would show for the same
+            -- dungeon without needing the backend to ship that number too.
+            row.bar:SetValue(math.floor(rank / 16 * 100))
+            row.bar:SetStatusBarColor(gc[1], gc[2], gc[3], 0.45)
+
+            if d.best_timed then
+                row.bestText:SetText(
+                    "|cffffffff+" .. d.best_timed ..
+                    "|r |cff888888(" .. (d.runs or 0) .. ")|r"
+                )
+            else
+                row.bestText:SetText("|cff888888(" .. (d.runs or 0) .. ")|r")
+            end
+            row.frame:Show()
+        end
+    end
+end
+
+local function _renderActiveTab()
+    _hideAllRows()
+    if _activeTab == "stats" then
+        _renderStats(_currentMyData)
+    else
+        _renderDungeons(_currentMyData)
+    end
+end
+
+local function _setTab(name)
+    _activeTab = name
+    tabStats:SetActive(name == "stats")
+    tabDungeons:SetActive(name == "dungeons")
+    _renderActiveTab()
+end
+
+tabStats:SetScript("OnClick", function() _setTab("stats") end)
+tabDungeons:SetScript("OnClick", function() _setTab("dungeons") end)
+
+-- Paint the initial tab state so the strip doesn't render blank-grey
+-- before the first /umbra invocation.
+tabStats:SetActive(true)
+tabDungeons:SetActive(false)
+
 local function RefreshUI()
     _refreshPortraitModel()
 
     if not Umbra_Database then
         _paintProfile(nil)
-        for _, row in ipairs(statRows) do row.frame:Hide(); row.iconFrame:Hide() end
+        _currentMyData = nil
+        _hideAllRows()
         return
     end
 
@@ -469,54 +737,9 @@ local function RefreshUI()
         end
     end
 
-    for _, row in ipairs(statRows) do row.frame:Hide(); row.iconFrame:Hide() end
+    _currentMyData = myData
     _paintProfile(myData)
-
-    if myData then
-        local spec = myData.spec or "Unknown"
-
-        -- Render categories in role-appropriate order. Drop any field the
-        -- backend didn't export for this player (e.g. healer-only throughput
-        -- on a DPS row) rather than filling the slot with zeros.
-        local order = STAT_ORDER_FOR_ROLE[myData.role or "dps"] or STAT_ORDER_FOR_ROLE.dps
-        local stats = {}
-        for _, key in ipairs(order) do
-            local v = myData[key]
-            if v ~= nil then
-                table.insert(stats, { key = key, val = v })
-            end
-        end
-
-        for i, stat in ipairs(stats) do
-            if statRows[i] then
-                local row = statRows[i]
-                local iconTex = STAT_ICONS[stat.key]
-                if stat.key == "dps_ilvl" then
-                    iconTex = SPEC_ICONS[myData.spec] or "Interface\\Icons\\INV_Misc_QuestionMark"
-                end
-                row.icon:SetTexture(iconTex or "Interface\\Icons\\INV_Misc_QuestionMark")
-
-                local labelFmt = STAT_LABELS_MAP[stat.key] or stat.key
-                if labelFmt:find("%%s") then
-                    labelFmt = string.format(labelFmt, spec)
-                end
-                row.label:SetText(labelFmt)
-
-                local r, g, b = GetStatColorRGB(stat.val)
-                row.bar:SetValue(stat.val)
-                row.bar:SetStatusBarColor(r, g, b, 0.45)
-
-                local hex = RGBToHex(r, g, b)
-                if stat.key == "timed_pct" then
-                    row.value:SetText("|cff" .. hex .. stat.val .. "%|r |cff888888(" .. (myData.runs or 0) .. ")|r")
-                else
-                    row.value:SetText("|cff" .. hex .. stat.val .. "%|r")
-                end
-                row.frame:Show()
-                row.iconFrame:Show()
-            end
-        end
-    end
+    _renderActiveTab()
 end
 
 -- ── Settings (used by Core.lua and UmbraLogger.lua) ────────────────────────
