@@ -2772,24 +2772,37 @@ def top_players(
 
     Ordered by most-recent PlayerScore computation so the homepage
     reflects fresh ingests. Filters to primary-role scores only so we
-    don't return the same player twice (once per role).
+    don't return the same player twice (once per role). Also dedups by
+    normalized (name, realm, region) — migration 018 added a DB
+    constraint that prevents new duplicate Player rows, but this stays
+    in place so historical-data quirks or any future race that slips
+    past can't surface visibly on the homepage.
     """
     stmt = (
         select(PlayerScore)
         .where(PlayerScore.primary_role.is_(True))
         .options(selectinload(PlayerScore.player))
         .order_by(PlayerScore.computed_at.desc())
-        .limit(limit * 2)  # over-fetch, then filter in Python for region
+        .limit(limit * 4)  # over-fetch for region filter + identity dedup
     )
     scores = session.execute(stmt).scalars().all()
 
     results: list[PlayerSearchResult] = []
+    seen: set[tuple[str, str, str]] = set()
     for score in scores:
         player = score.player
         if region and player.region.upper() != region.upper():
             continue
         if role and score.role.value != role.lower():
             continue
+        identity = (
+            player.name.lower(),
+            player.realm.lower(),
+            player.region.upper(),
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
         run_stmt = (
             select(DungeonRun.spec_name)
             .where(DungeonRun.player_id == player.id)

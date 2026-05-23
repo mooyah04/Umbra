@@ -27,6 +27,15 @@ class Role(str, enum.Enum):
 
 class Player(Base):
     __tablename__ = "players"
+    __table_args__ = (
+        # DB-level backstop for the TOCTOU race between concurrent
+        # ingest paths (search + crawler + repeat-clicks). See
+        # migration 018 for the incident that motivated this.
+        UniqueConstraint(
+            "name", "realm", "region",
+            name="uq_players_name_realm_region",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
