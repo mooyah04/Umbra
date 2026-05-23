@@ -137,14 +137,14 @@ local function AddUmbraTooltip(tooltip, data, compact)
     local gradeColor = GetGradeColor(data.grade)
     local role = data.role or "dps"
 
-    -- "Umbra.gg" header on the left, grade on the right. Native WoW
-    -- tooltip already shows "<spec> <class>" above us, so no need to
-    -- duplicate role/spec text here. Grade color alone carries the
-    -- visual emphasis — no SetFont so this is safe for tooltip line
-    -- recycling (previously ran into text-region font leaks onto other
-    -- addons' tooltips when we used SetFont).
+    -- Brand header on the left, grade on the right. Native WoW tooltip
+    -- already shows "<spec> <class>" above us, so no need to duplicate
+    -- role/spec text here. Grade color alone carries the visual emphasis
+    -- — no SetFont so this is safe for tooltip line recycling
+    -- (previously ran into text-region font leaks onto other addons'
+    -- tooltips when we used SetFont).
     tooltip:AddDoubleLine(
-        UMBRA_PURPLE .. "Umbra.gg|r",
+        UMBRA_PURPLE .. "WoWUmbra.gg|r",
         gradeColor .. data.grade .. "|r"
     )
 
