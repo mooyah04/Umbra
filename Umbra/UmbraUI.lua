@@ -685,7 +685,12 @@ freshnessText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
 freshnessText:SetTextColor(0.65, 0.6, 0.78)
 freshnessText:SetJustifyH("CENTER")
 do
-    local version = (GetAddOnMetadata and GetAddOnMetadata("Umbra", "Version")) or "dev"
+    -- TWW (11.0+) moved GetAddOnMetadata under C_AddOns and removed the
+    -- bare global; fall back to the legacy global for Classic clients
+    -- still on the old API. Without this the live addon shows "vdev"
+    -- because the lookup returns nil on retail.
+    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local version = (getMeta and getMeta("Umbra", "Version")) or "dev"
     freshnessText:SetText("Umbra v" .. version .. "  ·  Data refreshes daily")
 end
 openWebBtn:SetScript("OnClick", function()
