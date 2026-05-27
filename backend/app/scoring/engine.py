@@ -368,9 +368,11 @@ def _score_survivability(runs: list[DungeonRun]) -> float:
     All components are weighted by key level — dying in a +15 hurts more.
     """
     def death_score_fn(run):
-        # Softer death curve. One death in a +15 is often unavoidable even
-        # for top players; the old curve (1 death = 65) was harsh. New:
-        # 0=100, 1=80, 2=55, 3=30, 4=10, 5+=0.
+        # Base death curve: 0=100, 1=80, 2=55, 3=30, 4=10, 5+=0.
+        # Key-level lenience: above +12 each level adds up to +10 points,
+        # reflecting that deaths are more common at higher keys even for
+        # skilled players. Calibrated against WCL top logs where +22-24
+        # timed runs average 0-1 deaths per player.
         if run.deaths == 0:
             base = 100
         elif run.deaths == 1:
@@ -388,19 +390,29 @@ def _score_survivability(runs: list[DungeonRun]) -> float:
         avoidable = getattr(run, "avoidable_deaths", None)
         if avoidable is not None and avoidable > 0 and run.deaths > 0:
             avoidable_penalty = min(base, avoidable * 10)
-            return max(0, base - avoidable_penalty)
+            base = max(0, base - avoidable_penalty)
 
-        return base
+        ks_lenience = min(10, max(0, run.keystone_level - 12))
+        return min(100, base + ks_lenience)
 
     def avoidable_damage_score_fn(run):
         # Primary: avoidable-ratio when we have per-ability breakdown.
+        # Recalibrated 2026-05-27 against 30 top WCL logs (+22-24 keys).
+        # The avoidable ability lists classify many semi-unavoidable AoE
+        # abilities (Spectral Strikes, Devouring Entropy, Scorching Ray).
+        # Top-log median avoidable ratio is 59% — the old formula (300x
+        # multiplier, 33% = 0) gave every top group a flat zero.
+        # New curve: 15% → 100, 80% → 15, linear between.
         if run.avoidable_damage_taken > 0:
             if run.damage_taken_total > 0:
                 avoidable_ratio = run.avoidable_damage_taken / run.damage_taken_total
             else:
                 avoidable_ratio = 0
-            # 0% avoidable = 100, 10% = 70, 20% = 40, 30%+ = 10
-            return max(0, 100 - avoidable_ratio * 300)
+            if avoidable_ratio <= 0.15:
+                return 100.0
+            if avoidable_ratio >= 0.80:
+                return 15.0
+            return 100.0 - (avoidable_ratio - 0.15) / 0.65 * 85.0
 
         # Tanks aren't scored on DTPS (they're supposed to take the damage).
         if run.role == Role.tank:
@@ -441,7 +453,9 @@ def _score_survivability(runs: list[DungeonRun]) -> float:
 
         # HRPS scales with key level — same story as DTPS. Absolute thresholds
         # punished everyone in high keys for taking normal boss damage.
-        level_mult = 1.0 + max(0, run.keystone_level - 2) * 0.15
+        # Coefficient bumped from 0.15 to 0.18 (2026-05-27): WCL top logs
+        # at +22-24 show healing intake scaling faster than damage at high keys.
+        level_mult = 1.0 + max(0, run.keystone_level - 2) * 0.18
 
         if hrps < 2000 * level_mult:
             return 100
