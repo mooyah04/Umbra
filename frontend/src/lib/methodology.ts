@@ -58,7 +58,7 @@ export const CATEGORY_EXPLANATIONS: CategoryExplanation[] = [
     label: "Survivability",
     summary: "Deaths, avoidable damage taken, and healing burden.",
     description:
-      "Three signals: how often you died, how much of your damage taken came from ability IDs we know are avoidable, and how much healing you consumed relative to the group. Tanks aren't penalized for healing received (they're supposed to tank). Deaths caused by avoidable abilities cost extra.",
+      "Three signals: how often you died, how much of your damage taken came from ability IDs we know are avoidable, and how much healing you consumed relative to the group. Tanks aren't penalized for healing received (they're supposed to tank). Deaths caused by avoidable abilities cost extra. The death penalty softens at higher key levels (above +12) because even top players take unavoidable deaths in high keys. Avoidable damage and healing burden thresholds both scale with key level so a +25 isn't compared against +5 standards.",
     howToImprove:
       "Audit your Details damage-taken log after a wipe. If one ability hit you for >15% of your total intake, look up the mechanic on Wowhead and you'll usually find the out.",
     roles: ["dps", "healer", "tank"],

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-05-27",
+    title: "Survivability scoring recalibrated for high keys",
+    category: "improved",
+    body:
+      "We sampled the top 30 speed logs on Warcraft Logs across all 8 Midnight S1 dungeons (+22 to +24 keys, zero deaths, all timed) and found a major problem: our avoidable damage formula was giving every top group in the world a flat zero. The issue was that abilities like Spectral Strikes, Devouring Entropy, and Scorching Ray are classified as avoidable but are actually semi-unavoidable AoE that even perfect groups take. The median avoidable damage ratio in those top logs was 59%, and our old formula bottomed out at 33%. Three changes went in today. First, the avoidable damage curve is recalibrated against real data so a 40% avoidable ratio (normal for a clean high-key run) now scores in the 60s instead of zero. Second, the death penalty now softens at higher key levels: above +12, each key level adds a small lenience because dying once in a +25 is fundamentally different from dying once in a +5. Third, the healing burden threshold scales a bit more aggressively with key level so you're not penalized for receiving normal amounts of healing in a high key. The net effect: top DPS players who were stuck at A+ despite near-perfect play now properly land in S territory. A timed +20 with one death and clean mechanics should grade like the accomplishment it is.",
+  },
+  {
     date: "2026-05-22",
     title: "Per-dungeon grades land in the in-game stats panel",
     category: "new",
