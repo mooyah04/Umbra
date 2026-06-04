@@ -9,9 +9,9 @@ interface ScoreBreakdownProps {
 
 /** Categories to display per role (in order). */
 const ROLE_CATEGORIES: Record<string, string[]> = {
-  dps: ["damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
-  healer: ["healing_throughput", "damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage"],
-  tank: ["damage_output", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
+  dps: ["damage_output", "damage_output_overall", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
+  healer: ["healing_throughput", "damage_output", "damage_output_overall", "damage_output_ilvl", "utility", "survivability", "cooldown_usage"],
+  tank: ["damage_output", "damage_output_overall", "damage_output_ilvl", "utility", "survivability", "cooldown_usage", "casts_per_minute"],
 };
 
 export default function ScoreBreakdown({ categoryScores, role, spec }: ScoreBreakdownProps) {

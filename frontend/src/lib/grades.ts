@@ -42,6 +42,7 @@ export function getStatColor(value: number): string {
 /** Friendly category label for display. */
 export const CATEGORY_LABELS: Record<string, string> = {
   damage_output: "DPS Performance",
+  damage_output_overall: "DPS vs All Keys",
   damage_output_ilvl: "DPS vs iLvl Bracket",
   healing_throughput: "Healing Throughput",
   utility: "Utility (Kicks/Dispels)",
@@ -54,7 +55,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
 /** Category labels for specific roles. */
 export function getCategoryLabel(key: string, role: string, spec?: string): string {
   if (key === "damage_output" && role === "healer") return "Healer DPS";
-  if (key === "damage_output") return `Overall vs ${spec ?? "Spec"}`;
+  // The graded number is the same-key-bracketed percentile. The "overall"
+  // (vs all keys) and "ilvl" numbers are display-only context.
+  if (key === "damage_output") return `Same Key vs ${spec ?? "Spec"}`;
+  if (key === "damage_output_overall") return `Overall vs ${spec ?? "Spec"}`;
   if (key === "damage_output_ilvl") return `iLvl vs ${spec ?? "Spec"}`;
   if (key === "healing_throughput") return `HPS vs ${spec ?? "Spec"}`;
   if (key === "utility" && role === "healer") return "Utility/Dispels";

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-06-04",
+    title: "Damage Output now grades you against your own key level",
+    category: "fixed",
+    body:
+      "Your Damage Output score used to come from Warcraft Logs' overall ranking, which compared your raw DPS against every parse of your spec regardless of key level. Because a high key naturally produces more damage than a low one, that pooled almost everyone up to a 90-100 — a high-key run was effectively being measured against a field full of low keys. We've switched it to the same-key-bracketed number: your +12 is now graded against other +12s, your +6 against other +6s, then averaged across your runs and weighted toward your higher keys. This is what the methodology page always described, and it's a far more honest read of how you actually performed. The Warcraft Logs overall and item-level rankings are still shown on your profile as context, but they no longer affect your grade. Because the honest number is lower for players who were riding the high-key inflation, we re-fit the letter-grade cutoffs against the whole player base so the distribution of S/A/B grades stays stable — your grade now reflects where you really stand among players running your keys. Expect movement in both directions: damage that was genuinely strong for the key holds up, while scores that were propped up by the old pooled comparison settle to their true level.",
+  },
+  {
     date: "2026-05-27",
     title: "Survivability scoring recalibrated for high keys",
     category: "improved",

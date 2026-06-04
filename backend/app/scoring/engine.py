@@ -53,11 +53,20 @@ def _dispel_opportunity(encounter_id: int) -> bool | None:
 
 # ── Grade thresholds ────────────────────────────────────────────────────────
 
+# Recalibrated 2026-06-04 alongside the damage_output bracketed swap.
+# damage_output now uses the key-level-bracketed per-run average rather
+# than WCL's "overall" zoneRankings percentile (which compared a player's
+# raw DPS against the whole spec pool regardless of key level, inflating
+# every high-key player to 90-100). The honest metric deflates composites,
+# so these cutoffs were re-fit (distribution-preserving, quantile-matched
+# against the 636-player prod population) to keep the grade distribution
+# stable instead of sliding everyone toward B/C. See
+# scripts/recalibrate_grade_thresholds.py.
 GRADE_THRESHOLDS: list[tuple[int, str]] = [
-    (95, "S+"), (90, "S"),  (85, "A+"), (80, "A"),
-    (75, "A-"), (70, "B+"), (65, "B"),  (60, "B-"),
-    (55, "C+"), (50, "C"),  (45, "C-"), (40, "D+"),
-    (35, "D"),  (30, "D-"), (20, "F"),  (0, "F-"),
+    (96, "S+"), (90, "S"),  (87, "A+"), (80, "A"),
+    (75, "A-"), (68, "B+"), (64, "B"),  (58, "B-"),
+    (52, "C+"), (48, "C"),  (42, "C-"), (36, "D+"),
+    (30, "D"),  (24, "D-"), (18, "F"),  (0, "F-"),
 ]
 
 
@@ -730,11 +739,13 @@ def score_player_runs(
     All category scores use weighted averages where higher keystone
     levels have more impact on the final score.
 
-    Two DPS percentiles from zoneRankings:
-    - zone_dps_percentile: vs all players of same spec (overall)
+    Two DPS percentiles from zoneRankings, both DISPLAY-ONLY (they do not
+    feed the grade — damage_output is graded on the same-key-bracketed
+    per-run average in _score_damage_output):
+    - zone_dps_percentile: vs all players of same spec (overall, any key)
     - zone_dps_ilvl_percentile: vs same spec at similar ilvl (gear-relative)
-    The overall percentile is used for the grade composite.
-    Both are stored in category_scores for display.
+    Both are stored in category_scores (damage_output_overall /
+    damage_output_ilvl) for context next to the grade.
 
     class_id is needed for healer utility scoring (determines if the spec
     can interrupt — only Resto Shaman and Holy Paladin can).
@@ -776,23 +787,26 @@ def score_player_runs(
     # on unranked dungeons even for flawless runs.
     raw_scores: dict[str, float] = {}
     for category_name in weights.categories:
-        # Use zone rankings percentile for damage output if available.
-        # Zone rankings are a player-wide average and always populated
-        # when ingest succeeds, so this path never returns None.
-        if category_name == "damage_output" and zone_dps_percentile is not None:
-            score = zone_dps_percentile
+        scorer = scorers[category_name]
+        # damage_output uses _score_damage_output — a key-level-weighted
+        # average of each run's *bracketed* percentile (r.dps, set during
+        # ingest from encounterRankings byBracket=true). It returns None
+        # when no run has a valid percentile, which drops the category and
+        # renormalizes (same path as a WCL-unranked legacy dungeon).
+        #
+        # The WCL "overall" zoneRankings percentile (zone_dps_percentile)
+        # is NO LONGER used for the grade. It compared a player's raw DPS
+        # against the entire spec pool regardless of key level, so every
+        # high-key player scored 90-100 — comparing a high key against a
+        # field full of low keys. It's retained purely as display context
+        # (see damage_output_overall / damage_output_ilvl below) so the UI
+        # can still show "vs the global pool" alongside the same-key grade.
+        if category_name == "utility":
+            score = scorer(runs, class_id=class_id)
+        elif category_name == "casts_per_minute":
+            score = scorer(runs, class_id=class_id)
         else:
-            scorer = scorers[category_name]
-            # Scorers that need class_id:
-            # - utility: healer interrupt eligibility / dps+tank dispel
-            # - casts_per_minute: disambiguates same-spec-different-class
-            #   benchmarks (Resto Druid vs Resto Shaman, Prot Warr vs Pal)
-            if category_name == "utility":
-                score = scorer(runs, class_id=class_id)
-            elif category_name == "casts_per_minute":
-                score = scorer(runs, class_id=class_id)
-            else:
-                score = scorer(runs)
+            score = scorer(runs)
 
         if score is None:
             excluded_categories.append(category_name)
@@ -851,7 +865,13 @@ def score_player_runs(
     else:
         composite = 0.0
 
-    # Store ilvl-relative percentile separately (for display, not in composite)
+    # Store the WCL zoneRankings percentiles separately for display only —
+    # they no longer feed the grade (damage_output is the same-key-bracketed
+    # average). `damage_output_overall` is the global-pool percentile (vs all
+    # of spec, any key); `damage_output_ilvl` is gear-bracketed. The UI can
+    # render these as context next to the same-key grade.
+    if zone_dps_percentile is not None:
+        category_scores["damage_output_overall"] = round(zone_dps_percentile, 1)
     if zone_dps_ilvl_percentile is not None:
         category_scores["damage_output_ilvl"] = round(zone_dps_ilvl_percentile, 1)
 

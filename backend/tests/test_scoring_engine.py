@@ -40,8 +40,8 @@ def _run(role=Role.dps, spec="Frost", keystone_level=10, **overrides) -> Dungeon
 # ── Grade thresholds ────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("score,expected", [
-    (100, "S+"), (95, "S+"), (94.9, "S"), (90, "S"), (89, "A+"),
-    (75, "A-"), (50, "C"), (0, "F-"), (-10, "F-"),
+    (100, "S+"), (96, "S+"), (95.9, "S"), (90, "S"), (89, "A+"),
+    (75, "A-"), (48, "C"), (0, "F-"), (-10, "F-"),
 ])
 def test_composite_to_grade(score, expected):
     assert composite_to_grade(score) == expected
@@ -152,11 +152,16 @@ def test_score_player_runs_returns_all_expected_categories():
     assert result.overall_grade in {g for _, g in GRADE_THRESHOLDS}
 
 
-def test_zone_percentile_overrides_damage_output():
-    """When zone_dps_percentile is passed, it replaces the raw DPS avg."""
-    runs = [_run(dps=10) for _ in range(3)]  # terrible raw DPS field
+def test_zone_percentile_is_display_only_not_graded():
+    """zone_dps_percentile (WCL 'overall' ranking) no longer drives the
+    grade — damage_output is the same-key-bracketed per-run average. The
+    overall percentile is retained only as display context."""
+    runs = [_run(dps=10) for _ in range(3)]  # 10th-pct bracketed runs
     result = score_player_runs(runs, Role.dps, zone_dps_percentile=95.0)
-    assert result.category_scores["damage_output"] == 95.0
+    # Grade uses the bracketed per-run avg, not the inflated overall %ile.
+    assert result.category_scores["damage_output"] == pytest.approx(10)
+    # Overall %ile is preserved for display only.
+    assert result.category_scores["damage_output_overall"] == 95.0
 
 
 def test_healer_uses_healing_throughput_category():
