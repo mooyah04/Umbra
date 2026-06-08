@@ -61,7 +61,14 @@ def refresh_cloudflare_ips() -> int:
     networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
     for url in (_CLOUDFLARE_V4_URL, _CLOUDFLARE_V6_URL):
         try:
-            with urllib.request.urlopen(url, timeout=5) as resp:
+            # www.cloudflare.com sits behind Cloudflare's own bot protection,
+            # which 403s the default "Python-urllib/x.y" User-Agent. Send a
+            # real UA so the published IP lists actually load — without this
+            # the fetch fails and CF-Connecting-IP gets treated as untrusted.
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "UmbraBot/1.0 (+https://wowumbra.gg)"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 body = resp.read().decode("utf-8")
         except Exception as e:
             logger.warning("Failed to fetch Cloudflare IP list %s: %s", url, e)
