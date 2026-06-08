@@ -35,4 +35,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -fsS http://localhost:8000/api/health || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bind :: (dual-stack), not 0.0.0.0. Railway's private network — which the
+# deploy healthcheck probes over — is IPv6-only; an IPv4-only socket passes
+# public ingress but fails the internal healthcheck. On Linux dual-stack
+# (bindv6only=0) :: still accepts IPv4-mapped connections, so localhost/127.x
+# healthchecks and public traffic keep working.
+CMD ["uvicorn", "app.main:app", "--host", "::", "--port", "8000"]
