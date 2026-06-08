@@ -1,6 +1,7 @@
 """Lua export — verify syntax and structure on sample data."""
 from datetime import datetime
 
+from app.export import lua_writer
 from app.export.lua_writer import generate_lua
 from app.models import DungeonRun, Player, PlayerScore, Role
 
@@ -71,6 +72,27 @@ def test_generated_lua_parses(db_session):
         if line.strip().startswith('["'):
             # Every key must close with "]
             assert '"]' in line
+
+
+def test_export_is_cached_until_data_changes(db_session, monkeypatch):
+    """Second call with unchanged data returns cached content without
+    re-rendering; adding a graded player busts the cache."""
+    _seed(db_session, name="Cacheme")
+    first = generate_lua(db_session)
+
+    # With no data change, _generate_lua_uncached must NOT be called again.
+    def _boom(*a, **k):
+        raise AssertionError("regenerated despite unchanged data")
+
+    monkeypatch.setattr(lua_writer, "_generate_lua_uncached", _boom)
+    assert generate_lua(db_session) == first
+
+    # New graded player changes the signature → cache busts → re-render.
+    monkeypatch.undo()
+    _seed(db_session, name="Newbie")
+    refreshed = generate_lua(db_session)
+    assert '["Newbie-Illidan"]' in refreshed
+    assert '["Cacheme-Illidan"]' in refreshed
 
 
 def test_untimed_run_yields_zero_timed_pct(db_session):

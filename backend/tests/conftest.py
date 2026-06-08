@@ -26,6 +26,17 @@ from sqlalchemy.pool import StaticPool
 from app.models import Base
 
 
+@pytest.fixture(autouse=True)
+def _clear_lua_cache():
+    """The Lua export caches rendered content keyed on a player_scores
+    data signature (count, max id). Each test gets a fresh in-memory DB
+    with IDs reset to 1, so signatures collide across tests — clear the
+    cache before every test to keep them isolated."""
+    from app.export.lua_writer import clear_lua_cache
+    clear_lua_cache()
+    yield
+
+
 @pytest.fixture
 def db_engine():
     """Fresh in-memory SQLite engine per test, shared across threads.

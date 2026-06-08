@@ -1,11 +1,42 @@
 """Generates UmbraData.lua from the player_scores table."""
 
+import threading
 from collections import defaultdict
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import DungeonRun, Player, PlayerScore, Role
+
+
+# ── Export cache ────────────────────────────────────────────────────────────
+# Generating the Lua is expensive (re-scores every player's runs per dungeon
+# in memory — seconds for the full table). The output only changes when the
+# player_scores table changes, and grading is on-demand, so between grades the
+# same content is regenerated on every hit (hourly refresh workflow + any user
+# downloads). We cache the rendered string per region, keyed on a cheap data
+# signature: (row count, max id) over player_scores. Re-grading deletes and
+# re-inserts score rows (see ingest.py), so max(id) strictly advances on any
+# change — inserts, deletes, and re-grades all bust the cache; nothing else
+# does. One aggregate query (~ms) gates a multi-second regeneration.
+_lua_cache: dict[str | None, tuple[tuple[int, int], str]] = {}
+_lua_cache_lock = threading.Lock()
+
+
+def _data_signature(session: Session) -> tuple[int, int]:
+    """Cheap fingerprint of player_scores state. Changes iff the export
+    would change. max(id) is NULL on an empty table → normalize to 0."""
+    count, max_id = session.execute(
+        select(func.count(PlayerScore.id), func.max(PlayerScore.id))
+    ).one()
+    return (count or 0, max_id or 0)
+
+
+def clear_lua_cache() -> None:
+    """Drop all cached export content. Used by tests for isolation; safe to
+    call in prod (next request just regenerates)."""
+    with _lua_cache_lock:
+        _lua_cache.clear()
 
 
 # Role-specific fields to export in the Lua table
@@ -215,7 +246,26 @@ def _get_per_dungeon(
 
 
 def generate_lua(session: Session, region: str | None = None) -> str:
-    """Generate UmbraData.lua content, optionally filtered by region."""
+    """Generate UmbraData.lua content, optionally filtered by region.
+
+    Cached per region on the player_scores data signature — see the
+    cache notes at the top of this module. A signature change in any
+    region busts every region's entry (the fingerprint is table-global),
+    which is correct if slightly conservative.
+    """
+    sig = _data_signature(session)
+    cached = _lua_cache.get(region)
+    if cached is not None and cached[0] == sig:
+        return cached[1]
+
+    content = _generate_lua_uncached(session, region)
+    with _lua_cache_lock:
+        _lua_cache[region] = (sig, content)
+    return content
+
+
+def _generate_lua_uncached(session: Session, region: str | None = None) -> str:
+    """Render UmbraData.lua content from scratch (no caching)."""
     stmt = (
         select(PlayerScore)
         .where(PlayerScore.primary_role.is_(True))
