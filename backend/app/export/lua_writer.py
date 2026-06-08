@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from sqlalchemy import Integer, select, func
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import DungeonRun, Player, PlayerScore, Role
@@ -84,53 +84,62 @@ def _build_player_entry(
     return "\n".join(lines)
 
 
-def _get_timed_percentages(session: Session, player_ids: list[int]) -> dict[int, int]:
-    """Calculate timed key percentage per player from their dungeon runs."""
+def _load_runs_by_player(
+    session: Session, player_ids: list[int],
+) -> dict[int, list[DungeonRun]]:
+    """Load every dungeon run for the given players in a single query and
+    group them by player_id in memory.
+
+    This is the spine of the Lua export's performance: the three derived
+    values (timed %, primary spec, per-dungeon breakdown) are all pure
+    functions of a player's runs, so we fetch the runs ONCE here and pass
+    the grouped result to each helper. Previously each helper queried per
+    player — O(n_players) round-trips that dominated wall-clock on a
+    remote Postgres (≈1.2k queries / 16s for the full export). Now it's
+    one round-trip regardless of player count.
+    """
     if not player_ids:
         return {}
 
-    stmt = (
-        select(
-            DungeonRun.player_id,
-            func.count().label("total"),
-            func.sum(DungeonRun.timed.cast(Integer)).label("timed"),
-        )
-        .where(DungeonRun.player_id.in_(player_ids))
-        .group_by(DungeonRun.player_id)
-    )
-    result = session.execute(stmt)
+    runs = session.execute(
+        select(DungeonRun).where(DungeonRun.player_id.in_(player_ids))
+    ).scalars().all()
 
+    by_player: dict[int, list[DungeonRun]] = defaultdict(list)
+    for r in runs:
+        by_player[r.player_id].append(r)
+    return by_player
+
+
+def _get_timed_percentages(
+    runs_by_player: dict[int, list[DungeonRun]],
+) -> dict[int, int]:
+    """Calculate timed key percentage per player from their dungeon runs."""
     pct_map = {}
-    for row in result:
-        total = row.total or 0
-        timed = row.timed or 0
-        pct_map[row.player_id] = int(round((timed / total) * 100)) if total > 0 else 0
-
+    for pid, runs in runs_by_player.items():
+        total = len(runs)
+        timed = sum(1 for r in runs if r.timed)
+        pct_map[pid] = int(round((timed / total) * 100)) if total > 0 else 0
     return pct_map
 
 
-def _get_primary_specs(session: Session, player_ids: list[int]) -> dict[int, str]:
-    """Get the most-used spec name per player from their most recent runs."""
-    if not player_ids:
-        return {}
-
-    # Get the most recent run's spec for each player
+def _get_primary_specs(
+    runs_by_player: dict[int, list[DungeonRun]],
+) -> dict[int, str]:
+    """Get the spec name from each player's most recent run."""
     spec_map = {}
-    for pid in player_ids:
-        stmt = (
-            select(DungeonRun.spec_name)
-            .where(DungeonRun.player_id == pid)
-            .order_by(DungeonRun.logged_at.desc())
-            .limit(1)
-        )
-        result = session.execute(stmt).scalar_one_or_none()
-        spec_map[pid] = result or "Unknown"
-
+    for pid, runs in runs_by_player.items():
+        if not runs:
+            spec_map[pid] = "Unknown"
+            continue
+        latest = max(runs, key=lambda r: r.logged_at)
+        spec_map[pid] = latest.spec_name or "Unknown"
     return spec_map
 
 
 def _get_per_dungeon(
-    session: Session, player_scores: list[PlayerScore],
+    runs_by_player: dict[int, list[DungeonRun]],
+    player_scores: list[PlayerScore],
 ) -> dict[int, list[dict]]:
     """Compute per-dungeon grade/runs/best-timed for each player (keyed
     by player_id). Only the player's primary-role runs are scored —
@@ -141,27 +150,23 @@ def _get_per_dungeon(
     Each dict: {encounter_id, name, grade, runs, best_timed}.
     """
     from app.scoring.dungeons.registry import _DUNGEONS
-    from app.scoring.engine import composite_to_grade, score_player_runs
+    from app.scoring.engine import score_player_runs
 
     if not player_scores:
         return {}
 
-    # We score per (player, role, encounter) by fetching all the
-    # player's runs in their primary role at each encounter. Bulk
-    # fetch is one query per player — the alternative (one big IN
-    # with group-by in SQL) doesn't slot cleanly into
-    # score_player_runs' object-oriented API. O(n_players * avg_enc)
-    # scoring calls, all in-memory once runs are loaded.
+    # Runs are already loaded and grouped by player. We score per
+    # (player, role, encounter) entirely in memory — filter the
+    # player's runs to their primary role, bucket by encounter, and
+    # score each bucket. O(n_players * avg_enc) scoring calls, zero
+    # additional DB round-trips.
     out: dict[int, list[dict]] = {}
 
     for ps in player_scores:
         player_id = ps.player_id
-        player_runs = list(session.execute(
-            select(DungeonRun).where(
-                DungeonRun.player_id == player_id,
-                DungeonRun.role == ps.role,
-            )
-        ).scalars())
+        player_runs = [
+            r for r in runs_by_player.get(player_id, []) if r.role == ps.role
+        ]
         if not player_runs:
             out[player_id] = []
             continue
@@ -223,11 +228,14 @@ def generate_lua(session: Session, region: str | None = None) -> str:
     if region:
         scores = [s for s in scores if s.player.region.upper() == region.upper()]
 
-    # Get timed percentages and spec names for all players
+    # Load all runs for these players in one query, then derive timed
+    # percentages, primary specs, and per-dungeon breakdowns from that
+    # single in-memory dataset.
     player_ids = [s.player_id for s in scores]
-    timed_pcts = _get_timed_percentages(session, player_ids)
-    spec_names = _get_primary_specs(session, player_ids)
-    per_dungeon = _get_per_dungeon(session, scores)
+    runs_by_player = _load_runs_by_player(session, player_ids)
+    timed_pcts = _get_timed_percentages(runs_by_player)
+    spec_names = _get_primary_specs(runs_by_player)
+    per_dungeon = _get_per_dungeon(runs_by_player, scores)
 
     entries = []
     for score in scores:
