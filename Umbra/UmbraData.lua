@@ -951,8 +951,8 @@ Umbra_Database = {
         timed_pct = 61,
         runs = 127,
         dungeons = {
-            [112526] = { name = "Algeth'ar Academy", grade = "S", runs = 4, best_timed = 19 },
             [12874] = { name = "Maisara Caverns", grade = "S", runs = 3, best_timed = 19 },
+            [112526] = { name = "Algeth'ar Academy", grade = "S", runs = 4, best_timed = 19 },
             [10658] = { name = "Pit of Saron", grade = "A+", runs = 2, best_timed = 19 },
             [12811] = { name = "Magister's Terrace", grade = "A+", runs = 2, best_timed = 20 },
             [61209] = { name = "Skyreach", grade = "A+", runs = 3, best_timed = 19 },
