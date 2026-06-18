@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-06-18",
+    title: "Addon updated for WoW 12.0.7",
+    category: "improved",
+    body:
+      "The 12.0.7 client patch just went live. We bumped Umbra's compatibility marker to match so the addon loads without the out-of-date warning on updated clients. No behavior changes. Grab the latest from CurseForge, Wago, or the direct download.",
+  },
+  {
     date: "2026-06-04",
     title: "Damage Output now grades you against your own key level",
     category: "fixed",
