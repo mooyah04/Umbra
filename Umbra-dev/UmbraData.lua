@@ -1697,7 +1697,7 @@ Umbra_Database = {
         cd_usage = 73,
         cpm = 99,
         timed_pct = 100,
-        runs = 20,
+        runs = 21,
         dungeons = {
             [12811] = { name = "Magister's Terrace", grade = "B+", runs = 1, best_timed = 7 },
             [112526] = { name = "Algeth'ar Academy", grade = "B", runs = 2, best_timed = 5 },
