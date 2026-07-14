@@ -20,6 +20,14 @@ on:
 permissions:
   contents: write  # needed to commit + push the refreshed files
 
+# Shared with auto-release.yml so the two master-pushing jobs never run
+# concurrently (see that file for the 2026-07-14 race this prevents).
+# This job keeps its own pull --rebase + retry loop below as a second
+# line of defense against developer pushes, which concurrency can't gate.
+concurrency:
+  group: umbra-master-push
+  cancel-in-progress: false
+
 env:
   # Opt into Node 24 for all JavaScript actions now so we don't eat the
   # deprecation warning on every run. GitHub forces Node 24 by default

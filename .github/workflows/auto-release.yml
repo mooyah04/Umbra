@@ -32,6 +32,16 @@ on:
 permissions:
   contents: write  # commit the version bump, push the tag
 
+# Serialize against refresh-addon-data.yml: both jobs push to master, and
+# their crons drift enough to overlap (seen 2026-07-14 — a refresh push
+# landed between this job's checkout and push, rejecting master as
+# non-fast-forward and orphaning the tag). Sharing one concurrency group
+# with cancel-in-progress: false makes whichever job starts second wait
+# for the first to finish, so it checks out an already-current master.
+concurrency:
+  group: umbra-master-push
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -144,7 +154,13 @@ jobs:
           "
 
           git tag "${NEW_TAG}"
-          git push origin master "${NEW_TAG}"
+          # Atomic push: master and the tag land together or neither does.
+          # Without --atomic a lost race pushes the tag but rejects master,
+          # leaving an orphan tag pointing at an unmerged commit (the
+          # 2026-07-14 failure). The concurrency guard should prevent the
+          # race entirely; --atomic is the belt-and-suspenders backstop so
+          # any residual race fails cleanly and self-heals on the next run.
+          git push --atomic origin master "${NEW_TAG}"
 
       - name: Stage Umbra/ as a standalone git checkout for packager
         if: steps.decide.outputs.skip == 'false'
