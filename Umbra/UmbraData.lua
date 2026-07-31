@@ -5287,7 +5287,7 @@ Umbra_Database = {
         cd_usage = 100,
         cpm = 100,
         timed_pct = 31,
-        runs = 222,
+        runs = 223,
         dungeons = {
             [12915] = { name = "Nexus-Point Xenas", grade = "S", runs = 8, best_timed = 20 },
             [12805] = { name = "Windrunner Spire", grade = "S", runs = 14, best_timed = 19 },
