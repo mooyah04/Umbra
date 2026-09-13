@@ -2,6 +2,11 @@
 
 All notable changes to the WoWUmbra.gg addon are recorded here.
 
+## [0.3.132] - 2026-09-13
+
+### Changed
+- Bundled grade data refreshed (automated daily release).
+
 ## [0.3.131] - 2026-09-10
 
 ### Changed
